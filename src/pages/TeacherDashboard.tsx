@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,9 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { FileDownload, SubmissionFiles } from "@/components/FileDownload";
 import { 
   Calendar, 
   Video, 
@@ -17,7 +20,13 @@ import {
   User,
   Loader2,
   Plus,
-  Search
+  Search,
+  Upload,
+  X,
+  File,
+  ClipboardList,
+  CheckCircle2,
+  Clock
 } from "lucide-react";
 
 interface Student {
@@ -26,12 +35,35 @@ interface Student {
   grade: string | null;
 }
 
+interface FileInfo {
+  file_name: string;
+  storage_path: string;
+  uploaded_by_role: "teacher" | "student";
+  uploaded_at: string;
+}
+
+interface AssignmentWithFiles {
+  id: string;
+  title: string;
+  subject: string | null;
+  description: string | null;
+  due_date: string | null;
+  status: string;
+  created_at: string;
+  student_user_id: string;
+  has_attachments: boolean;
+  attachments: FileInfo[];
+  submission_attachments: FileInfo[];
+  student_name?: string;
+}
+
 const TeacherDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [assignments, setAssignments] = useState<AssignmentWithFiles[]>([]);
 
   // Form states
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -60,6 +92,12 @@ const TeacherDashboard = () => {
 
   const [submitting, setSubmitting] = useState(false);
 
+  // File upload states
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   useEffect(() => {
     fetchData();
   }, [user]);
@@ -82,7 +120,25 @@ const TeacherDashboard = () => {
         .eq("user_id", user.id)
         .maybeSingle();
 
+      // Fetch assignments created by this teacher
+      const { data: assignmentsData } = await supabase
+        .from("assignments")
+        .select("id, title, subject, description, due_date, status, created_at, student_user_id, has_attachments, attachments, submission_attachments")
+        .eq("teacher_user_id", user.id)
+        .order("created_at", { ascending: false });
+
       setStudents(studentsData || []);
+      
+      // Map student names to assignments
+      const studentsMap = new Map(studentsData?.map(s => [s.user_id, s.student_name]) || []);
+      const assignmentsWithNames = (assignmentsData || []).map(a => ({
+        ...a,
+        attachments: (a.attachments as unknown as FileInfo[]) || [],
+        submission_attachments: (a.submission_attachments as unknown as FileInfo[]) || [],
+        student_name: studentsMap.get(a.student_user_id) || "Unknown Student"
+      }));
+      setAssignments(assignmentsWithNames);
+
       if (profileData) {
         setProfileForm({
           subjects: profileData.subjects || "",
@@ -100,6 +156,61 @@ const TeacherDashboard = () => {
   const filteredStudents = students.filter(s =>
     s.student_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setPendingFiles((prev) => [...prev, ...files]);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadFilesToStorage = async (assignmentId: string): Promise<FileInfo[]> => {
+    if (pendingFiles.length === 0) return [];
+
+    setUploading(true);
+    setUploadProgress(0);
+
+    const uploadedFiles: FileInfo[] = [];
+    const totalFiles = pendingFiles.length;
+
+    try {
+      for (let i = 0; i < pendingFiles.length; i++) {
+        const file = pendingFiles[i];
+        const timestamp = Date.now();
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+        const storagePath = `assignments/${assignmentId}/${timestamp}_${safeName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("assignment-files")
+          .upload(storagePath, file);
+
+        if (uploadError) {
+          throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`);
+        }
+
+        uploadedFiles.push({
+          file_name: file.name,
+          storage_path: storagePath,
+          uploaded_by_role: "teacher",
+          uploaded_at: new Date().toISOString(),
+        });
+
+        setUploadProgress(Math.round(((i + 1) / totalFiles) * 100));
+      }
+
+      return uploadedFiles;
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
 
   const handleAddAttendance = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,10 +240,11 @@ const TeacherDashboard = () => {
         hours: "",
         topic: "",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to save attendance.";
       toast({
         title: "Error",
-        description: error.message || "Failed to save attendance.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -146,20 +258,43 @@ const TeacherDashboard = () => {
     setSubmitting(true);
 
     try {
-      const { error } = await supabase.from("assignments").insert({
+      // First create the assignment
+      const { data: newAssignment, error } = await supabase.from("assignments").insert({
         student_user_id: selectedStudent,
         teacher_user_id: user.id,
         title: assignmentForm.title,
         subject: assignmentForm.subject || null,
         description: assignmentForm.description || null,
         due_date: assignmentForm.dueDate || null,
-      });
+        has_attachments: pendingFiles.length > 0,
+        attachments: [] as unknown as undefined,
+      }).select().single();
 
       if (error) throw error;
 
+      // Upload files if any
+      if (pendingFiles.length > 0 && newAssignment) {
+        const uploadedFiles = await uploadFilesToStorage(newAssignment.id);
+        
+        // Update assignment with file metadata
+        const { error: updateError } = await supabase
+          .from("assignments")
+          .update({
+            attachments: uploadedFiles as unknown as undefined,
+            has_attachments: true,
+          })
+          .eq("id", newAssignment.id);
+
+        if (updateError) {
+          console.error("Failed to update assignment with attachments:", updateError);
+        }
+      }
+
       toast({
         title: "Assignment created",
-        description: "The assignment has been assigned to the student.",
+        description: pendingFiles.length > 0 
+          ? `Assignment created with ${pendingFiles.length} attachment(s).`
+          : "The assignment has been assigned to the student.",
       });
 
       setAssignmentForm({
@@ -168,10 +303,13 @@ const TeacherDashboard = () => {
         description: "",
         dueDate: "",
       });
-    } catch (error: any) {
+      setPendingFiles([]);
+      fetchData(); // Refresh to show new assignment
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to create assignment.";
       toast({
         title: "Error",
-        description: error.message || "Failed to create assignment.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -204,10 +342,11 @@ const TeacherDashboard = () => {
         meetingId: "",
         passcode: "",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to save Zoom link.";
       toast({
         title: "Error",
-        description: error.message || "Failed to save Zoom link.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -234,15 +373,21 @@ const TeacherDashboard = () => {
         title: "Profile updated",
         description: "Your profile has been saved.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update profile.";
       toast({
         title: "Error",
-        description: error.message || "Failed to update profile.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const isOverdue = (dueDate: string | null) => {
+    if (!dueDate) return false;
+    return new Date(dueDate) < new Date();
   };
 
   if (loading) {
@@ -258,7 +403,7 @@ const TeacherDashboard = () => {
   return (
     <DashboardLayout title="Teacher Dashboard" roleLabel="Teacher" roleColor="teacher">
       <Tabs defaultValue="attendance" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 max-w-lg">
+        <TabsList className="grid w-full grid-cols-5 max-w-xl">
           <TabsTrigger value="attendance" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Attendance</span>
@@ -266,6 +411,10 @@ const TeacherDashboard = () => {
           <TabsTrigger value="assignments" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Assignments</span>
+          </TabsTrigger>
+          <TabsTrigger value="manage" className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4" />
+            <span className="hidden sm:inline">Manage</span>
           </TabsTrigger>
           <TabsTrigger value="zoom" className="flex items-center gap-2">
             <Video className="h-4 w-4" />
@@ -277,7 +426,7 @@ const TeacherDashboard = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Student Selector - shown on all tabs except profile */}
+        {/* Student Selector - shown on all tabs except profile and manage */}
         <Card className="mb-6">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Select Student</CardTitle>
@@ -390,7 +539,7 @@ const TeacherDashboard = () => {
           </Card>
         </TabsContent>
 
-        {/* Assignments Tab */}
+        {/* Assignments Tab - Create new assignments */}
         <TabsContent value="assignments">
           <Card className="max-w-lg">
             <CardHeader>
@@ -398,7 +547,7 @@ const TeacherDashboard = () => {
                 <Plus className="h-5 w-5" />
                 Create Assignment
               </CardTitle>
-              <CardDescription>Assign work to the selected student</CardDescription>
+              <CardDescription>Assign work to the selected student with file attachments</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddAssignment} className="space-y-4">
@@ -442,19 +591,175 @@ const TeacherDashboard = () => {
                     rows={3}
                   />
                 </div>
+
+                {/* File Attachments Section */}
+                <div className="space-y-3 pt-2 border-t">
+                  <Label className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Attachments
+                  </Label>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Add Files
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileSelect}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif,.webp"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      PDF, DOC, images, etc.
+                    </span>
+                  </div>
+
+                  {/* Upload Progress */}
+                  {uploading && (
+                    <div className="space-y-1">
+                      <Progress value={uploadProgress} className="h-2" />
+                      <p className="text-xs text-muted-foreground">{uploadProgress}% complete</p>
+                    </div>
+                  )}
+
+                  {/* Pending Files */}
+                  {pendingFiles.length > 0 && (
+                    <div className="space-y-2">
+                      {pendingFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-sm"
+                        >
+                          <File className="h-4 w-4 text-muted-foreground" />
+                          <span className="flex-1 truncate">{file.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {(file.size / 1024).toFixed(1)} KB
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => removePendingFile(index)}
+                            disabled={uploading}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <Button
                   type="submit"
                   variant="teacher"
                   className="w-full"
-                  disabled={!selectedStudent || submitting}
+                  disabled={!selectedStudent || submitting || uploading}
                 >
                   {submitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    "Create Assignment"
+                    <>Create Assignment {pendingFiles.length > 0 && `(${pendingFiles.length} files)`}</>
                   )}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Manage Assignments Tab - View all assignments and submissions */}
+        <TabsContent value="manage" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5" />
+                All Assignments
+              </CardTitle>
+              <CardDescription>View and manage assignments you've created</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {assignments.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No assignments created yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {assignments.map((assignment) => (
+                    <div
+                      key={assignment.id}
+                      className="p-4 rounded-lg border border-border hover:border-teacher/30 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-foreground">{assignment.title}</h4>
+                          <p className="text-sm text-teacher">{assignment.student_name}</p>
+                          {assignment.subject && (
+                            <p className="text-xs text-muted-foreground">{assignment.subject}</p>
+                          )}
+                          {assignment.description && (
+                            <p className="text-sm text-muted-foreground mt-1">{assignment.description}</p>
+                          )}
+                          <div className="flex items-center gap-4 mt-2">
+                            {assignment.due_date && (
+                              <span className={`text-xs flex items-center gap-1 ${
+                                isOverdue(assignment.due_date) && assignment.status !== "submitted"
+                                  ? "text-destructive"
+                                  : "text-muted-foreground"
+                              }`}>
+                                <Clock className="h-3 w-3" />
+                                Due: {new Date(assignment.due_date).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          {assignment.status === "submitted" ? (
+                            <Badge className="bg-teacher/10 text-teacher">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Submitted
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-secondary border-secondary">
+                              Pending
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Teacher Attachments */}
+                      {assignment.attachments.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border/50">
+                          <FileDownload 
+                            files={assignment.attachments} 
+                            title="Your Attachments"
+                          />
+                        </div>
+                      )}
+
+                      {/* Student Submissions */}
+                      {assignment.submission_attachments.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border/50">
+                          <SubmissionFiles 
+                            submissionFiles={assignment.submission_attachments}
+                            studentName={assignment.student_name}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
