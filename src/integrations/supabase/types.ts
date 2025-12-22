@@ -16,37 +16,46 @@ export type Database = {
     Tables: {
       assignments: {
         Row: {
+          attachments: Json | null
           created_at: string | null
           description: string | null
           due_date: string | null
+          has_attachments: boolean | null
           id: string
           status: string
           student_user_id: string
           subject: string | null
+          submission_attachments: Json | null
           teacher_user_id: string
           title: string
           updated_at: string | null
         }
         Insert: {
+          attachments?: Json | null
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          has_attachments?: boolean | null
           id?: string
           status?: string
           student_user_id: string
           subject?: string | null
+          submission_attachments?: Json | null
           teacher_user_id: string
           title: string
           updated_at?: string | null
         }
         Update: {
+          attachments?: Json | null
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          has_attachments?: boolean | null
           id?: string
           status?: string
           student_user_id?: string
           subject?: string | null
+          submission_attachments?: Json | null
           teacher_user_id?: string
           title?: string
           updated_at?: string | null
