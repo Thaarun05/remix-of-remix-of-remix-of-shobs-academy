@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FileDownload } from "@/components/FileDownload";
+import { StudentCalendar } from "@/components/StudentCalendar";
 import { 
   Calendar, 
   Video, 
@@ -20,7 +21,8 @@ import {
   Loader2,
   Upload,
   X,
-  File
+  File,
+  CalendarDays
 } from "lucide-react";
 
 interface AttendanceRecord {
@@ -232,8 +234,12 @@ const StudentDashboard = () => {
 
   return (
     <DashboardLayout title="Student Dashboard" roleLabel="Student" roleColor="student">
-      <Tabs defaultValue="attendance" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+      <Tabs defaultValue="schedule" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
+          <TabsTrigger value="schedule" className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            <span className="hidden sm:inline">Schedule</span>
+          </TabsTrigger>
           <TabsTrigger value="attendance" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Attendance</span>
@@ -247,6 +253,14 @@ const StudentDashboard = () => {
             <span className="hidden sm:inline">Assignments</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Schedule/Calendar Tab */}
+        <TabsContent value="schedule">
+          <StudentCalendar onNavigateToAssignment={() => {
+            const tabTrigger = document.querySelector('[data-state][value="assignments"]') as HTMLElement;
+            tabTrigger?.click();
+          }} />
+        </TabsContent>
 
         {/* Attendance Tab */}
         <TabsContent value="attendance" className="space-y-6">
