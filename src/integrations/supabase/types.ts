@@ -95,6 +95,56 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          assignment_id: string | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          end_time: string | null
+          event_type: string
+          id: string
+          start_time: string
+          student_user_id: string
+          teacher_user_id: string | null
+          title: string
+        }
+        Insert: {
+          assignment_id?: string | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          end_time?: string | null
+          event_type: string
+          id?: string
+          start_time: string
+          student_user_id: string
+          teacher_user_id?: string | null
+          title: string
+        }
+        Update: {
+          assignment_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          end_time?: string | null
+          event_type?: string
+          id?: string
+          start_time?: string
+          student_user_id?: string
+          teacher_user_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null

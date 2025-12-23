@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FileDownload, SubmissionFiles } from "@/components/FileDownload";
+import { TeacherCalendar } from "@/components/TeacherCalendar";
 import { 
   Calendar, 
   Video, 
@@ -26,7 +27,8 @@ import {
   File,
   ClipboardList,
   CheckCircle2,
-  Clock
+  Clock,
+  CalendarDays
 } from "lucide-react";
 
 interface Student {
@@ -290,6 +292,23 @@ const TeacherDashboard = () => {
         }
       }
 
+      // Create a calendar event for the assignment (if due date is set)
+      if (newAssignment && assignmentForm.dueDate) {
+        const dueDateTime = new Date(assignmentForm.dueDate);
+        dueDateTime.setHours(23, 59, 0, 0); // Set to end of day
+
+        await supabase.from("events").insert({
+          title: `Due: ${assignmentForm.title}`,
+          description: assignmentForm.description || null,
+          event_type: "assignment",
+          start_time: dueDateTime.toISOString(),
+          student_user_id: selectedStudent,
+          teacher_user_id: user.id,
+          assignment_id: newAssignment.id,
+          created_by: user.id,
+        });
+      }
+
       toast({
         title: "Assignment created",
         description: pendingFiles.length > 0 
@@ -402,8 +421,12 @@ const TeacherDashboard = () => {
 
   return (
     <DashboardLayout title="Teacher Dashboard" roleLabel="Teacher" roleColor="teacher">
-      <Tabs defaultValue="attendance" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 max-w-xl">
+      <Tabs defaultValue="calendar" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-6 max-w-2xl">
+          <TabsTrigger value="calendar" className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            <span className="hidden sm:inline">Calendar</span>
+          </TabsTrigger>
           <TabsTrigger value="attendance" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Attendance</span>
@@ -460,8 +483,13 @@ const TeacherDashboard = () => {
                 No students registered yet.
               </p>
             )}
-          </CardContent>
+        </CardContent>
         </Card>
+
+        {/* Calendar Tab */}
+        <TabsContent value="calendar">
+          <TeacherCalendar students={students.map(s => ({ user_id: s.user_id, student_name: s.student_name }))} />
+        </TabsContent>
 
         {/* Attendance Tab */}
         <TabsContent value="attendance">
