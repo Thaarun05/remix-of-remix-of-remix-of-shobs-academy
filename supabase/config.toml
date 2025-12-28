@@ -1,1 +1,7 @@
 project_id = "swcilmnxyybnzdtlerln"
+
+[functions.create-teacher]
+verify_jwt = false
+
+[functions.send-demo-request]
+verify_jwt = false

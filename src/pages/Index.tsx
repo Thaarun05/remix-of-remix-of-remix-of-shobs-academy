@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, Users, Shield, BookOpen, ArrowRight } from "lucide-react";
-
+import { DemoRequestForm } from "@/components/DemoRequestForm";
 const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-accent/20 to-background">
@@ -30,11 +30,15 @@ const Index = () => {
             <span className="text-gradient">One Student at a Time</span>
           </h1>
 
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-12 animate-slide-up" style={{ animationDelay: "0.2s" }}>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 animate-slide-up" style={{ animationDelay: "0.2s" }}>
             Track attendance, manage assignments, and stay connected with your 
             learning journey through our comprehensive academy management system.
           </p>
 
+          {/* Demo Request CTA */}
+          <div className="mb-12 animate-slide-up" style={{ animationDelay: "0.25s" }}>
+            <DemoRequestForm />
+          </div>
           {/* Login Cards */}
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto animate-slide-up" style={{ animationDelay: "0.3s" }}>
             {/* Student Card */}

@@ -95,6 +95,51 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_requests: {
+        Row: {
+          age: string
+          created_at: string | null
+          days: string
+          grade: string
+          id: string
+          parent_email: string
+          parent_name: string
+          phone: string
+          status: string | null
+          student_name: string
+          subject: string
+          timing: string
+        }
+        Insert: {
+          age: string
+          created_at?: string | null
+          days: string
+          grade: string
+          id?: string
+          parent_email: string
+          parent_name: string
+          phone: string
+          status?: string | null
+          student_name: string
+          subject: string
+          timing: string
+        }
+        Update: {
+          age?: string
+          created_at?: string | null
+          days?: string
+          grade?: string
+          id?: string
+          parent_email?: string
+          parent_name?: string
+          phone?: string
+          status?: string | null
+          student_name?: string
+          subject?: string
+          timing?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           assignment_id: string | null
