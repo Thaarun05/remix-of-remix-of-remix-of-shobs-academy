@@ -15,7 +15,11 @@ import {
   GraduationCap,
   UserPlus,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  CalendarCheck,
+  Mail,
+  Phone,
+  Clock
 } from "lucide-react";
 import { z } from "zod";
 
@@ -25,6 +29,21 @@ interface Profile {
   full_name: string | null;
   phone: string | null;
   created_at: string;
+}
+
+interface DemoRequest {
+  id: string;
+  created_at: string;
+  student_name: string;
+  parent_name: string;
+  parent_email: string;
+  age: string;
+  grade: string;
+  subject: string;
+  timing: string;
+  days: string;
+  phone: string;
+  status: string;
 }
 
 const createTeacherSchema = z.object({
@@ -42,8 +61,10 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [demoRequests, setDemoRequests] = useState<DemoRequest[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [createSuccess, setCreateSuccess] = useState(false);
+  const [sendingConfirmation, setSendingConfirmation] = useState<string | null>(null);
   
   const [teacherForm, setTeacherForm] = useState({
     email: "",
@@ -56,24 +77,73 @@ const AdminDashboard = () => {
   });
 
   useEffect(() => {
-    fetchProfiles();
+    fetchData();
   }, [user]);
 
-  const fetchProfiles = async () => {
+  const fetchData = async () => {
     if (!user) return;
     setLoading(true);
 
     try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("user_id, role, full_name, phone, created_at")
-        .order("created_at", { ascending: false });
+      const [profilesRes, demoRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, role, full_name, phone, created_at")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("demo_requests")
+          .select("*")
+          .order("created_at", { ascending: false })
+      ]);
 
-      setProfiles(data || []);
+      setProfiles(profilesRes.data || []);
+      setDemoRequests(demoRes.data || []);
     } catch (error) {
-      console.error("Error fetching profiles:", error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendConfirmation = async (request: DemoRequest) => {
+    setSendingConfirmation(request.id);
+    
+    try {
+      const { error } = await supabase.functions.invoke("send-demo-confirmation", {
+        body: {
+          parentEmail: request.parent_email,
+          parentName: request.parent_name,
+          studentName: request.student_name,
+          subject: request.subject,
+          timing: request.timing,
+          days: request.days,
+        },
+      });
+
+      if (error) throw error;
+
+      // Update status in database
+      await supabase
+        .from("demo_requests")
+        .update({ status: "confirmed" })
+        .eq("id", request.id);
+
+      toast({
+        title: "Confirmation sent!",
+        description: `Email sent to ${request.parent_email}`,
+      });
+
+      // Refresh data
+      fetchData();
+    } catch (error: any) {
+      console.error("Error sending confirmation:", error);
+      toast({
+        title: "Failed to send confirmation",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingConfirmation(null);
     }
   };
 
@@ -85,7 +155,6 @@ const AdminDashboard = () => {
     try {
       const validated = createTeacherSchema.parse(teacherForm);
 
-      // Call edge function to create teacher
       const { data, error } = await supabase.functions.invoke("create-teacher", {
         body: {
           email: validated.email,
@@ -117,8 +186,7 @@ const AdminDashboard = () => {
         bio: "",
       });
 
-      // Refresh profiles list
-      fetchProfiles();
+      fetchData();
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast({
@@ -155,7 +223,7 @@ const AdminDashboard = () => {
   return (
     <DashboardLayout title="Admin Dashboard" roleLabel="Admin" roleColor="admin">
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
@@ -195,10 +263,27 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <CalendarCheck className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Demo Requests</p>
+                <p className="text-2xl font-bold text-foreground">{demoRequests.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <Tabs defaultValue="create-teacher" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+      <Tabs defaultValue="demo-requests" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+          <TabsTrigger value="demo-requests" className="flex items-center gap-2">
+            <CalendarCheck className="h-4 w-4" />
+            Demo Requests
+          </TabsTrigger>
           <TabsTrigger value="create-teacher" className="flex items-center gap-2">
             <UserPlus className="h-4 w-4" />
             Create Teacher
@@ -208,6 +293,97 @@ const AdminDashboard = () => {
             All Users
           </TabsTrigger>
         </TabsList>
+
+        {/* Demo Requests Tab */}
+        <TabsContent value="demo-requests">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarCheck className="h-5 w-5" />
+                Demo Class Requests
+              </CardTitle>
+              <CardDescription>
+                View and manage demo class requests from parents
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {demoRequests.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No demo requests yet.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {demoRequests.map((request) => (
+                    <div 
+                      key={request.id} 
+                      className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-lg">{request.student_name}</h3>
+                            <Badge variant={request.status === "confirmed" ? "default" : "secondary"}>
+                              {request.status === "confirmed" ? "Confirmed" : "Pending"}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground space-y-1">
+                            <p><strong>Age:</strong> {request.age} | <strong>Grade:</strong> {request.grade}</p>
+                            <p><strong>Subject:</strong> {request.subject}</p>
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{request.timing} on {request.days}</span>
+                            </div>
+                          </div>
+                          <div className="pt-2 border-t border-border/50 text-sm">
+                            <p><strong>Parent:</strong> {request.parent_name}</p>
+                            <div className="flex flex-wrap items-center gap-4 mt-1 text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Mail className="h-3 w-3" />
+                                {request.parent_email}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {request.phone}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Submitted: {new Date(request.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleSendConfirmation(request)}
+                            disabled={sendingConfirmation === request.id}
+                          >
+                            {sendingConfirmation === request.id ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                Sending...
+                              </>
+                            ) : (
+                              <>
+                                <Mail className="h-4 w-4 mr-1" />
+                                {request.status === "confirmed" ? "Resend" : "Send"} Confirmation
+                              </>
+                            )}
+                          </Button>
+                          <a 
+                            href={`mailto:${request.parent_email}`}
+                            className="text-xs text-center text-muted-foreground hover:text-foreground"
+                          >
+                            Open in email client
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Create Teacher Tab */}
         <TabsContent value="create-teacher">
