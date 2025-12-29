@@ -9,11 +9,13 @@ const Index = () => {
         {/* Header */}
         <nav className="flex items-center justify-between py-6 mb-8">
           <div className="flex items-center gap-3">
-            
             <span className="font-display text-xl font-semibold text-foreground">
               Shobs Academy
             </span>
           </div>
+          <Link to="/about">
+            <Button variant="ghost" size="sm">About Us</Button>
+          </Link>
         </nav>
 
         {/* Hero Section */}
