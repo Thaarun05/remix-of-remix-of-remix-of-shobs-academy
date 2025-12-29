@@ -2,18 +2,14 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, Users, Shield, BookOpen, ArrowRight, Sparkles } from "lucide-react";
 import { DemoRequestForm } from "@/components/DemoRequestForm";
-
 const Index = () => {
-  return (
-    <div className="min-h-screen page">
+  return <div className="min-h-screen page">
       {/* Container */}
       <div className="max-w-[1280px] mx-auto px-6">
         {/* Header */}
         <nav className="flex items-center justify-between py-6 mb-8">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-md shadow-primary/20">
-              <BookOpen className="h-5 w-5 text-primary-foreground" />
-            </div>
+            
             <span className="font-display text-xl font-semibold text-foreground">
               Shobs Academy
             </span>
@@ -22,28 +18,38 @@ const Index = () => {
 
         {/* Hero Section */}
         <main className="hero-section text-center mb-12 animate-fade-in">
-          <div className="pill-badge mx-auto mb-6" style={{ animationDelay: "0.05s" }}>
+          <div className="pill-badge mx-auto mb-6" style={{
+          animationDelay: "0.05s"
+        }}>
             <Sparkles className="h-3.5 w-3.5" />
             Welcome to Your Learning Portal
           </div>
 
-          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6 leading-[1.1] animate-fade-up" style={{ animationDelay: "0.1s" }}>
+          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6 leading-[1.1] animate-fade-up" style={{
+          animationDelay: "0.1s"
+        }}>
             Empowering Education,{" "}
             <span className="text-gradient">One Student at a Time</span>
           </h1>
 
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: "0.2s" }}>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-up" style={{
+          animationDelay: "0.2s"
+        }}>
             Track attendance, manage assignments, and stay connected with your 
             learning journey through our comprehensive academy management system.
           </p>
 
           {/* Demo Request CTA */}
-          <div className="mb-16 animate-fade-up" style={{ animationDelay: "0.25s" }}>
+          <div className="mb-16 animate-fade-up" style={{
+          animationDelay: "0.25s"
+        }}>
             <DemoRequestForm />
           </div>
 
           {/* Login Cards */}
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto animate-fade-up" style={{ animationDelay: "0.3s" }}>
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto animate-fade-up" style={{
+          animationDelay: "0.3s"
+        }}>
             {/* Student Card */}
             <Link to="/student-login" className="group">
               <div className="portal-card min-h-[200px] flex flex-col">
@@ -110,8 +116,6 @@ const Index = () => {
           </p>
         </footer>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
