@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FileDownload, SubmissionFiles } from "@/components/FileDownload";
 import { TeacherCalendar } from "@/components/TeacherCalendar";
+import { MessagingPanel } from "@/components/messaging/MessagingPanel";
+import { StartConversationButton } from "@/components/messaging/StartConversationButton";
 import { 
   Calendar, 
   Video, 
@@ -28,7 +30,8 @@ import {
   ClipboardList,
   CheckCircle2,
   Clock,
-  CalendarDays
+  CalendarDays,
+  MessageSquare
 } from "lucide-react";
 
 interface Student {
@@ -66,6 +69,10 @@ const TeacherDashboard = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [assignments, setAssignments] = useState<AssignmentWithFiles[]>([]);
+  
+  // Messaging state
+  const [activeTab, setActiveTab] = useState("calendar");
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
 
   // Form states
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -419,10 +426,15 @@ const TeacherDashboard = () => {
     );
   }
 
+  const handleMessageStudent = (conversationId: string) => {
+    setSelectedConversationId(conversationId);
+    setActiveTab("messages");
+  };
+
   return (
     <DashboardLayout title="Teacher Dashboard" roleLabel="Teacher" roleColor="teacher">
-      <Tabs defaultValue="calendar" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 max-w-2xl">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-7 max-w-3xl">
           <TabsTrigger value="calendar" className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
             <span className="hidden sm:inline">Calendar</span>
@@ -443,13 +455,18 @@ const TeacherDashboard = () => {
             <Video className="h-4 w-4" />
             <span className="hidden sm:inline">Zoom</span>
           </TabsTrigger>
+          <TabsTrigger value="messages" className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            <span className="hidden sm:inline">Messages</span>
+          </TabsTrigger>
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Profile</span>
           </TabsTrigger>
         </TabsList>
 
-        {/* Student Selector - shown on all tabs except profile and manage */}
+        {/* Student Selector - shown on all tabs except profile, manage, and messages */}
+        {activeTab !== "profile" && activeTab !== "manage" && activeTab !== "messages" && (
         <Card className="mb-6">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Select Student</CardTitle>
@@ -477,6 +494,12 @@ const TeacherDashboard = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {selectedStudent && (
+                <StartConversationButton
+                  studentUserId={selectedStudent}
+                  onConversationCreated={handleMessageStudent}
+                />
+              )}
             </div>
             {students.length === 0 && (
               <p className="text-sm text-muted-foreground mt-2">
@@ -485,6 +508,7 @@ const TeacherDashboard = () => {
             )}
         </CardContent>
         </Card>
+        )}
 
         {/* Calendar Tab */}
         <TabsContent value="calendar">
@@ -907,6 +931,14 @@ const TeacherDashboard = () => {
               </form>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Messages Tab */}
+        <TabsContent value="messages">
+          <MessagingPanel 
+            userRole="teacher" 
+            preselectedConversationId={selectedConversationId}
+          />
         </TabsContent>
       </Tabs>
     </DashboardLayout>

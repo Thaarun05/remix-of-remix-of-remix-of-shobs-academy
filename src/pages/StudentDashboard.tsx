@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FileDownload } from "@/components/FileDownload";
 import { StudentCalendar } from "@/components/StudentCalendar";
+import { MessagingPanel } from "@/components/messaging/MessagingPanel";
 import { 
   Calendar, 
   Video, 
@@ -22,7 +23,8 @@ import {
   Upload,
   X,
   File,
-  CalendarDays
+  CalendarDays,
+  MessageSquare
 } from "lucide-react";
 
 interface AttendanceRecord {
@@ -235,7 +237,7 @@ const StudentDashboard = () => {
   return (
     <DashboardLayout title="Student Dashboard" roleLabel="Student" roleColor="student">
       <Tabs defaultValue="schedule" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 max-w-lg">
+        <TabsList className="grid w-full grid-cols-5 max-w-xl">
           <TabsTrigger value="schedule" className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
             <span className="hidden sm:inline">Schedule</span>
@@ -251,6 +253,10 @@ const StudentDashboard = () => {
           <TabsTrigger value="assignments" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Assignments</span>
+          </TabsTrigger>
+          <TabsTrigger value="messages" className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            <span className="hidden sm:inline">Messages</span>
           </TabsTrigger>
         </TabsList>
 
@@ -425,6 +431,11 @@ const StudentDashboard = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Messages Tab */}
+        <TabsContent value="messages">
+          <MessagingPanel userRole="student" />
         </TabsContent>
       </Tabs>
     </DashboardLayout>
