@@ -40,27 +40,27 @@ export function DashboardLayout({ children, title, roleLabel, roleColor }: Dashb
   };
 
   const roleColorClasses = {
-    student: "bg-student text-student-foreground",
-    teacher: "bg-teacher text-teacher-foreground",
-    admin: "bg-admin text-admin-foreground",
+    student: "bg-student/15 text-student border border-student/25",
+    teacher: "bg-teacher/15 text-teacher border border-teacher/25",
+    admin: "bg-admin/15 text-admin border border-admin/25",
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen page">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border">
-        <div className="container mx-auto px-4 py-4">
+      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/60 shadow-sm">
+        <div className="max-w-[1280px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link to="/" className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-md shadow-primary/20">
                   <BookOpen className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <span className="font-display text-xl font-semibold text-foreground hidden sm:block">
                   Shobs Academy
                 </span>
               </Link>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${roleColorClasses[roleColor]}`}>
+              <span className={`px-4 py-1.5 rounded-full text-xs font-semibold ${roleColorClasses[roleColor]}`}>
                 {roleLabel}
               </span>
             </div>
@@ -73,13 +73,14 @@ export function DashboardLayout({ children, title, roleLabel, roleColor }: Dashb
                 size="sm"
                 onClick={handleSignOut}
                 disabled={signingOut}
+                className="gap-2"
               >
                 {signingOut ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
                     <LogOut className="h-4 w-4" />
-                    <span className="hidden sm:inline ml-2">Sign Out</span>
+                    <span className="hidden sm:inline">Sign Out</span>
                   </>
                 )}
               </Button>
@@ -89,7 +90,7 @@ export function DashboardLayout({ children, title, roleLabel, roleColor }: Dashb
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="max-w-[1280px] mx-auto px-6 py-8">
         <h1 className="font-display text-3xl font-bold text-foreground mb-8">{title}</h1>
         {children}
       </main>
