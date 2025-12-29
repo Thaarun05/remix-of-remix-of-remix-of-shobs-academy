@@ -72,8 +72,8 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-admin/5 to-background flex flex-col">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen page flex flex-col">
+      <div className="max-w-[1280px] mx-auto px-6 py-6 w-full">
         <nav className="flex items-center justify-between mb-8">
           <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -90,8 +90,8 @@ const AdminLogin = () => {
         </nav>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-4 pb-16">
-        <Card className="w-full max-w-md border-admin/20 shadow-xl shadow-admin/5">
+      <div className="flex-1 flex items-center justify-center px-6 pb-16">
+        <Card className="w-full max-w-md border-admin/30 shadow-xl">
           <CardHeader className="text-center pb-2">
             <div className="h-16 w-16 rounded-2xl bg-admin/10 flex items-center justify-center mx-auto mb-4">
               <Shield className="h-8 w-8 text-admin" />

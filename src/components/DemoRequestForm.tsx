@@ -110,15 +110,12 @@ export function DemoRequestForm() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button 
-          size="lg" 
-          className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 gap-2"
-        >
+        <Button variant="hero" size="lg" className="gap-2.5">
           <CalendarCheck className="h-5 w-5" />
           Book a Free Demo Class
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-display">Book a Demo Class</DialogTitle>
           <DialogDescription>
@@ -126,7 +123,7 @@ export function DemoRequestForm() {
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-5 px-6 pb-6">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="studentName">Student Name *</Label>
@@ -228,25 +225,23 @@ export function DemoRequestForm() {
             </Select>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label>Preferred Days *</Label>
             <div className="flex flex-wrap gap-2">
               {DAYS.map(day => (
-                <Button
+                <button
                   key={day}
                   type="button"
-                  variant={formData.days.includes(day) ? "default" : "outline"}
-                  size="sm"
                   onClick={() => handleDayToggle(day)}
-                  className="text-xs"
+                  className={`day-chip ${formData.days.includes(day) ? 'active' : ''}`}
                 >
                   {day.slice(0, 3)}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full" size="lg" disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
