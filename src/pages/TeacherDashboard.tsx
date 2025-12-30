@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +16,8 @@ import { FileDownload, SubmissionFiles } from "@/components/FileDownload";
 import { TeacherCalendar } from "@/components/TeacherCalendar";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
 import { StartConversationButton } from "@/components/messaging/StartConversationButton";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { teacherSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { 
   Calendar, 
   Video, 
@@ -32,7 +33,9 @@ import {
   CheckCircle2,
   Clock,
   CalendarDays,
-  MessageSquare
+  MessageSquare,
+  Users,
+  GraduationCap
 } from "lucide-react";
 
 interface Student {
@@ -71,8 +74,9 @@ const TeacherDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [assignments, setAssignments] = useState<AssignmentWithFiles[]>([]);
   
-  // Messaging state
+  // Navigation state
   const [activeTab, setActiveTab] = useState("calendar");
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
 
   // Form states
@@ -417,9 +421,19 @@ const TeacherDashboard = () => {
     return new Date(dueDate) < new Date();
   };
 
+  const pendingSubmissions = assignments.filter(a => a.status !== "submitted").length;
+  const submittedCount = assignments.filter(a => a.status === "submitted").length;
+
   if (loading) {
     return (
-      <DashboardLayout title="Teacher Dashboard" roleLabel="Teacher" roleColor="teacher">
+      <DashboardLayout 
+        title="Teacher Dashboard" 
+        roleLabel="Teacher" 
+        roleColor="teacher"
+        sidebarItems={teacherSidebarItems}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      >
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-teacher" />
         </div>
@@ -433,38 +447,69 @@ const TeacherDashboard = () => {
   };
 
   return (
-    <DashboardLayout title="Teacher Dashboard" roleLabel="Teacher" roleColor="teacher">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 max-w-3xl">
-          <TabsTrigger value="calendar" className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4" />
-            <span className="hidden sm:inline">Calendar</span>
-          </TabsTrigger>
-          <TabsTrigger value="attendance" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Attendance</span>
-          </TabsTrigger>
-          <TabsTrigger value="assignments" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Assignments</span>
-          </TabsTrigger>
-          <TabsTrigger value="manage" className="flex items-center gap-2">
-            <ClipboardList className="h-4 w-4" />
-            <span className="hidden sm:inline">Manage</span>
-          </TabsTrigger>
-          <TabsTrigger value="zoom" className="flex items-center gap-2">
-            <Video className="h-4 w-4" />
-            <span className="hidden sm:inline">Zoom</span>
-          </TabsTrigger>
-          <TabsTrigger value="messages" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            <span className="hidden sm:inline">Messages</span>
-          </TabsTrigger>
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            <span className="hidden sm:inline">Profile</span>
-          </TabsTrigger>
-        </TabsList>
+    <DashboardLayout 
+      title="Teacher Dashboard" 
+      roleLabel="Teacher" 
+      roleColor="teacher"
+      sidebarItems={teacherSidebarItems}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+    >
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 dashboard-stagger-in">
+        <StatCard icon={GraduationCap} label="Students" value={students.length} variant="teacher" />
+        <StatCard icon={FileText} label="Assignments" value={assignments.length} variant="primary" />
+        <StatCard icon={Clock} label="Pending" value={pendingSubmissions} variant="warning" />
+        <StatCard icon={CheckCircle2} label="Submitted" value={submittedCount} variant="success" />
+      </div>
+
+      {/* Student Selector - shown on relevant tabs */}
+      {activeTab !== "profile" && activeTab !== "manage" && activeTab !== "messages" && (
+        <Card className="mb-6 dashboard-list-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Select Student</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 flex-wrap">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search students..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Select a student" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredStudents.map((student) => (
+                    <SelectItem key={student.user_id} value={student.user_id}>
+                      {student.student_name} {student.grade && `(${student.grade})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedStudent && (
+                <StartConversationButton
+                  studentUserId={selectedStudent}
+                  onConversationCreated={handleMessageStudent}
+                />
+              )}
+            </div>
+            {students.length === 0 && (
+              <p className="text-sm text-muted-foreground mt-2">
+                No students registered yet.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tab Content */}
+      <div className="dashboard-section">
 
         {/* Student Selector - shown on all tabs except profile, manage, and messages */}
         {activeTab !== "profile" && activeTab !== "manage" && activeTab !== "messages" && (
@@ -512,9 +557,9 @@ const TeacherDashboard = () => {
         )}
 
         {/* Calendar Tab */}
-        <TabsContent value="calendar">
+        {activeTab === "calendar" && (
           <TeacherCalendar students={students.map(s => ({ user_id: s.user_id, student_name: s.student_name }))} />
-        </TabsContent>
+        )}
 
         {/* Attendance Tab */}
         <TabsContent value="attendance">

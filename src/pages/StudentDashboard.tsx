@@ -3,7 +3,6 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +11,8 @@ import { FileDownload } from "@/components/FileDownload";
 import { EmptyState } from "@/components/EmptyState";
 import { StudentCalendar } from "@/components/StudentCalendar";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { studentSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { 
   Calendar, 
   Video, 
@@ -25,7 +26,9 @@ import {
   X,
   File,
   CalendarDays,
-  MessageSquare
+  MessageSquare,
+  GraduationCap,
+  BookOpen
 } from "lucide-react";
 
 interface AttendanceRecord {
@@ -69,6 +72,7 @@ const StudentDashboard = () => {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [zoomLink, setZoomLink] = useState<ZoomLink | null>(null);
+  const [activeTab, setActiveTab] = useState("schedule");
 
   // File upload states
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -219,6 +223,7 @@ const StudentDashboard = () => {
   const absentClasses = attendance.filter(a => a.status === "absent").length;
   const attendancePercent = totalClasses > 0 ? Math.round((attendedClasses / totalClasses) * 100) : 0;
   const totalHours = attendance.reduce((sum, a) => sum + (a.hours || 0), 0);
+  const pendingAssignments = assignments.filter(a => a.status !== "submitted").length;
 
   const isOverdue = (dueDate: string | null) => {
     if (!dueDate) return false;
@@ -227,7 +232,14 @@ const StudentDashboard = () => {
 
   if (loading) {
     return (
-      <DashboardLayout title="Student Dashboard" roleLabel="Student" roleColor="student">
+      <DashboardLayout 
+        title="Student Dashboard" 
+        roleLabel="Student" 
+        roleColor="student"
+        sidebarItems={studentSidebarItems}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      >
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-student" />
         </div>
@@ -236,51 +248,35 @@ const StudentDashboard = () => {
   }
 
   return (
-    <DashboardLayout title="Student Dashboard" roleLabel="Student" roleColor="student">
-      <Tabs defaultValue="schedule" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 max-w-xl">
-          <TabsTrigger value="schedule" className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4" />
-            <span className="hidden sm:inline">Schedule</span>
-          </TabsTrigger>
-          <TabsTrigger value="attendance" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Attendance</span>
-          </TabsTrigger>
-          <TabsTrigger value="zoom" className="flex items-center gap-2">
-            <Video className="h-4 w-4" />
-            <span className="hidden sm:inline">Zoom</span>
-          </TabsTrigger>
-          <TabsTrigger value="assignments" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Assignments</span>
-          </TabsTrigger>
-          <TabsTrigger value="messages" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            <span className="hidden sm:inline">Messages</span>
-          </TabsTrigger>
-        </TabsList>
+    <DashboardLayout 
+      title="Student Dashboard" 
+      roleLabel="Student" 
+      roleColor="student"
+      sidebarItems={studentSidebarItems}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+    >
+      {/* Quick Stats - Always visible */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8 dashboard-stagger-in">
+        <StatCard icon={Calendar} label="Total Classes" value={totalClasses} variant="primary" />
+        <StatCard icon={CheckCircle2} label="Attended" value={attendedClasses} variant="success" />
+        <StatCard icon={XCircle} label="Absent" value={absentClasses} variant="destructive" />
+        <StatCard icon={GraduationCap} label="Attendance" value={`${attendancePercent}%`} variant="student" />
+        <StatCard icon={FileText} label="Pending Tasks" value={pendingAssignments} variant="warning" />
+      </div>
 
-        {/* Schedule/Calendar Tab */}
-        <TabsContent value="schedule">
-          <StudentCalendar onNavigateToAssignment={() => {
-            const tabTrigger = document.querySelector('[data-state][value="assignments"]') as HTMLElement;
-            tabTrigger?.click();
-          }} />
-        </TabsContent>
+      {/* Tab Content */}
+      <div className="dashboard-section">
+        {activeTab === "schedule" && (
+          <StudentCalendar onNavigateToAssignment={() => setActiveTab("assignments")} />
+        )}
 
-        {/* Attendance Tab */}
-        <TabsContent value="attendance" className="space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Total Classes</p><p className="text-2xl font-bold text-foreground">{totalClasses}</p></CardContent></Card>
-            <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Attended</p><p className="text-2xl font-bold text-teacher">{attendedClasses}</p></CardContent></Card>
-            <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Absent</p><p className="text-2xl font-bold text-destructive">{absentClasses}</p></CardContent></Card>
-            <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Attendance %</p><p className="text-2xl font-bold text-student">{attendancePercent}%</p></CardContent></Card>
-            <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Total Hours</p><p className="text-2xl font-bold text-foreground">{totalHours}</p></CardContent></Card>
-          </div>
-
-          <Card>
-            <CardHeader><CardTitle>Attendance History</CardTitle><CardDescription>Your complete attendance record</CardDescription></CardHeader>
+        {activeTab === "attendance" && (
+          <Card className="dashboard-list-card">
+            <CardHeader>
+              <CardTitle>Attendance History</CardTitle>
+              <CardDescription>Your complete attendance record</CardDescription>
+            </CardHeader>
             <CardContent>
               {attendance.length === 0 ? (
                 <EmptyState 
@@ -290,28 +286,32 @@ const StudentDashboard = () => {
                 />
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="dashboard-table dashboard-table-student">
                     <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Date</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Status</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Hours</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Topic</th>
+                      <tr>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Hours</th>
+                        <th>Topic</th>
                       </tr>
                     </thead>
                     <tbody>
                       {attendance.map((record) => (
-                        <tr key={record.id} className="border-b border-border/50 hover:bg-muted/50 transition-colors">
-                          <td className="py-3 px-4 text-sm">{new Date(record.date).toLocaleDateString()}</td>
-                          <td className="py-3 px-4">
+                        <tr key={record.id}>
+                          <td>{new Date(record.date).toLocaleDateString()}</td>
+                          <td>
                             {record.status === "present" ? (
-                              <Badge className="bg-teacher/10 text-teacher hover:bg-teacher/20"><CheckCircle2 className="h-3 w-3 mr-1" />Present</Badge>
+                              <Badge className="bg-success/10 text-success hover:bg-success/20 border-success/20">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />Present
+                              </Badge>
                             ) : (
-                              <Badge variant="destructive" className="bg-destructive/10 text-destructive hover:bg-destructive/20"><XCircle className="h-3 w-3 mr-1" />Absent</Badge>
+                              <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20">
+                                <XCircle className="h-3 w-3 mr-1" />Absent
+                              </Badge>
                             )}
                           </td>
-                          <td className="py-3 px-4 text-sm">{record.hours || "-"}</td>
-                          <td className="py-3 px-4 text-sm text-muted-foreground">{record.topic || "-"}</td>
+                          <td>{record.hours || "-"}</td>
+                          <td className="text-muted-foreground">{record.topic || "-"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -320,20 +320,41 @@ const StudentDashboard = () => {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        {/* Zoom Tab */}
-        <TabsContent value="zoom">
-          <Card className="max-w-lg">
-            <CardHeader><CardTitle className="flex items-center gap-2"><Video className="h-5 w-5 text-student" />Zoom Meeting Link</CardTitle><CardDescription>Your assigned Zoom meeting details</CardDescription></CardHeader>
+        {activeTab === "zoom" && (
+          <Card className="max-w-lg dashboard-list-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Video className="h-5 w-5 text-student" />
+                Zoom Meeting Link
+              </CardTitle>
+              <CardDescription>Your assigned Zoom meeting details</CardDescription>
+            </CardHeader>
             <CardContent>
               {zoomLink ? (
                 <div className="space-y-4">
                   <div className="p-4 rounded-lg bg-muted">
-                    {zoomLink.meeting_id && <div className="mb-2"><p className="text-sm text-muted-foreground">Meeting ID</p><p className="font-mono text-foreground">{zoomLink.meeting_id}</p></div>}
-                    {zoomLink.passcode && <div><p className="text-sm text-muted-foreground">Passcode</p><p className="font-mono text-foreground">{zoomLink.passcode}</p></div>}
+                    {zoomLink.meeting_id && (
+                      <div className="mb-2">
+                        <p className="text-sm text-muted-foreground">Meeting ID</p>
+                        <p className="font-mono text-foreground">{zoomLink.meeting_id}</p>
+                      </div>
+                    )}
+                    {zoomLink.passcode && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Passcode</p>
+                        <p className="font-mono text-foreground">{zoomLink.passcode}</p>
+                      </div>
+                    )}
                   </div>
-                  <Button variant="student" className="w-full" onClick={() => window.open(zoomLink.meeting_url, "_blank")}><ExternalLink className="h-4 w-4 mr-2" />Join Zoom Meeting</Button>
+                  <Button 
+                    className="w-full dashboard-btn dashboard-btn-student"
+                    onClick={() => window.open(zoomLink.meeting_url, "_blank")}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Join Zoom Meeting
+                  </Button>
                 </div>
               ) : (
                 <EmptyState 
@@ -344,12 +365,14 @@ const StudentDashboard = () => {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        {/* Assignments Tab */}
-        <TabsContent value="assignments" className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle>My Assignments</CardTitle><CardDescription>Track, download materials, and submit your work</CardDescription></CardHeader>
+        {activeTab === "assignments" && (
+          <Card className="dashboard-list-card">
+            <CardHeader>
+              <CardTitle>My Assignments</CardTitle>
+              <CardDescription>Track, download materials, and submit your work</CardDescription>
+            </CardHeader>
             <CardContent>
               {assignments.length === 0 ? (
                 <EmptyState 
@@ -360,7 +383,7 @@ const StudentDashboard = () => {
               ) : (
                 <div className="space-y-4">
                   {assignments.map((assignment) => (
-                    <div key={assignment.id} className="p-4 rounded-lg border border-border hover:border-student/30 transition-colors">
+                    <div key={assignment.id} className="p-4 rounded-xl border border-border hover:border-student/30 transition-all hover:shadow-md bg-card">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <h4 className="font-semibold text-foreground">{assignment.title}</h4>
@@ -369,18 +392,24 @@ const StudentDashboard = () => {
                           <div className="flex items-center gap-4 mt-2">
                             {assignment.due_date && (
                               <span className={`text-xs flex items-center gap-1 ${isOverdue(assignment.due_date) && assignment.status !== "submitted" ? "text-destructive" : "text-muted-foreground"}`}>
-                                <Clock className="h-3 w-3" />Due: {new Date(assignment.due_date).toLocaleDateString()}{isOverdue(assignment.due_date) && assignment.status !== "submitted" && " (Overdue)"}
+                                <Clock className="h-3 w-3" />
+                                Due: {new Date(assignment.due_date).toLocaleDateString()}
+                                {isOverdue(assignment.due_date) && assignment.status !== "submitted" && " (Overdue)"}
                               </span>
                             )}
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           {assignment.status === "submitted" ? (
-                            <Badge className="bg-teacher/10 text-teacher"><CheckCircle2 className="h-3 w-3 mr-1" />Submitted</Badge>
+                            <Badge className="bg-success/10 text-success border-success/20">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />Submitted
+                            </Badge>
                           ) : (
                             <>
-                              <Badge variant="outline" className="text-secondary border-secondary">Pending</Badge>
-                              <Button size="sm" variant="student" onClick={() => markAsSubmitted(assignment.id)}>Mark as Submitted</Button>
+                              <Badge variant="outline" className="text-warning border-warning/30 bg-warning/5">Pending</Badge>
+                              <Button size="sm" className="dashboard-btn dashboard-btn-student" onClick={() => markAsSubmitted(assignment.id)}>
+                                Mark as Submitted
+                              </Button>
                             </>
                           )}
                         </div>
@@ -406,20 +435,36 @@ const StudentDashboard = () => {
 
                         {/* Upload new files */}
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Button type="button" variant="outline" size="sm" onClick={() => {
-                            const input = document.createElement('input');
-                            input.type = 'file';
-                            input.multiple = true;
-                            input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif,.webp';
-                            input.onchange = (e) => handleFileSelect(assignment.id, e as unknown as React.ChangeEvent<HTMLInputElement>);
-                            input.click();
-                          }} disabled={uploadingFor === assignment.id}>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              const input = document.createElement('input');
+                              input.type = 'file';
+                              input.multiple = true;
+                              input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif,.webp';
+                              input.onchange = (e) => handleFileSelect(assignment.id, e as unknown as React.ChangeEvent<HTMLInputElement>);
+                              input.click();
+                            }} 
+                            disabled={uploadingFor === assignment.id}
+                          >
                             <Upload className="h-4 w-4 mr-1" />Add Files
                           </Button>
 
                           {(pendingFiles[assignment.id]?.length || 0) > 0 && (
-                            <Button type="button" variant="student" size="sm" onClick={() => uploadSubmission(assignment.id)} disabled={uploadingFor === assignment.id}>
-                              {uploadingFor === assignment.id ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Uploading...</> : <>Upload {pendingFiles[assignment.id].length} file(s)</>}
+                            <Button 
+                              type="button" 
+                              size="sm" 
+                              className="dashboard-btn dashboard-btn-student"
+                              onClick={() => uploadSubmission(assignment.id)} 
+                              disabled={uploadingFor === assignment.id}
+                            >
+                              {uploadingFor === assignment.id ? (
+                                <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Uploading...</>
+                              ) : (
+                                <>Upload {pendingFiles[assignment.id].length} file(s)</>
+                              )}
                             </Button>
                           )}
                         </div>
@@ -432,7 +477,9 @@ const StudentDashboard = () => {
                             {pendingFiles[assignment.id].map((file, idx) => (
                               <div key={idx} className="flex items-center gap-1 px-2 py-1 rounded bg-muted text-xs">
                                 <File className="h-3 w-3" />{file.name}
-                                <button onClick={() => removePendingFile(assignment.id, idx)} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
+                                <button onClick={() => removePendingFile(assignment.id, idx)} className="ml-1 hover:text-destructive">
+                                  <X className="h-3 w-3" />
+                                </button>
                               </div>
                             ))}
                           </div>
@@ -444,16 +491,15 @@ const StudentDashboard = () => {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        {/* Messages Tab */}
-        <TabsContent value="messages">
+        {activeTab === "messages" && (
           <div>
             <h3 className="text-lg font-semibold mb-4">My Teachers</h3>
             <MessagingPanel userRole="student" />
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </DashboardLayout>
   );
 };
