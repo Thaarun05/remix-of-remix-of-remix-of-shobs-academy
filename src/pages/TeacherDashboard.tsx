@@ -32,9 +32,6 @@ import {
   ClipboardList,
   CheckCircle2,
   Clock,
-  CalendarDays,
-  MessageSquare,
-  Users,
   GraduationCap
 } from "lucide-react";
 
@@ -76,7 +73,6 @@ const TeacherDashboard = () => {
   
   // Navigation state
   const [activeTab, setActiveTab] = useState("calendar");
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
 
   // Form states
@@ -121,20 +117,17 @@ const TeacherDashboard = () => {
     setLoading(true);
 
     try {
-      // Fetch students
       const { data: studentsData } = await supabase
         .from("student_profiles")
         .select("user_id, student_name, grade")
         .order("student_name");
 
-      // Fetch teacher profile
       const { data: profileData } = await supabase
         .from("teacher_profiles")
         .select("subjects, availability, bio")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      // Fetch assignments created by this teacher
       const { data: assignmentsData } = await supabase
         .from("assignments")
         .select("id, title, subject, description, due_date, status, created_at, student_user_id, has_attachments, attachments, submission_attachments")
@@ -143,7 +136,6 @@ const TeacherDashboard = () => {
 
       setStudents(studentsData || []);
       
-      // Map student names to assignments
       const studentsMap = new Map(studentsData?.map(s => [s.user_id, s.student_name]) || []);
       const assignmentsWithNames = (assignmentsData || []).map(a => ({
         ...a,
@@ -256,11 +248,7 @@ const TeacherDashboard = () => {
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to save attendance.";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -272,7 +260,6 @@ const TeacherDashboard = () => {
     setSubmitting(true);
 
     try {
-      // First create the assignment
       const { data: newAssignment, error } = await supabase.from("assignments").insert({
         student_user_id: selectedStudent,
         teacher_user_id: user.id,
@@ -286,11 +273,9 @@ const TeacherDashboard = () => {
 
       if (error) throw error;
 
-      // Upload files if any
       if (pendingFiles.length > 0 && newAssignment) {
         const uploadedFiles = await uploadFilesToStorage(newAssignment.id);
         
-        // Update assignment with file metadata
         const { error: updateError } = await supabase
           .from("assignments")
           .update({
@@ -304,10 +289,9 @@ const TeacherDashboard = () => {
         }
       }
 
-      // Create a calendar event for the assignment (if due date is set)
       if (newAssignment && assignmentForm.dueDate) {
         const dueDateTime = new Date(assignmentForm.dueDate);
-        dueDateTime.setHours(23, 59, 0, 0); // Set to end of day
+        dueDateTime.setHours(23, 59, 0, 0);
 
         await supabase.from("events").insert({
           title: `Due: ${assignmentForm.title}`,
@@ -328,21 +312,12 @@ const TeacherDashboard = () => {
           : "The assignment has been assigned to the student.",
       });
 
-      setAssignmentForm({
-        title: "",
-        subject: "",
-        description: "",
-        dueDate: "",
-      });
+      setAssignmentForm({ title: "", subject: "", description: "", dueDate: "" });
       setPendingFiles([]);
-      fetchData(); // Refresh to show new assignment
+      fetchData();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to create assignment.";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -368,18 +343,10 @@ const TeacherDashboard = () => {
         description: "The Zoom meeting link has been saved for the student.",
       });
 
-      setZoomForm({
-        meetingUrl: "",
-        meetingId: "",
-        passcode: "",
-      });
+      setZoomForm({ meetingUrl: "", meetingId: "", passcode: "" });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to save Zoom link.";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -406,11 +373,7 @@ const TeacherDashboard = () => {
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to update profile.";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -423,6 +386,11 @@ const TeacherDashboard = () => {
 
   const pendingSubmissions = assignments.filter(a => a.status !== "submitted").length;
   const submittedCount = assignments.filter(a => a.status === "submitted").length;
+
+  const handleMessageStudent = (conversationId: string) => {
+    setSelectedConversationId(conversationId);
+    setActiveTab("messages");
+  };
 
   if (loading) {
     return (
@@ -440,11 +408,6 @@ const TeacherDashboard = () => {
       </DashboardLayout>
     );
   }
-
-  const handleMessageStudent = (conversationId: string) => {
-    setSelectedConversationId(conversationId);
-    setActiveTab("messages");
-  };
 
   return (
     <DashboardLayout 
@@ -500,9 +463,7 @@ const TeacherDashboard = () => {
               )}
             </div>
             {students.length === 0 && (
-              <p className="text-sm text-muted-foreground mt-2">
-                No students registered yet.
-              </p>
+              <p className="text-sm text-muted-foreground mt-2">No students registered yet.</p>
             )}
           </CardContent>
         </Card>
@@ -510,60 +471,12 @@ const TeacherDashboard = () => {
 
       {/* Tab Content */}
       <div className="dashboard-section">
-
-        {/* Student Selector - shown on all tabs except profile, manage, and messages */}
-        {activeTab !== "profile" && activeTab !== "manage" && activeTab !== "messages" && (
-        <Card className="mb-6">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Select Student</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search students..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                <SelectTrigger className="w-64">
-                  <SelectValue placeholder="Select a student" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredStudents.map((student) => (
-                    <SelectItem key={student.user_id} value={student.user_id}>
-                      {student.student_name} {student.grade && `(${student.grade})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedStudent && (
-                <StartConversationButton
-                  studentUserId={selectedStudent}
-                  onConversationCreated={handleMessageStudent}
-                />
-              )}
-            </div>
-            {students.length === 0 && (
-              <p className="text-sm text-muted-foreground mt-2">
-                No students registered yet.
-              </p>
-            )}
-        </CardContent>
-        </Card>
-        )}
-
-        {/* Calendar Tab */}
         {activeTab === "calendar" && (
           <TeacherCalendar students={students.map(s => ({ user_id: s.user_id, student_name: s.student_name }))} />
         )}
 
-        {/* Attendance Tab */}
-        <TabsContent value="attendance">
-          <Card className="max-w-lg">
+        {activeTab === "attendance" && (
+          <Card className="max-w-lg dashboard-list-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Plus className="h-5 w-5" />
@@ -620,26 +533,16 @@ const TeacherDashboard = () => {
                     onChange={(e) => setAttendanceForm({ ...attendanceForm, topic: e.target.value })}
                   />
                 </div>
-                <Button
-                  type="submit"
-                  variant="teacher"
-                  className="w-full"
-                  disabled={!selectedStudent || submitting}
-                >
-                  {submitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Record Attendance"
-                  )}
+                <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting}>
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Record Attendance"}
                 </Button>
               </form>
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        {/* Assignments Tab - Create new assignments */}
-        <TabsContent value="assignments">
-          <Card className="max-w-lg">
+        {activeTab === "assignments" && (
+          <Card className="max-w-lg dashboard-list-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Plus className="h-5 w-5" />
@@ -698,13 +601,7 @@ const TeacherDashboard = () => {
                   </Label>
                   
                   <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                    >
+                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                       <Upload className="h-4 w-4 mr-2" />
                       Add Files
                     </Button>
@@ -716,12 +613,9 @@ const TeacherDashboard = () => {
                       onChange={handleFileSelect}
                       accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif,.webp"
                     />
-                    <span className="text-xs text-muted-foreground">
-                      PDF, DOC, images, etc.
-                    </span>
+                    <span className="text-xs text-muted-foreground">PDF, DOC, images, etc.</span>
                   </div>
 
-                  {/* Upload Progress */}
                   {uploading && (
                     <div className="space-y-1">
                       <Progress value={uploadProgress} className="h-2" />
@@ -729,27 +623,14 @@ const TeacherDashboard = () => {
                     </div>
                   )}
 
-                  {/* Pending Files */}
                   {pendingFiles.length > 0 && (
                     <div className="space-y-2">
                       {pendingFiles.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-sm"
-                        >
+                        <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-sm">
                           <File className="h-4 w-4 text-muted-foreground" />
                           <span className="flex-1 truncate">{file.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {(file.size / 1024).toFixed(1)} KB
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => removePendingFile(index)}
-                            disabled={uploading}
-                          >
+                          <span className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</span>
+                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removePendingFile(index)} disabled={uploading}>
                             <X className="h-3 w-3" />
                           </Button>
                         </div>
@@ -758,26 +639,16 @@ const TeacherDashboard = () => {
                   )}
                 </div>
 
-                <Button
-                  type="submit"
-                  variant="teacher"
-                  className="w-full"
-                  disabled={!selectedStudent || submitting || uploading}
-                >
-                  {submitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>Create Assignment {pendingFiles.length > 0 && `(${pendingFiles.length} files)`}</>
-                  )}
+                <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting || uploading}>
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Create Assignment {pendingFiles.length > 0 && `(${pendingFiles.length} files)`}</>}
                 </Button>
               </form>
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        {/* Manage Assignments Tab - View all assignments and submissions */}
-        <TabsContent value="manage" className="space-y-4">
-          <Card>
+        {activeTab === "manage" && (
+          <Card className="dashboard-list-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ClipboardList className="h-5 w-5" />
@@ -787,71 +658,44 @@ const TeacherDashboard = () => {
             </CardHeader>
             <CardContent>
               {assignments.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No assignments created yet.</p>
-                </div>
+                <EmptyState icon={FileText} title="No assignments created yet" description="Create your first assignment to get started." />
               ) : (
                 <div className="space-y-4">
                   {assignments.map((assignment) => (
-                    <div
-                      key={assignment.id}
-                      className="p-4 rounded-lg border border-border hover:border-teacher/30 transition-colors"
-                    >
+                    <div key={assignment.id} className="p-4 rounded-xl border border-border hover:border-teacher/30 transition-all hover:shadow-md bg-card">
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex-1">
                           <h4 className="font-semibold text-foreground">{assignment.title}</h4>
                           <p className="text-sm text-teacher">{assignment.student_name}</p>
-                          {assignment.subject && (
-                            <p className="text-xs text-muted-foreground">{assignment.subject}</p>
+                          {assignment.subject && <p className="text-xs text-muted-foreground">{assignment.subject}</p>}
+                          {assignment.description && <p className="text-sm text-muted-foreground mt-1">{assignment.description}</p>}
+                          {assignment.due_date && (
+                            <span className={`text-xs flex items-center gap-1 mt-2 ${isOverdue(assignment.due_date) && assignment.status !== "submitted" ? "text-destructive" : "text-muted-foreground"}`}>
+                              <Clock className="h-3 w-3" />
+                              Due: {new Date(assignment.due_date).toLocaleDateString()}
+                            </span>
                           )}
-                          {assignment.description && (
-                            <p className="text-sm text-muted-foreground mt-1">{assignment.description}</p>
-                          )}
-                          <div className="flex items-center gap-4 mt-2">
-                            {assignment.due_date && (
-                              <span className={`text-xs flex items-center gap-1 ${
-                                isOverdue(assignment.due_date) && assignment.status !== "submitted"
-                                  ? "text-destructive"
-                                  : "text-muted-foreground"
-                              }`}>
-                                <Clock className="h-3 w-3" />
-                                Due: {new Date(assignment.due_date).toLocaleDateString()}
-                              </span>
-                            )}
-                          </div>
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           {assignment.status === "submitted" ? (
-                            <Badge className="bg-teacher/10 text-teacher">
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
-                              Submitted
+                            <Badge className="bg-success/10 text-success border-success/20">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />Submitted
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="text-secondary border-secondary">
-                              Pending
-                            </Badge>
+                            <Badge variant="outline" className="text-warning border-warning/30 bg-warning/5">Pending</Badge>
                           )}
                         </div>
                       </div>
 
-                      {/* Teacher Attachments */}
                       {assignment.attachments.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-border/50">
-                          <FileDownload 
-                            files={assignment.attachments} 
-                            title="Your Attachments"
-                          />
+                          <FileDownload files={assignment.attachments} title="Your Attachments" />
                         </div>
                       )}
 
-                      {/* Student Submissions */}
                       {assignment.submission_attachments.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-border/50">
-                          <SubmissionFiles 
-                            submissionFiles={assignment.submission_attachments}
-                            studentName={assignment.student_name}
-                          />
+                          <SubmissionFiles submissionFiles={assignment.submission_attachments} studentName={assignment.student_name} />
                         </div>
                       )}
                     </div>
@@ -860,11 +704,10 @@ const TeacherDashboard = () => {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        {/* Zoom Tab */}
-        <TabsContent value="zoom">
-          <Card className="max-w-lg">
+        {activeTab === "zoom" && (
+          <Card className="max-w-lg dashboard-list-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Video className="h-5 w-5" />
@@ -905,26 +748,23 @@ const TeacherDashboard = () => {
                     />
                   </div>
                 </div>
-                <Button
-                  type="submit"
-                  variant="teacher"
-                  className="w-full"
-                  disabled={!selectedStudent || submitting}
-                >
-                  {submitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Save Zoom Link"
-                  )}
+                <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting}>
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Zoom Link"}
                 </Button>
               </form>
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        {/* Profile Tab */}
-        <TabsContent value="profile">
-          <Card className="max-w-lg">
+        {activeTab === "messages" && (
+          <div>
+            <h3 className="text-lg font-semibold mb-4">My Students</h3>
+            <MessagingPanel userRole="teacher" preselectedConversationId={selectedConversationId} />
+          </div>
+        )}
+
+        {activeTab === "profile" && (
+          <Card className="max-w-lg dashboard-list-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
@@ -962,34 +802,14 @@ const TeacherDashboard = () => {
                     rows={4}
                   />
                 </div>
-                <Button
-                  type="submit"
-                  variant="teacher"
-                  className="w-full"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Update Profile"
-                  )}
+                <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={submitting}>
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Profile"}
                 </Button>
               </form>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* Messages Tab */}
-        <TabsContent value="messages">
-          <div>
-            <h3 className="text-lg font-semibold mb-4">My Students</h3>
-            <MessagingPanel 
-              userRole="teacher" 
-              preselectedConversationId={selectedConversationId}
-            />
-          </div>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </DashboardLayout>
   );
 };

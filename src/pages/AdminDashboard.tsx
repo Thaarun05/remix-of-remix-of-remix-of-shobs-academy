@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/EmptyState";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { adminSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { 
   Users, 
   GraduationCap,
@@ -22,8 +23,7 @@ import {
   Mail,
   Phone,
   Clock,
-  XCircle,
-  MessageSquare
+  XCircle
 } from "lucide-react";
 import { z } from "zod";
 
@@ -70,6 +70,7 @@ const AdminDashboard = () => {
   const [createSuccess, setCreateSuccess] = useState(false);
   const [sendingConfirmation, setSendingConfirmation] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("demo-requests");
   
   const [teacherForm, setTeacherForm] = useState({
     email: "",
@@ -127,7 +128,6 @@ const AdminDashboard = () => {
 
       if (error) throw error;
 
-      // Update status in database
       await supabase
         .from("demo_requests")
         .update({ status: "confirmed" })
@@ -138,7 +138,6 @@ const AdminDashboard = () => {
         description: `Email sent to ${request.parent_email}`,
       });
 
-      // Refresh data
       fetchData();
     } catch (error: any) {
       console.error("Error sending confirmation:", error);
@@ -246,7 +245,14 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <DashboardLayout title="Admin Dashboard" roleLabel="Admin" roleColor="admin">
+      <DashboardLayout 
+        title="Admin Dashboard" 
+        roleLabel="Admin" 
+        roleColor="admin"
+        sidebarItems={adminSidebarItems}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      >
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-admin" />
         </div>
@@ -255,94 +261,32 @@ const AdminDashboard = () => {
   }
 
   return (
-    <DashboardLayout title="Admin Dashboard" roleLabel="Admin" roleColor="admin">
+    <DashboardLayout 
+      title="Admin Dashboard" 
+      roleLabel="Admin" 
+      roleColor="admin"
+      sidebarItems={adminSidebarItems}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+    >
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-student/10 flex items-center justify-center">
-                <GraduationCap className="h-5 w-5 text-student" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Students</p>
-                <p className="text-2xl font-bold text-foreground">{studentCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-teacher/10 flex items-center justify-center">
-                <Users className="h-5 w-5 text-teacher" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Teachers</p>
-                <p className="text-2xl font-bold text-foreground">{teacherCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-admin/10 flex items-center justify-center">
-                <Users className="h-5 w-5 text-admin" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Admins</p>
-                <p className="text-2xl font-bold text-foreground">{adminCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <CalendarCheck className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Demo Requests</p>
-                <p className="text-2xl font-bold text-foreground">{demoRequests.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 dashboard-stagger-in">
+        <StatCard icon={GraduationCap} label="Students" value={studentCount} variant="student" />
+        <StatCard icon={Users} label="Teachers" value={teacherCount} variant="teacher" />
+        <StatCard icon={Users} label="Admins" value={adminCount} variant="admin" />
+        <StatCard icon={CalendarCheck} label="Demo Requests" value={demoRequests.length} variant="primary" />
       </div>
 
-      <Tabs defaultValue="demo-requests" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 max-w-xl">
-          <TabsTrigger value="demo-requests" className="flex items-center gap-2">
-            <CalendarCheck className="h-4 w-4" />
-            Demo Requests
-          </TabsTrigger>
-          <TabsTrigger value="create-teacher" className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
-            Create Teacher
-          </TabsTrigger>
-          <TabsTrigger value="messages" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            Messages
-          </TabsTrigger>
-          <TabsTrigger value="all-users" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            All Users
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Demo Requests Tab */}
-        <TabsContent value="demo-requests">
-          <Card>
+      {/* Tab Content */}
+      <div className="dashboard-section">
+        {activeTab === "demo-requests" && (
+          <Card className="dashboard-list-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CalendarCheck className="h-5 w-5" />
                 Demo Class Requests
               </CardTitle>
-              <CardDescription>
-                View and manage demo class requests from parents
-              </CardDescription>
+              <CardDescription>View and manage demo class requests from parents</CardDescription>
             </CardHeader>
             <CardContent>
               {demoRequests.length === 0 ? (
@@ -354,10 +298,7 @@ const AdminDashboard = () => {
               ) : (
                 <div className="space-y-4">
                   {demoRequests.map((request) => (
-                    <div 
-                      key={request.id} 
-                      className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors"
-                    >
+                    <div key={request.id} className="border border-border rounded-xl p-4 hover:border-admin/30 transition-all hover:shadow-md bg-card">
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -369,9 +310,10 @@ const AdminDashboard = () => {
                                 request.status === "confirmed" ? "default" : "secondary"
                               }
                               className={
-                                request.status === "approved" ? "bg-primary/10 text-primary border-primary/20" :
+                                request.status === "approved" ? "bg-success/10 text-success border-success/20" :
                                 request.status === "rejected" ? "bg-destructive/10 text-destructive border-destructive/20" :
-                                ""
+                                request.status === "confirmed" ? "bg-primary/10 text-primary border-primary/20" :
+                                "bg-warning/10 text-warning border-warning/20"
                               }
                             >
                               {request.status === "approved" ? "Approved" : 
@@ -405,23 +347,18 @@ const AdminDashboard = () => {
                           </p>
                         </div>
                         <div className="flex flex-col gap-2">
-                          {/* Approve/Reject buttons */}
                           {request.status !== "approved" && request.status !== "rejected" && (
                             <div className="flex gap-2">
                               <Button
                                 size="sm"
-                                variant="default"
+                                className="dashboard-btn dashboard-btn-admin"
                                 onClick={() => handleUpdateDemoStatus(request.id, "approved")}
                                 disabled={updatingStatus === request.id}
-                                className="bg-primary/90 hover:bg-primary"
                               >
                                 {updatingStatus === request.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
-                                  <>
-                                    <CheckCircle2 className="h-4 w-4 mr-1" />
-                                    Approve
-                                  </>
+                                  <><CheckCircle2 className="h-4 w-4 mr-1" />Approve</>
                                 )}
                               </Button>
                               <Button
@@ -434,10 +371,7 @@ const AdminDashboard = () => {
                                 {updatingStatus === request.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
-                                  <>
-                                    <XCircle className="h-4 w-4 mr-1" />
-                                    Reject
-                                  </>
+                                  <><XCircle className="h-4 w-4 mr-1" />Reject</>
                                 )}
                               </Button>
                             </div>
@@ -449,15 +383,9 @@ const AdminDashboard = () => {
                             disabled={sendingConfirmation === request.id}
                           >
                             {sendingConfirmation === request.id ? (
-                              <>
-                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                                Sending...
-                              </>
+                              <><Loader2 className="h-4 w-4 animate-spin mr-1" />Sending...</>
                             ) : (
-                              <>
-                                <Mail className="h-4 w-4 mr-1" />
-                                {request.status === "confirmed" ? "Resend" : "Send"} Email
-                              </>
+                              <><Mail className="h-4 w-4 mr-1" />{request.status === "confirmed" ? "Resend" : "Send"} Email</>
                             )}
                           </Button>
                           <a 
@@ -474,11 +402,10 @@ const AdminDashboard = () => {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        {/* Create Teacher Tab */}
-        <TabsContent value="create-teacher">
-          <Card className="max-w-lg">
+        {activeTab === "create-teacher" && (
+          <Card className="max-w-lg dashboard-list-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserPlus className="h-5 w-5" />
@@ -490,9 +417,9 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               {createSuccess && (
-                <div className="mb-4 p-4 rounded-lg bg-teacher/10 border border-teacher/20 flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-teacher" />
-                  <p className="text-sm text-teacher">
+                <div className="mb-4 p-4 rounded-lg bg-success/10 border border-success/20 flex items-center gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-success" />
+                  <p className="text-sm text-success">
                     Teacher account created successfully! Share the login credentials with the teacher.
                   </p>
                 </div>
@@ -573,17 +500,9 @@ const AdminDashboard = () => {
                     rows={3}
                   />
                 </div>
-                <Button
-                  type="submit"
-                  variant="admin"
-                  className="w-full"
-                  disabled={submitting}
-                >
+                <Button type="submit" className="w-full dashboard-btn dashboard-btn-admin" disabled={submitting}>
                   {submitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
+                    <><Loader2 className="h-4 w-4 animate-spin" />Creating...</>
                   ) : (
                     "Create Teacher Account"
                   )}
@@ -591,16 +510,14 @@ const AdminDashboard = () => {
               </form>
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        {/* Messages Tab */}
-        <TabsContent value="messages">
+        {activeTab === "messages" && (
           <MessagingPanel userRole="admin" />
-        </TabsContent>
+        )}
 
-        {/* All Users Tab */}
-        <TabsContent value="all-users">
-          <Card>
+        {activeTab === "all-users" && (
+          <Card className="dashboard-list-card">
             <CardHeader>
               <CardTitle>All Users</CardTitle>
               <CardDescription>View all registered users in the system</CardDescription>
@@ -614,30 +531,30 @@ const AdminDashboard = () => {
                 />
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="dashboard-table dashboard-table-admin">
                     <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Role</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Name</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Phone</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Joined</th>
+                      <tr>
+                        <th>Role</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Joined</th>
                       </tr>
                     </thead>
                     <tbody>
                       {profiles.map((profile) => (
-                        <tr key={profile.user_id} className="border-b border-border/50 hover:bg-muted/50 transition-colors">
-                          <td className="py-3 px-4">
+                        <tr key={profile.user_id}>
+                          <td>
                             <Badge className={
-                              profile.role === "student" ? "role-badge-student" :
-                              profile.role === "teacher" ? "role-badge-teacher" :
-                              "role-badge-admin"
+                              profile.role === "student" ? "bg-student/10 text-student border-student/20" :
+                              profile.role === "teacher" ? "bg-teacher/10 text-teacher border-teacher/20" :
+                              "bg-admin/10 text-admin border-admin/20"
                             }>
                               {profile.role}
                             </Badge>
                           </td>
-                          <td className="py-3 px-4 text-sm">{profile.full_name || "-"}</td>
-                          <td className="py-3 px-4 text-sm text-muted-foreground">{profile.phone || "-"}</td>
-                          <td className="py-3 px-4 text-sm text-muted-foreground">
+                          <td>{profile.full_name || "-"}</td>
+                          <td className="text-muted-foreground">{profile.phone || "-"}</td>
+                          <td className="text-muted-foreground">
                             {new Date(profile.created_at).toLocaleDateString()}
                           </td>
                         </tr>
@@ -648,8 +565,8 @@ const AdminDashboard = () => {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </DashboardLayout>
   );
 };
