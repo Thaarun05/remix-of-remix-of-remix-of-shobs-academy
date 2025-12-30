@@ -10,41 +10,15 @@ export function useUnreadMessages() {
     if (!user || !role) return;
 
     const fetchUnreadCount = async () => {
-      let count = 0;
-
       try {
-        // Count unread messages from student-teacher conversations (existing table)
-        const { count: teacherStudentCount } = await supabase
+        // Count unread messages from student-teacher conversations only
+        const { count } = await supabase
           .from("messages")
           .select("*", { count: "exact", head: true })
           .eq("receiver_user_id", user.id)
           .is("read_at", null);
 
-        count += teacherStudentCount || 0;
-
-        // Count unread messages from student-admin conversations
-        if (role === "student" || role === "admin") {
-          const { count: studentAdminCount } = await supabase
-            .from("student_admin_messages")
-            .select("*", { count: "exact", head: true })
-            .eq("receiver_user_id", user.id)
-            .is("read_at", null);
-
-          count += studentAdminCount || 0;
-        }
-
-        // Count unread messages from teacher-admin conversations
-        if (role === "teacher" || role === "admin") {
-          const { count: teacherAdminCount } = await supabase
-            .from("teacher_admin_messages")
-            .select("*", { count: "exact", head: true })
-            .eq("receiver_user_id", user.id)
-            .is("read_at", null);
-
-          count += teacherAdminCount || 0;
-        }
-
-        setUnreadCount(count);
+        setUnreadCount(count || 0);
       } catch (error) {
         console.error("Error fetching unread count:", error);
       }
@@ -53,10 +27,7 @@ export function useUnreadMessages() {
     fetchUnreadCount();
 
     // Subscribe to new messages for real-time updates
-    const channels: ReturnType<typeof supabase.channel>[] = [];
-
-    // Main messages channel
-    const mainChannel = supabase
+    const channel = supabase
       .channel("unread-messages-main")
       .on(
         "postgres_changes",
@@ -80,46 +51,8 @@ export function useUnreadMessages() {
       )
       .subscribe();
 
-    channels.push(mainChannel);
-
-    // Student-admin messages channel
-    if (role === "student" || role === "admin") {
-      const studentAdminChannel = supabase
-        .channel("unread-student-admin")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "student_admin_messages",
-          },
-          () => fetchUnreadCount()
-        )
-        .subscribe();
-
-      channels.push(studentAdminChannel);
-    }
-
-    // Teacher-admin messages channel
-    if (role === "teacher" || role === "admin") {
-      const teacherAdminChannel = supabase
-        .channel("unread-teacher-admin")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "teacher_admin_messages",
-          },
-          () => fetchUnreadCount()
-        )
-        .subscribe();
-
-      channels.push(teacherAdminChannel);
-    }
-
     return () => {
-      channels.forEach((channel) => supabase.removeChannel(channel));
+      supabase.removeChannel(channel);
     };
   }, [user, role]);
 

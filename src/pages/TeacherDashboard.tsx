@@ -16,7 +16,6 @@ import { EmptyState } from "@/components/EmptyState";
 import { FileDownload, SubmissionFiles } from "@/components/FileDownload";
 import { TeacherCalendar } from "@/components/TeacherCalendar";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
-import { AdminMessaging } from "@/components/messaging/AdminMessaging";
 import { StartConversationButton } from "@/components/messaging/StartConversationButton";
 import { 
   Calendar, 
@@ -937,18 +936,12 @@ const TeacherDashboard = () => {
 
         {/* Messages Tab */}
         <TabsContent value="messages">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Student Messages</h3>
-              <MessagingPanel 
-                userRole="teacher" 
-                preselectedConversationId={selectedConversationId}
-              />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Admin Support</h3>
-              <AdminMessaging userRole="teacher" />
-            </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-4">My Students</h3>
+            <MessagingPanel 
+              userRole="teacher" 
+              preselectedConversationId={selectedConversationId}
+            />
           </div>
         </TabsContent>
       </Tabs>
