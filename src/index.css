@@ -41,11 +41,13 @@
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
 
-    --success: 142 71% 45%;
+    --success: 180 75% 40%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+    
+    /* Remove green, use teal for teacher */
 
     --border: 240 4% 83%;
     --input: 240 4% 83%;
@@ -83,10 +85,10 @@
     --sidebar-border: 240 4% 83%;
     --sidebar-ring: 258 89% 66%;
 
-    /* Role-specific colors */
+    /* Role-specific colors - using indigo/teal, no green */
     --student: 180 75% 40%;
     --student-foreground: 0 0% 100%;
-    --teacher: 142 65% 42%;
+    --teacher: 239 84% 67%;
     --teacher-foreground: 0 0% 100%;
     --admin: 250 60% 55%;
     --admin-foreground: 0 0% 100%;
@@ -134,8 +136,10 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 85% 97%;
 
-    --success: 142 65% 50%;
+    --success: 180 75% 55%;
     --warning: 38 92% 55%;
+    
+    /* Role colors dark mode - no green */
 
     --border: 240 5% 33%;
     --input: 240 5% 33%;
@@ -151,7 +155,7 @@
     --sidebar-ring: 255 91% 76%;
 
     --student: 180 75% 55%;
-    --teacher: 142 65% 50%;
+    --teacher: 239 84% 70%;
     --admin: 250 60% 60%;
     --chart-1: 252 94% 85%;
     --chart-2: 269 97% 85%;
@@ -366,4 +370,130 @@
     opacity: 1;
     transform: scale(1);
   }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px hsla(180, 75%, 40%, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 35px hsla(180, 75%, 40%, 0.5);
+  }
+}
+
+@keyframes slide-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes underline-grow {
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  to {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+/* Staggered fade-in for lists */
+.stagger-fade-in > * {
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.stagger-fade-in > *:nth-child(1) { animation-delay: 0.1s; }
+.stagger-fade-in > *:nth-child(2) { animation-delay: 0.2s; }
+.stagger-fade-in > *:nth-child(3) { animation-delay: 0.3s; }
+.stagger-fade-in > *:nth-child(4) { animation-delay: 0.4s; }
+.stagger-fade-in > *:nth-child(5) { animation-delay: 0.5s; }
+.stagger-fade-in > *:nth-child(6) { animation-delay: 0.6s; }
+.stagger-fade-in > *:nth-child(7) { animation-delay: 0.7s; }
+.stagger-fade-in > *:nth-child(8) { animation-delay: 0.8s; }
+
+/* Floating animation for CTA buttons */
+.animate-float {
+  animation: float 2s ease-in-out infinite;
+}
+
+/* Pulse glow effect */
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Animated underline for headings */
+.heading-animated-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.heading-animated-underline::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--gradient-primary);
+  border-radius: 2px;
+  transform: scaleX(0);
+  animation: underline-grow 0.8s ease-out 0.3s forwards;
+}
+
+/* Arrow slide animation on hover */
+.arrow-slide-hover:hover .arrow-icon {
+  transform: translateX(4px);
+  transition: transform 0.2s ease-out;
+}
+
+/* Card hover lift effect */
+.card-hover-lift {
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -8px hsla(0, 0%, 0%, 0.15);
+}
+
+/* Icon rotate scale on hover */
+.icon-hover-animate {
+  transition: transform 0.3s ease-out;
+}
+
+.icon-hover-animate:hover {
+  transform: rotate(5deg) scale(1.1);
+}
+
+/* Background decorative pattern */
+.bg-decorative-pattern {
+  background-image: 
+    radial-gradient(circle at 20% 50%, hsla(180, 75%, 40%, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, hsla(239, 84%, 67%, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, hsla(250, 60%, 55%, 0.03) 0%, transparent 50%);
+}
+
+/* Subtle dots pattern */
+.bg-dots-pattern {
+  background-image: radial-gradient(hsla(0, 0%, 0%, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Focus glow for inputs */
+.input-focus-glow:focus {
+  box-shadow: 0 0 0 3px hsla(239, 84%, 67%, 0.15);
 }

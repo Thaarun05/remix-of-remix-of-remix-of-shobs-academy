@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { signIn, getUserRole } from "@/lib/auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, BookOpen, ArrowLeft, Loader2 } from "lucide-react";
+import { Shield, ArrowLeft, Loader2 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { z } from "zod";
 
 const signInSchema = z.object({
@@ -21,6 +23,14 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, role, loading: authLoading } = useAuth();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user && role) {
+      navigate(`/${role}`, { replace: true });
+    }
+  }, [user, role, authLoading, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,9 +45,9 @@ const AdminLogin = () => {
       }
 
       // Verify the user is an admin
-      const role = await getUserRole(user.id);
+      const userRole = await getUserRole(user.id);
       
-      if (role !== "admin") {
+      if (userRole !== "admin") {
         await supabase.auth.signOut();
         toast({
           title: "Access Denied",
@@ -51,7 +61,7 @@ const AdminLogin = () => {
         title: "Welcome back!",
         description: "You have successfully signed in as administrator.",
       });
-      navigate("/admin");
+      // Navigation handled by AuthContext
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast({
@@ -71,8 +81,17 @@ const AdminLogin = () => {
     }
   };
 
+  // Show loading if checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen page flex flex-col">
+    <div className="min-h-screen page flex flex-col bg-decorative-pattern">
       <div className="max-w-[1280px] mx-auto px-6 py-6 w-full">
         <nav className="flex items-center justify-between mb-8">
           <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
@@ -80,9 +99,7 @@ const AdminLogin = () => {
             Back to Home
           </Link>
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-              <BookOpen className="h-5 w-5 text-primary-foreground" />
-            </div>
+            <Logo size="sm" />
             <span className="font-display text-xl font-semibold text-foreground">
               Shobs Academy
             </span>
@@ -91,9 +108,9 @@ const AdminLogin = () => {
       </div>
 
       <div className="flex-1 flex items-center justify-center px-6 pb-16">
-        <Card className="w-full max-w-md border-admin/30 shadow-xl">
+        <Card className="w-full max-w-md border-admin/30 shadow-xl animate-fade-in">
           <CardHeader className="text-center pb-2">
-            <div className="h-16 w-16 rounded-2xl bg-admin/10 flex items-center justify-center mx-auto mb-4">
+            <div className="h-16 w-16 rounded-2xl bg-admin/10 flex items-center justify-center mx-auto mb-4 icon-hover-animate">
               <Shield className="h-8 w-8 text-admin" />
             </div>
             <CardTitle className="font-display text-2xl">Admin Portal</CardTitle>
@@ -111,6 +128,7 @@ const AdminLogin = () => {
                   placeholder="admin@shobsacademy.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="input-focus-glow"
                   required
                 />
               </div>
@@ -122,6 +140,7 @@ const AdminLogin = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="input-focus-glow"
                   required
                 />
               </div>
