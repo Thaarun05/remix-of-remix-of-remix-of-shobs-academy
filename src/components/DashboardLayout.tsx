@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { signOut } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, LogOut, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { BookOpen, LogOut, Loader2, MessageSquare } from "lucide-react";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -17,6 +19,7 @@ export function DashboardLayout({ children, title, roleLabel, roleColor }: Dashb
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const unreadCount = useUnreadMessages();
   const [signingOut, setSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -65,6 +68,12 @@ export function DashboardLayout({ children, title, roleLabel, roleColor }: Dashb
               </span>
             </div>
             <div className="flex items-center gap-4">
+              {unreadCount > 0 && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
+                  <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-xs font-semibold text-primary">{unreadCount}</span>
+                </div>
+              )}
               <span className="text-sm text-muted-foreground hidden sm:block">
                 {user?.email}
               </span>
