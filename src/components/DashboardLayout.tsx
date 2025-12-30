@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { signOut } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
-import { BookOpen, LogOut, Loader2, MessageSquare } from "lucide-react";
+import { LogOut, Loader2, MessageSquare } from "lucide-react";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -51,15 +51,17 @@ export function DashboardLayout({ children, title, roleLabel, roleColor }: Dashb
   return (
     <div className="min-h-screen page">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/60 shadow-sm">
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-card/95 to-background/95 backdrop-blur-xl border-b border-border/60 shadow-sm">
         <div className="max-w-[1280px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link to="/" className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-md shadow-primary/20">
-                  <BookOpen className="h-5 w-5 text-primary-foreground" />
+                <div className="logo-spin">
+                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[hsl(239,84%,67%)] to-[hsl(180,75%,40%)] flex items-center justify-center shadow-[0_8px_16px_hsla(239,84%,67%,0.25)]">
+                    <span className="text-xl font-bold text-white font-display">S</span>
+                  </div>
                 </div>
-                <span className="font-display text-xl font-semibold text-foreground hidden sm:block">
+                <span className="font-display text-2xl font-bold brand-float hidden sm:block">
                   Shobs Academy
                 </span>
               </Link>

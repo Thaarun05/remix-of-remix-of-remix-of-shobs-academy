@@ -31,16 +31,18 @@ const About = () => {
     <div className="min-h-screen page bg-decorative-pattern">
       <div className="max-w-[1280px] mx-auto px-6">
         {/* Header */}
-        <nav className="flex items-center justify-between py-6 mb-8">
+        <nav className="flex items-center justify-between py-4 px-8 mb-8 bg-gradient-to-r from-card/95 to-background/95 backdrop-blur-xl border-b border-border/60">
           <Link to="/" className="flex items-center gap-3">
-            <Logo size="sm" />
-            <span className="font-display text-xl font-semibold text-foreground">
+            <div className="logo-spin">
+              <Logo size="sm" />
+            </div>
+            <span className="font-display text-2xl font-bold brand-float">
               Shobs Academy
             </span>
           </Link>
           <Link to="/">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
               Back to Home
             </Button>
           </Link>

@@ -140,15 +140,17 @@ const StudentLogin = () => {
 
   return (
     <div className="min-h-screen page flex flex-col bg-decorative-pattern">
-      <div className="max-w-[1280px] mx-auto px-6 py-6 w-full">
-        <nav className="flex items-center justify-between mb-8">
+      <div className="max-w-[1280px] mx-auto px-6 w-full">
+        <nav className="flex items-center justify-between py-4 px-8 bg-gradient-to-r from-card/95 to-background/95 backdrop-blur-xl border-b border-border/60">
           <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
             Back to Home
           </Link>
           <div className="flex items-center gap-3">
-            <Logo size="sm" />
-            <span className="font-display text-xl font-semibold text-foreground">
+            <div className="logo-spin">
+              <Logo size="sm" />
+            </div>
+            <span className="font-display text-2xl font-bold brand-float">
               Shobs Academy
             </span>
           </div>
