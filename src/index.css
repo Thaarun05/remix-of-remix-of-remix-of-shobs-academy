@@ -737,7 +737,7 @@
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: 2rem 1.5rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -746,8 +746,15 @@
 
 .country-card:hover {
   transform: translateY(-8px);
-  box-shadow: var(--shadow-lg);
-  border-color: hsl(180 75% 40% / 0.5);
+  box-shadow: var(--shadow-xl);
+  border-color: transparent;
+  background: linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box,
+              linear-gradient(135deg, hsl(239 84% 67%), hsl(180 75% 40%)) border-box;
+  border: 2px solid transparent;
+}
+
+.country-code {
+  color: hsl(239 84% 67%);
 }
 
 /* Country flag bounce animation */
@@ -763,4 +770,106 @@
 .country-flag {
   display: inline-block;
   animation: bounce-flag 2s ease-in-out infinite;
+}
+
+/* Staggered flag animation delays */
+.country-card:nth-child(1) .country-flag { animation-delay: 0s; }
+.country-card:nth-child(2) .country-flag { animation-delay: 0.15s; }
+.country-card:nth-child(3) .country-flag { animation-delay: 0.3s; }
+.country-card:nth-child(4) .country-flag { animation-delay: 0.45s; }
+.country-card:nth-child(5) .country-flag { animation-delay: 0.6s; }
+.country-card:nth-child(6) .country-flag { animation-delay: 0.75s; }
+.country-card:nth-child(7) .country-flag { animation-delay: 0.9s; }
+
+/* Feature card styles */
+.feature-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.feature-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl);
+  border-color: hsl(180 75% 40% / 0.5);
+}
+
+.feature-icon-wrapper {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1rem;
+  background: hsl(var(--primary) / 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+/* Who We Serve cards */
+.serve-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.serve-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl);
+}
+
+.serve-icon-wrapper {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1rem;
+  background: hsl(var(--muted) / 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.serve-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.serve-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.5;
+}
+
+.serve-check {
+  color: hsl(180 75% 40%);
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* Get In Touch section */
+.get-in-touch-container {
+  background: linear-gradient(135deg, hsl(239 84% 67% / 0.08), hsl(180 75% 40% / 0.08));
+  border: 1px solid hsl(239 84% 67% / 0.2);
+  border-radius: 1rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
