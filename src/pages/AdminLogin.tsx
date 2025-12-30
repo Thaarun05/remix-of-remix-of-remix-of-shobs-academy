@@ -1,16 +1,14 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { signIn, getUserRole } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, ArrowLeft, Loader2 } from "lucide-react";
+import { Shield, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { z } from "zod";
+import shobsLogo from "@/assets/shobs-academy-logo.png";
 
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -19,13 +17,14 @@ const signInSchema = z.object({
 
 const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, role, loading: authLoading } = useAuth();
 
-  // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user && role) {
       navigate(`/${role}`, { replace: true });
@@ -34,6 +33,7 @@ const AdminLogin = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     setLoading(true);
 
     try {
@@ -44,7 +44,6 @@ const AdminLogin = () => {
         throw new Error("Sign in failed");
       }
 
-      // Verify the user is an admin
       const userRole = await getUserRole(user.id);
       
       if (userRole !== "admin") {
@@ -61,14 +60,13 @@ const AdminLogin = () => {
         title: "Welcome back!",
         description: "You have successfully signed in as administrator.",
       });
-      // Navigation handled by AuthContext
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        toast({
-          title: "Validation Error",
-          description: error.errors[0].message,
-          variant: "destructive",
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) newErrors[err.path[0] as string] = err.message;
         });
+        setErrors(newErrors);
       } else {
         toast({
           title: "Sign in failed",
@@ -81,73 +79,97 @@ const AdminLogin = () => {
     }
   };
 
-  // Show loading if checking auth
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center auth-page-admin">
+        <Loader2 className="h-8 w-8 animate-spin text-teacher" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen page flex flex-col bg-decorative-pattern">
-      {/* Global Navbar */}
+    <div className="min-h-screen flex flex-col auth-page-admin">
       <Navbar showAboutLink={false} />
 
-      <div className="flex-1 flex items-center justify-center px-6 pb-16 pt-24">
-        <Card className="w-full max-w-md border-admin/30 shadow-xl animate-fade-in">
-          <CardHeader className="text-center pb-2">
-            <div className="h-16 w-16 rounded-2xl bg-admin/10 flex items-center justify-center mx-auto mb-4 icon-hover-animate">
-              <Shield className="h-8 w-8 text-admin" />
+      <div className="flex-1 flex items-center justify-center px-4 py-8 pt-24">
+        <div className="auth-card auth-card-admin animate-auth-fade-in">
+          {/* Logo */}
+          <div className="auth-logo auth-logo-admin">
+            <img src={shobsLogo} alt="Shobs Academy" className="w-10 h-10 object-contain" />
+          </div>
+
+          {/* Header */}
+          <h1 className="auth-heading">Admin Portal</h1>
+          <p className="auth-subheading">
+            Sign in with your administrator credentials
+          </p>
+
+          {/* Form */}
+          <form onSubmit={handleSignIn} className="auth-form">
+            <div className="auth-field">
+              <label className="auth-label">Admin Email</label>
+              <Input
+                type="email"
+                placeholder="admin@shobsacademy.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={`auth-input auth-input-admin ${errors.email ? "auth-input-error" : ""}`}
+                required
+              />
+              {errors.email && (
+                <div className="auth-error">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.email}
+                </div>
+              )}
             </div>
-            <CardTitle className="font-display text-2xl">Admin Portal</CardTitle>
-            <CardDescription>
-              Sign in with your administrator account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSignIn} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+
+            <div className="auth-field">
+              <label className="auth-label">Admin Password</label>
+              <div className="relative">
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@shobsacademy.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-focus-glow"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-focus-glow"
+                  className={`auth-input auth-input-admin pr-10 ${errors.password ? "auth-input-error" : ""}`}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
-              <Button type="submit" variant="admin" className="w-full" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  "Sign In"
-                )}
-              </Button>
-            </form>
-            <p className="text-center text-sm text-muted-foreground mt-6">
+              {errors.password && (
+                <div className="auth-error">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.password}
+                </div>
+              )}
+            </div>
+
+            <button type="submit" className="auth-button auth-button-admin" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
+            </button>
+          </form>
+
+          {/* Footer Info */}
+          <div className="auth-info-box auth-info-box-admin">
+            <p className="text-sm text-center">
               Admin accounts are provisioned in the backend.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
