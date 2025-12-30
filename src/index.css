@@ -561,7 +561,104 @@
   transform: rotate(5deg) scale(1.1);
 }
 
-/* Brand hover effect */
+/* Brand floating gradient effect */
+@keyframes brand-float-gradient {
+  0%, 100% {
+    transform: translateY(0);
+    filter: drop-shadow(0 0 12px hsla(239, 84%, 67%, 0.4));
+  }
+  50% {
+    transform: translateY(-15px);
+    filter: drop-shadow(0 0 20px hsla(180, 75%, 40%, 0.5));
+  }
+}
+
+@keyframes gradient-cycle {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.brand-float {
+  display: inline-block;
+  animation: brand-float-gradient 2.5s ease-in-out infinite;
+  background: linear-gradient(90deg, hsl(239 84% 67%), hsl(180 75% 40%), hsl(239 84% 67%));
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: brand-float-gradient 2.5s ease-in-out infinite, gradient-cycle 3s ease-in-out infinite;
+}
+
+/* Continuous logo rotation */
+@keyframes logo-spin-continuous {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.logo-spin {
+  animation: logo-spin-continuous 6s linear infinite;
+}
+
+/* About us floating gradient effect */
+@keyframes about-float-gradient {
+  0%, 100% {
+    transform: translateY(0);
+    filter: drop-shadow(0 0 15px hsla(239, 84%, 67%, 0.4));
+  }
+  50% {
+    transform: translateY(-15px);
+    filter: drop-shadow(0 0 25px hsla(180, 75%, 40%, 0.6));
+  }
+}
+
+.about-us-float {
+  display: inline-block;
+  position: relative;
+  animation: about-float-gradient 2.5s ease-in-out infinite, gradient-cycle 3s ease-in-out infinite;
+  background: linear-gradient(90deg, hsl(239 84% 67%), hsl(180 75% 40%), hsl(239 84% 67%));
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  cursor: pointer;
+  transition: transform 0.2s ease-out;
+}
+
+.about-us-float::after {
+  content: "✨";
+  position: absolute;
+  right: -22px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  animation: fade-in-out-sparkle 2.5s ease-in-out infinite;
+  -webkit-text-fill-color: initial;
+}
+
+.about-us-float:hover {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 25px hsla(239, 84%, 67%, 0.6));
+}
+
+/* Arrow continuous slide animation */
+@keyframes arrow-slide {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(6px);
+  }
+}
+
+.arrow-slide-hover:hover .arrow-icon {
+  animation: arrow-slide 1s ease-in-out infinite;
+}
+
+/* Brand hover effect - legacy fallback */
 .brand-hover {
   transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
 }
@@ -571,32 +668,7 @@
 }
 
 .brand-hover:hover .logo-icon {
-  animation: logo-spin 0.6s ease-out;
-}
-
-@keyframes logo-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(10deg); }
-}
-
-/* About us link highlight */
-.about-us-highlight {
-  position: relative;
-  transition: color 0.2s ease-out;
-}
-
-.about-us-highlight::after {
-  content: "✨";
-  position: absolute;
-  right: -18px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 12px;
-  animation: fade-in-out-sparkle 2s ease-in-out infinite;
-}
-
-.about-us-highlight:hover {
-  color: hsl(239, 84%, 55%);
+  animation: logo-spin-continuous 0.6s ease-out;
 }
 
 /* Background decorative pattern */
