@@ -689,3 +689,78 @@
 .input-focus-glow:focus {
   box-shadow: 0 0 0 3px hsla(239, 84%, 67%, 0.15);
 }
+
+/* Brand name floating animation - NO gradient, just float */
+@keyframes brand-name-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.brand-name-float {
+  animation: brand-name-float 2.5s ease-in-out infinite;
+}
+
+/* About link on hero page */
+.about-link-hero {
+  font-size: 1rem;
+  font-weight: 600;
+  background: linear-gradient(90deg, hsl(180 75% 40%), hsl(239 84% 67%));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  cursor: pointer;
+  transition: transform 0.3s ease, filter 0.3s ease;
+  animation: about-float-gradient 2.5s ease-in-out infinite;
+}
+
+.about-link-hero:hover {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 15px hsla(239, 84%, 67%, 0.5));
+}
+
+/* About title floating */
+.about-title-float {
+  display: inline-block;
+  background: linear-gradient(90deg, hsl(239 84% 67%), hsl(180 75% 40%));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: brand-name-float 2.5s ease-in-out infinite;
+}
+
+/* Country card styles */
+.country-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.country-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+  border-color: hsl(180 75% 40% / 0.5);
+}
+
+/* Country flag bounce animation */
+@keyframes bounce-flag {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.country-flag {
+  display: inline-block;
+  animation: bounce-flag 2s ease-in-out infinite;
+}
