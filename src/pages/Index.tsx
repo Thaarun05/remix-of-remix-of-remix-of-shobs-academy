@@ -24,16 +24,16 @@ const Index = () => {
       <div className="max-w-[1280px] mx-auto px-6">
         {/* Header */}
         <nav className="flex items-center justify-between py-6 mb-8">
-          <div className="flex items-center gap-3 brand-hover cursor-pointer">
-            <div className="logo-icon">
+          <div className="flex items-center gap-3 cursor-pointer">
+            <div className="logo-spin">
               <Logo size="sm" />
             </div>
-            <span className="font-display text-xl font-semibold text-foreground">
+            <span className="font-display text-xl font-semibold brand-float">
               Shobs Academy
             </span>
           </div>
           <Link to="/about">
-            <Button variant="ghost" size="sm" className="about-us-highlight animate-pulse-glow-text pr-6">About Us</Button>
+            <span className="about-us-float text-sm font-medium pr-6">About Us</span>
           </Link>
         </nav>
 
@@ -55,7 +55,7 @@ const Index = () => {
           </p>
 
           {/* Demo Request CTA with floating animation */}
-          <div className="mb-16 animate-fade-up" style={{ animationDelay: "0.25s" }}>
+          <div className="mb-12 animate-fade-up" style={{ animationDelay: "0.25s" }}>
             <div className="animate-float">
               <DemoRequestForm />
             </div>
