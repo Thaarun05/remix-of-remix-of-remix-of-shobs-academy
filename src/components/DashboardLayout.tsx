@@ -7,6 +7,7 @@ import { signOut } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { LogOut, Loader2, MessageSquare } from "lucide-react";
+import { Navbar } from "@/components/Navbar";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -20,27 +21,6 @@ export function DashboardLayout({ children, title, roleLabel, roleColor }: Dashb
   const navigate = useNavigate();
   const { toast } = useToast();
   const unreadCount = useUnreadMessages();
-  const [signingOut, setSigningOut] = useState(false);
-
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    try {
-      await signOut();
-      toast({
-        title: "Signed out",
-        description: "You have been successfully signed out.",
-      });
-      navigate("/");
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setSigningOut(false);
-    }
-  };
 
   const roleColorClasses = {
     student: "bg-student/15 text-student border border-student/25",
@@ -50,52 +30,22 @@ export function DashboardLayout({ children, title, roleLabel, roleColor }: Dashb
 
   return (
     <div className="min-h-screen page">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-gradient-to-r from-card/95 to-background/95 backdrop-blur-xl border-b border-border/60 shadow-sm">
+      {/* Global Navbar */}
+      <Navbar showAboutLink={false} variant={roleColor} />
+
+      {/* Role Badge & Unread Messages Header */}
+      <header className="pt-[70px]">
         <div className="max-w-[1280px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link to="/" className="flex items-center gap-3">
-                <div className="logo-spin">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-[hsl(239,84%,67%)] to-[hsl(180,75%,40%)] flex items-center justify-center shadow-[0_8px_16px_hsla(239,84%,67%,0.25)]">
-                    <span className="text-xl font-bold text-white font-display">S</span>
-                  </div>
-                </div>
-                <span className="font-display text-2xl font-bold brand-float hidden sm:block">
-                  Shobs Academy
-                </span>
-              </Link>
-              <span className={`px-4 py-1.5 rounded-full text-xs font-semibold ${roleColorClasses[roleColor]}`}>
-                {roleLabel}
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              {unreadCount > 0 && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
-                  <MessageSquare className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-xs font-semibold text-primary">{unreadCount}</span>
-                </div>
-              )}
-              <span className="text-sm text-muted-foreground hidden sm:block">
-                {user?.email}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSignOut}
-                disabled={signingOut}
-                className="gap-2"
-              >
-                {signingOut ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <LogOut className="h-4 w-4" />
-                    <span className="hidden sm:inline">Sign Out</span>
-                  </>
-                )}
-              </Button>
-            </div>
+            <span className={`px-4 py-1.5 rounded-full text-xs font-semibold ${roleColorClasses[roleColor]}`}>
+              {roleLabel}
+            </span>
+            {unreadCount > 0 && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
+                <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs font-semibold text-primary">{unreadCount}</span>
+              </div>
+            )}
           </div>
         </div>
       </header>
