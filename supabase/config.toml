@@ -2,3 +2,6 @@ project_id = "qgdghdzlmqciyqbldbhq"
 
 [functions.create-initial-admin]
 verify_jwt = false
+
+[functions.create-teacher]
+verify_jwt = false
