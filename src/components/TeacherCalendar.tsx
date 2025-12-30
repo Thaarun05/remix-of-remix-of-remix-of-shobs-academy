@@ -358,12 +358,12 @@ export const TeacherCalendar = ({ students }: TeacherCalendarProps) => {
               {form.eventType === "assignment" && form.studentId && (
                 <div className="space-y-2">
                   <Label>Link to Assignment (optional)</Label>
-                  <Select value={form.assignmentId} onValueChange={(v) => setForm({ ...form, assignmentId: v })}>
+                  <Select value={form.assignmentId || "none"} onValueChange={(v) => setForm({ ...form, assignmentId: v === "none" ? "" : v })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select an assignment" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {filteredAssignments.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
                           {a.title}
