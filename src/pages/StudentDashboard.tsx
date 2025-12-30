@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FileDownload } from "@/components/FileDownload";
+import { EmptyState } from "@/components/EmptyState";
 import { StudentCalendar } from "@/components/StudentCalendar";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
 import { 
@@ -282,7 +283,11 @@ const StudentDashboard = () => {
             <CardHeader><CardTitle>Attendance History</CardTitle><CardDescription>Your complete attendance record</CardDescription></CardHeader>
             <CardContent>
               {attendance.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">No attendance records yet.</p>
+                <EmptyState 
+                  icon={Calendar}
+                  title="No attendance records yet"
+                  description="Once your teacher marks your attendance, your records will appear here."
+                />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -331,7 +336,11 @@ const StudentDashboard = () => {
                   <Button variant="student" className="w-full" onClick={() => window.open(zoomLink.meeting_url, "_blank")}><ExternalLink className="h-4 w-4 mr-2" />Join Zoom Meeting</Button>
                 </div>
               ) : (
-                <div className="text-center py-8"><Video className="h-12 w-12 text-muted-foreground mx-auto mb-4" /><p className="text-muted-foreground">No Zoom link assigned yet.<br />Your teacher will add one soon.</p></div>
+                <EmptyState 
+                  icon={Video}
+                  title="No Zoom link assigned yet"
+                  description="Your teacher will add a Zoom meeting link for your classes soon."
+                />
               )}
             </CardContent>
           </Card>
@@ -343,7 +352,11 @@ const StudentDashboard = () => {
             <CardHeader><CardTitle>My Assignments</CardTitle><CardDescription>Track, download materials, and submit your work</CardDescription></CardHeader>
             <CardContent>
               {assignments.length === 0 ? (
-                <div className="text-center py-8"><FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" /><p className="text-muted-foreground">No assignments yet.</p></div>
+                <EmptyState 
+                  icon={FileText}
+                  title="No assignments yet"
+                  description="Your teacher will assign homework and materials that will appear here."
+                />
               ) : (
                 <div className="space-y-4">
                   {assignments.map((assignment) => (

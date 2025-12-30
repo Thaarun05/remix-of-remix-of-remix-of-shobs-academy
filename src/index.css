@@ -375,6 +375,17 @@
 @keyframes float {
   0%, 100% {
     transform: translateY(0);
+    box-shadow: 0 12px 26px hsla(180, 75%, 40%, 0.22);
+  }
+  50% {
+    transform: translateY(-20px);
+    box-shadow: 0 20px 40px hsla(180, 75%, 40%, 0.35);
+  }
+}
+
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0);
   }
   50% {
     transform: translateY(-6px);
@@ -387,6 +398,19 @@
   }
   50% {
     box-shadow: 0 0 35px hsla(180, 75%, 40%, 0.5);
+  }
+}
+
+@keyframes pulse-glow-text {
+  0%, 100% {
+    text-shadow: 0 0 10px hsla(239, 84%, 67%, 0.3),
+                 0 0 20px hsla(239, 84%, 67%, 0.1);
+    opacity: 0.9;
+  }
+  50% {
+    text-shadow: 0 0 20px hsla(239, 84%, 67%, 0.6),
+                 0 0 40px hsla(239, 84%, 67%, 0.3);
+    opacity: 1;
   }
 }
 
@@ -410,6 +434,31 @@
   }
 }
 
+@keyframes shimmer {
+  0% { 
+    background-position: -200% center;
+  }
+  100% { 
+    background-position: 200% center;
+  }
+}
+
+@keyframes fade-in-out-sparkle {
+  0%, 100% { opacity: 0; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Staggered fade-in for lists */
 .stagger-fade-in > * {
   opacity: 0;
@@ -425,14 +474,47 @@
 .stagger-fade-in > *:nth-child(7) { animation-delay: 0.7s; }
 .stagger-fade-in > *:nth-child(8) { animation-delay: 0.8s; }
 
-/* Floating animation for CTA buttons */
+/* Floating animation for CTA buttons - enhanced with glow */
 .animate-float {
-  animation: float 2s ease-in-out infinite;
+  animation: float 2.5s ease-in-out infinite;
+}
+
+/* Gentle float for subtler elements */
+.animate-float-gentle {
+  animation: float-gentle 2s ease-in-out infinite;
 }
 
 /* Pulse glow effect */
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Pulse glow text effect for About Us link */
+.animate-pulse-glow-text {
+  animation: pulse-glow-text 2s ease-in-out infinite;
+}
+
+/* Fade up animation */
+.animate-fade-up {
+  opacity: 0;
+  animation: fade-up 0.6s ease-out forwards;
+}
+
+/* Text shimmer effect */
+.text-shimmer {
+  background: linear-gradient(
+    90deg, 
+    hsl(var(--primary)) 0%, 
+    hsl(180 75% 55%) 25%,
+    hsl(var(--primary)) 50%,
+    hsl(180 75% 55%) 75%,
+    hsl(var(--primary)) 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
 }
 
 /* Animated underline for headings */
@@ -466,8 +548,8 @@
 }
 
 .card-hover-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px -8px hsla(0, 0%, 0%, 0.15);
+  transform: translateY(-8px);
+  box-shadow: 0 20px 50px hsla(239, 84%, 67%, 0.2);
 }
 
 /* Icon rotate scale on hover */
@@ -477,6 +559,44 @@
 
 .icon-hover-animate:hover {
   transform: rotate(5deg) scale(1.1);
+}
+
+/* Brand hover effect */
+.brand-hover {
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+.brand-hover:hover {
+  transform: scale(1.02);
+}
+
+.brand-hover:hover .logo-icon {
+  animation: logo-spin 0.6s ease-out;
+}
+
+@keyframes logo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(10deg); }
+}
+
+/* About us link highlight */
+.about-us-highlight {
+  position: relative;
+  transition: color 0.2s ease-out;
+}
+
+.about-us-highlight::after {
+  content: "✨";
+  position: absolute;
+  right: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  animation: fade-in-out-sparkle 2s ease-in-out infinite;
+}
+
+.about-us-highlight:hover {
+  color: hsl(239, 84%, 55%);
 }
 
 /* Background decorative pattern */

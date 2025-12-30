@@ -15,7 +15,7 @@ interface Conversation {
 }
 
 interface ConversationListProps {
-  userRole: "student" | "teacher";
+  userRole: "student" | "teacher" | "admin";
   selectedConversationId: string | null;
   onSelectConversation: (conversationId: string) => void;
   onConversationsLoaded?: (conversations: Conversation[]) => void;
@@ -42,10 +42,13 @@ export const ConversationList = ({
     setLoading(true);
 
     try {
-      const { data: convData, error } = await supabase
+      // For admin, get all conversations; for others, filter by their participation
+      let query = supabase
         .from("conversations")
         .select("id, student_user_id, teacher_user_id, created_at")
         .order("created_at", { ascending: false });
+
+      const { data: convData, error } = await query;
 
       if (error) throw error;
 
@@ -53,11 +56,27 @@ export const ConversationList = ({
       const enrichedConversations: Conversation[] = [];
       
       for (const conv of convData || []) {
-        const otherUserId = userRole === "student" ? conv.teacher_user_id : conv.student_user_id;
-        
-        // Get name from appropriate profile table
+        let otherUserId: string;
         let otherUserName = "Unknown";
-        if (userRole === "student") {
+
+        if (userRole === "admin") {
+          // For admin, show both users in the conversation
+          const { data: studentProfile } = await supabase
+            .from("student_profiles")
+            .select("student_name")
+            .eq("user_id", conv.student_user_id)
+            .maybeSingle();
+          
+          const { data: teacherProfile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("user_id", conv.teacher_user_id)
+            .maybeSingle();
+
+          otherUserName = `${studentProfile?.student_name || "Student"} ↔ ${teacherProfile?.full_name || "Teacher"}`;
+          otherUserId = conv.student_user_id; // For admin, we pick one
+        } else if (userRole === "student") {
+          otherUserId = conv.teacher_user_id;
           const { data: profile } = await supabase
             .from("profiles")
             .select("full_name")
@@ -65,6 +84,7 @@ export const ConversationList = ({
             .maybeSingle();
           otherUserName = profile?.full_name || "Teacher";
         } else {
+          otherUserId = conv.student_user_id;
           const { data: studentProfile } = await supabase
             .from("student_profiles")
             .select("student_name")
@@ -73,12 +93,11 @@ export const ConversationList = ({
           otherUserName = studentProfile?.student_name || "Student";
         }
 
-        // Get unread count
+        // Get unread count (for admin show all unread, for others filter by receiver)
         const { count } = await supabase
           .from("messages")
           .select("*", { count: "exact", head: true })
           .eq("conversation_id", conv.id)
-          .eq("receiver_user_id", user.id)
           .is("read_at", null);
 
         enrichedConversations.push({
@@ -136,6 +155,8 @@ export const ConversationList = ({
         <p className="text-sm text-muted-foreground">
           {userRole === "student" 
             ? "No conversations yet. Your teacher will message you."
+            : userRole === "admin"
+            ? "No conversations yet. Conversations between students and teachers will appear here."
             : "No conversations yet. Select a student to start messaging."}
         </p>
       </div>

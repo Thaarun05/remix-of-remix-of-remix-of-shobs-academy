@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { EmptyState } from "@/components/EmptyState";
+import { MessagingPanel } from "@/components/messaging/MessagingPanel";
 import { 
   Users, 
   GraduationCap,
@@ -19,7 +21,9 @@ import {
   CalendarCheck,
   Mail,
   Phone,
-  Clock
+  Clock,
+  XCircle,
+  MessageSquare
 } from "lucide-react";
 import { z } from "zod";
 
@@ -65,6 +69,7 @@ const AdminDashboard = () => {
   const [submitting, setSubmitting] = useState(false);
   const [createSuccess, setCreateSuccess] = useState(false);
   const [sendingConfirmation, setSendingConfirmation] = useState<string | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   
   const [teacherForm, setTeacherForm] = useState({
     email: "",
@@ -144,6 +149,35 @@ const AdminDashboard = () => {
       });
     } finally {
       setSendingConfirmation(null);
+    }
+  };
+
+  const handleUpdateDemoStatus = async (requestId: string, newStatus: "approved" | "rejected") => {
+    setUpdatingStatus(requestId);
+    
+    try {
+      const { error } = await supabase
+        .from("demo_requests")
+        .update({ status: newStatus })
+        .eq("id", requestId);
+
+      if (error) throw error;
+
+      toast({
+        title: `Request ${newStatus}`,
+        description: `Demo request has been ${newStatus}.`,
+      });
+
+      fetchData();
+    } catch (error: any) {
+      console.error("Error updating status:", error);
+      toast({
+        title: "Failed to update status",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
@@ -279,7 +313,7 @@ const AdminDashboard = () => {
       </div>
 
       <Tabs defaultValue="demo-requests" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl">
           <TabsTrigger value="demo-requests" className="flex items-center gap-2">
             <CalendarCheck className="h-4 w-4" />
             Demo Requests
@@ -287,6 +321,10 @@ const AdminDashboard = () => {
           <TabsTrigger value="create-teacher" className="flex items-center gap-2">
             <UserPlus className="h-4 w-4" />
             Create Teacher
+          </TabsTrigger>
+          <TabsTrigger value="messages" className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Messages
           </TabsTrigger>
           <TabsTrigger value="all-users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -308,9 +346,11 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               {demoRequests.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No demo requests yet.
-                </p>
+                <EmptyState 
+                  icon={CalendarCheck}
+                  title="No demo requests yet"
+                  description="When parents submit demo class requests, they'll appear here for you to manage."
+                />
               ) : (
                 <div className="space-y-4">
                   {demoRequests.map((request) => (
@@ -320,10 +360,23 @@ const AdminDashboard = () => {
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold text-lg">{request.student_name}</h3>
-                            <Badge variant={request.status === "confirmed" ? "default" : "secondary"}>
-                              {request.status === "confirmed" ? "Confirmed" : "Pending"}
+                            <Badge 
+                              variant={
+                                request.status === "approved" ? "default" : 
+                                request.status === "rejected" ? "destructive" :
+                                request.status === "confirmed" ? "default" : "secondary"
+                              }
+                              className={
+                                request.status === "approved" ? "bg-primary/10 text-primary border-primary/20" :
+                                request.status === "rejected" ? "bg-destructive/10 text-destructive border-destructive/20" :
+                                ""
+                              }
+                            >
+                              {request.status === "approved" ? "Approved" : 
+                               request.status === "rejected" ? "Rejected" :
+                               request.status === "confirmed" ? "Confirmed" : "Pending"}
                             </Badge>
                           </div>
                           <div className="text-sm text-muted-foreground space-y-1">
@@ -352,8 +405,46 @@ const AdminDashboard = () => {
                           </p>
                         </div>
                         <div className="flex flex-col gap-2">
+                          {/* Approve/Reject buttons */}
+                          {request.status !== "approved" && request.status !== "rejected" && (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => handleUpdateDemoStatus(request.id, "approved")}
+                                disabled={updatingStatus === request.id}
+                                className="bg-primary/90 hover:bg-primary"
+                              >
+                                {updatingStatus === request.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <CheckCircle2 className="h-4 w-4 mr-1" />
+                                    Approve
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUpdateDemoStatus(request.id, "rejected")}
+                                disabled={updatingStatus === request.id}
+                                className="text-destructive hover:bg-destructive/10 border-destructive/30"
+                              >
+                                {updatingStatus === request.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    Reject
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
                           <Button
                             size="sm"
+                            variant="outline"
                             onClick={() => handleSendConfirmation(request)}
                             disabled={sendingConfirmation === request.id}
                           >
@@ -365,7 +456,7 @@ const AdminDashboard = () => {
                             ) : (
                               <>
                                 <Mail className="h-4 w-4 mr-1" />
-                                {request.status === "confirmed" ? "Resend" : "Send"} Confirmation
+                                {request.status === "confirmed" ? "Resend" : "Send"} Email
                               </>
                             )}
                           </Button>
@@ -502,6 +593,11 @@ const AdminDashboard = () => {
           </Card>
         </TabsContent>
 
+        {/* Messages Tab */}
+        <TabsContent value="messages">
+          <MessagingPanel userRole="admin" />
+        </TabsContent>
+
         {/* All Users Tab */}
         <TabsContent value="all-users">
           <Card>
@@ -511,9 +607,11 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               {profiles.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No users registered yet.
-                </p>
+                <EmptyState 
+                  icon={Users}
+                  title="No users registered yet"
+                  description="When students and teachers sign up, they'll appear here."
+                />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
