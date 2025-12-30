@@ -64,11 +64,6 @@ export function Navbar({ showAboutLink = true, variant = "default" }: NavbarProp
             About Us ✨
           </button>
         )}
-        {isLoggedIn && (
-          <Link to="/" className={`navbar-link navbar-link-home ${linkColorClass} hover:underline`}>
-            Home
-          </Link>
-        )}
       </div>
 
       {/* RIGHT: User Info + Logout */}
