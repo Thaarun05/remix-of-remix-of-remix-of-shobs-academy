@@ -8,13 +8,14 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 
 const countries = [
-  { flag: "🇮🇳", code: "IN", name: "India", description: "Primary market, headquartered in Haryana" },
-  { flag: "🇺🇸", code: "US", name: "USA", description: "Serving students from across all 50 states" },
-  { flag: "🇬🇧", code: "GB", name: "UK", description: "Expanding presence in the United Kingdom" },
+  { flag: "🇺🇸", code: "US", name: "USA", description: "Serving students across all 50 states" },
   { flag: "🇨🇦", code: "CA", name: "Canada", description: "Growing student base in Canada" },
   { flag: "🇦🇺", code: "AU", name: "Australia", description: "Services in Australia and Oceania" },
-  { flag: "🇩🇪", code: "DE", name: "Germany", description: "European expansion hub" },
-  { flag: "🇯🇵", code: "JP", name: "Japan", description: "Asian market penetration" },
+  { flag: "🇳🇱", code: "NL", name: "Netherlands", description: "European presence in the Netherlands" },
+  { flag: "🇳🇿", code: "NZ", name: "New Zealand", description: "Expanding in New Zealand" },
+  { flag: "🇮🇳", code: "IN", name: "India", description: "Primary market, headquartered in Haryana" },
+  { flag: "🇦🇪", code: "AE", name: "Dubai", description: "Serving the UAE and Middle East" },
+  { flag: "🇸🇬", code: "SG", name: "Singapore", description: "Southeast Asian education hub" },
 ];
 
 const features = [

@@ -767,6 +767,33 @@
   }
 }
 
+/* Country card fade-in animation */
+@keyframes country-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.country-card {
+  opacity: 0;
+  animation: country-fade-in 0.6s ease-out forwards;
+}
+
+/* Staggered fade-in delays for country cards */
+.country-card:nth-child(1) { animation-delay: 0.1s; }
+.country-card:nth-child(2) { animation-delay: 0.2s; }
+.country-card:nth-child(3) { animation-delay: 0.3s; }
+.country-card:nth-child(4) { animation-delay: 0.4s; }
+.country-card:nth-child(5) { animation-delay: 0.5s; }
+.country-card:nth-child(6) { animation-delay: 0.6s; }
+.country-card:nth-child(7) { animation-delay: 0.7s; }
+.country-card:nth-child(8) { animation-delay: 0.8s; }
+
 .country-flag {
   display: inline-block;
   animation: bounce-flag 2s ease-in-out infinite;
@@ -780,6 +807,7 @@
 .country-card:nth-child(5) .country-flag { animation-delay: 0.6s; }
 .country-card:nth-child(6) .country-flag { animation-delay: 0.75s; }
 .country-card:nth-child(7) .country-flag { animation-delay: 0.9s; }
+.country-card:nth-child(8) .country-flag { animation-delay: 1.05s; }
 
 /* Feature card styles */
 .feature-card {
