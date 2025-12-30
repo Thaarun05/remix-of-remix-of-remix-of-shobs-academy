@@ -7,44 +7,94 @@ import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-
-const countries = [
-  { flagUrl: "https://flagcdn.com/w320/us.png", code: "US", name: "USA", description: "Serving students across all 50 states" },
-  { flagUrl: "https://flagcdn.com/w320/ca.png", code: "CA", name: "Canada", description: "Growing student base in Canada" },
-  { flagUrl: "https://flagcdn.com/w320/au.png", code: "AU", name: "Australia", description: "Services in Australia and Oceania" },
-  { flagUrl: "https://flagcdn.com/w320/nl.png", code: "NL", name: "Netherlands", description: "European presence in the Netherlands" },
-  { flagUrl: "https://flagcdn.com/w320/nz.png", code: "NZ", name: "New Zealand", description: "Expanding in New Zealand" },
-  { flagUrl: "https://flagcdn.com/w320/in.png", code: "IN", name: "India", description: "Primary market, headquartered in Haryana" },
-  { flagUrl: "https://flagcdn.com/w320/ae.png", code: "AE", name: "Dubai", description: "Serving the UAE and Middle East" },
-  { flagUrl: "https://flagcdn.com/w320/sg.png", code: "SG", name: "Singapore", description: "Southeast Asian education hub" },
-];
-
-const features = [
-  { icon: BookOpen, title: "Expert Tutoring", description: "One-on-one sessions with qualified teachers across multiple subjects" },
-  { icon: User, title: "Personalized Learning", description: "Customized lesson plans tailored to each student's needs and pace" },
-  { icon: ClipboardCheck, title: "Assignment Support", description: "Homework help, assignment tracking, and submission management" },
-  { icon: Target, title: "Progress Tracking", description: "Detailed attendance records and performance monitoring" },
-  { icon: Calendar, title: "Flexible Scheduling", description: "Convenient online sessions that fit your schedule" },
-  { icon: Zap, title: "Interactive Platform", description: "Modern tools for seamless communication between students and teachers" },
-];
-
+const countries = [{
+  flagUrl: "https://flagcdn.com/w320/us.png",
+  code: "US",
+  name: "USA",
+  description: "Serving students across all 50 states"
+}, {
+  flagUrl: "https://flagcdn.com/w320/ca.png",
+  code: "CA",
+  name: "Canada",
+  description: "Growing student base in Canada"
+}, {
+  flagUrl: "https://flagcdn.com/w320/au.png",
+  code: "AU",
+  name: "Australia",
+  description: "Services in Australia and Oceania"
+}, {
+  flagUrl: "https://flagcdn.com/w320/nl.png",
+  code: "NL",
+  name: "Netherlands",
+  description: "European presence in the Netherlands"
+}, {
+  flagUrl: "https://flagcdn.com/w320/nz.png",
+  code: "NZ",
+  name: "New Zealand",
+  description: "Expanding in New Zealand"
+}, {
+  flagUrl: "https://flagcdn.com/w320/in.png",
+  code: "IN",
+  name: "India",
+  description: "Primary market, headquartered in Haryana"
+}, {
+  flagUrl: "https://flagcdn.com/w320/ae.png",
+  code: "AE",
+  name: "Dubai",
+  description: "Serving the UAE and Middle East"
+}, {
+  flagUrl: "https://flagcdn.com/w320/sg.png",
+  code: "SG",
+  name: "Singapore",
+  description: "Southeast Asian education hub"
+}];
+const features = [{
+  icon: BookOpen,
+  title: "Expert Tutoring",
+  description: "One-on-one sessions with qualified teachers across multiple subjects"
+}, {
+  icon: User,
+  title: "Personalized Learning",
+  description: "Customized lesson plans tailored to each student's needs and pace"
+}, {
+  icon: ClipboardCheck,
+  title: "Assignment Support",
+  description: "Homework help, assignment tracking, and submission management"
+}, {
+  icon: Target,
+  title: "Progress Tracking",
+  description: "Detailed attendance records and performance monitoring"
+}, {
+  icon: Calendar,
+  title: "Flexible Scheduling",
+  description: "Convenient online sessions that fit your schedule"
+}, {
+  icon: Zap,
+  title: "Interactive Platform",
+  description: "Modern tools for seamless communication between students and teachers"
+}];
 const Index = () => {
-  const { user, role, loading } = useAuth();
+  const {
+    user,
+    role,
+    loading
+  } = useAuth();
   const navigate = useNavigate();
 
   // Redirect logged-in users to their dashboard
   useEffect(() => {
     if (!loading && user && role) {
-      navigate(`/${role}`, { replace: true });
+      navigate(`/${role}`, {
+        replace: true
+      });
     }
   }, [user, role, loading, navigate]);
-
   const scrollToAbout = () => {
-    document.getElementById("about-section")?.scrollIntoView({ behavior: "smooth" });
+    document.getElementById("about-section")?.scrollIntoView({
+      behavior: "smooth"
+    });
   };
-
-  return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
+  return <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
       {/* Global Navbar */}
       <Navbar showAboutLink={true} />
 
@@ -56,26 +106,26 @@ const Index = () => {
         </div>
 
         {/* Brand Name - Floating Animation */}
-        <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-4 brand-name-float animate-fade-in" style={{ animationDelay: "0.1s" }}>
+        <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-4 brand-name-float animate-fade-in" style={{
+        animationDelay: "0.1s"
+      }}>
           Shobs Academy
         </h1>
 
         {/* About Us Link - Floating Gradient */}
-        <button
-          onClick={scrollToAbout}
-          className="about-link-hero mb-8 animate-fade-in"
-          style={{ animationDelay: "0.15s" }}
-        >
-          About Us ✨
-        </button>
+        
 
         {/* Tagline */}
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-in" style={{
+        animationDelay: "0.2s"
+      }}>
           Empowering Education, One Student at a Time
         </p>
 
         {/* 2. DEMO BUTTON - Floating, no block below */}
-        <div className="mb-8 animate-fade-in animate-float" style={{ animationDelay: "0.25s" }}>
+        <div className="mb-8 animate-fade-in animate-float" style={{
+        animationDelay: "0.25s"
+      }}>
           <DemoRequestForm />
         </div>
       </section>
@@ -96,23 +146,14 @@ const Index = () => {
           {/* 3.3 - Countries Grid */}
           <div className="countries-section mb-20">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-              {countries.map((country, idx) => (
-                <div
-                  key={country.code}
-                  className="country-card"
-                >
-                  <img 
-                    src={country.flagUrl}
-                    alt={`${country.name} flag`}
-                    className="country-flag-image"
-                  />
+              {countries.map((country, idx) => <div key={country.code} className="country-card">
+                  <img src={country.flagUrl} alt={`${country.name} flag`} className="country-flag-image" />
                   <span className="country-code text-xs font-bold tracking-widest text-primary uppercase mb-2 block">
                     {country.code}
                   </span>
                   <h3 className="font-semibold text-lg text-foreground mb-2">{country.name}</h3>
                   <p className="text-sm text-muted-foreground">{country.description}</p>
-                </div>
-              ))}
+                </div>)}
             </div>
           </div>
 
@@ -122,19 +163,15 @@ const Index = () => {
               Our Features
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {features.map((feature, idx) => (
-                <div
-                  key={feature.title}
-                  className="feature-card animate-fade-in"
-                  style={{ animationDelay: `${0.1 * idx}s` }}
-                >
+              {features.map((feature, idx) => <div key={feature.title} className="feature-card animate-fade-in" style={{
+              animationDelay: `${0.1 * idx}s`
+            }}>
                   <div className="feature-icon-wrapper">
                     <feature.icon className="h-8 w-8 text-primary" />
                   </div>
                   <h4 className="font-semibold text-lg text-foreground mb-2">{feature.title}</h4>
                   <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
-                </div>
-              ))}
+                </div>)}
             </div>
           </div>
 
@@ -145,7 +182,9 @@ const Index = () => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               {/* Students Card */}
-              <div className="serve-card animate-fade-in" style={{ animationDelay: "0.1s" }}>
+              <div className="serve-card animate-fade-in" style={{
+              animationDelay: "0.1s"
+            }}>
                 <div className="serve-icon-wrapper">
                   <GraduationCap className="h-10 w-10 text-student" />
                 </div>
@@ -167,7 +206,9 @@ const Index = () => {
               </div>
 
               {/* Parents Card */}
-              <div className="serve-card animate-fade-in" style={{ animationDelay: "0.2s" }}>
+              <div className="serve-card animate-fade-in" style={{
+              animationDelay: "0.2s"
+            }}>
                 <div className="serve-icon-wrapper">
                   <Users className="h-10 w-10 text-teacher" />
                 </div>
@@ -282,8 +323,6 @@ const Index = () => {
           © {new Date().getFullYear()} Shobs Academy. All rights reserved.
         </p>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
