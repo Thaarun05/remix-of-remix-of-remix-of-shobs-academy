@@ -12,6 +12,7 @@ import { FileDownload } from "@/components/FileDownload";
 import { EmptyState } from "@/components/EmptyState";
 import { StudentCalendar } from "@/components/StudentCalendar";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
+import { AdminMessaging } from "@/components/messaging/AdminMessaging";
 import { 
   Calendar, 
   Video, 
@@ -448,7 +449,16 @@ const StudentDashboard = () => {
 
         {/* Messages Tab */}
         <TabsContent value="messages">
-          <MessagingPanel userRole="student" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Teacher Messages</h3>
+              <MessagingPanel userRole="student" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Admin Support</h3>
+              <AdminMessaging userRole="student" />
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </DashboardLayout>
