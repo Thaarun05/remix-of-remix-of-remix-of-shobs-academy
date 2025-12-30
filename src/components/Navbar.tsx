@@ -57,14 +57,8 @@ export function Navbar({ showAboutLink = true, variant = "default" }: NavbarProp
         <span className="navbar-name hidden sm:block">Shobs Academy</span>
       </Link>
 
-      {/* CENTER: Navigation Links */}
-      <div className="navbar-nav">
-        {!isLoggedIn && showAboutLink && (
-          <button onClick={scrollToAbout} className="navbar-link navbar-link-about">
-            About Us ✨
-          </button>
-        )}
-      </div>
+      {/* CENTER: Empty */}
+      <div className="navbar-nav"></div>
 
       {/* RIGHT: User Info + Logout */}
       <div className="navbar-right">
