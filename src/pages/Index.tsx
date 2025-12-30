@@ -23,17 +23,17 @@ const Index = () => {
       {/* Container */}
       <div className="max-w-[1280px] mx-auto px-6">
         {/* Header */}
-        <nav className="flex items-center justify-between py-6 mb-8">
+        <nav className="flex items-center justify-between py-4 px-8 mb-8 bg-gradient-to-r from-card/95 to-background/95 backdrop-blur-xl border-b border-border/60">
           <div className="flex items-center gap-3 cursor-pointer">
             <div className="logo-spin">
               <Logo size="sm" />
             </div>
-            <span className="font-display text-xl font-semibold brand-float">
+            <span className="font-display text-2xl font-bold brand-float">
               Shobs Academy
             </span>
           </div>
           <Link to="/about">
-            <span className="about-us-float text-sm font-medium pr-6">About Us</span>
+            <span className="about-us-float text-lg font-semibold pr-6">About Us</span>
           </Link>
         </nav>
 

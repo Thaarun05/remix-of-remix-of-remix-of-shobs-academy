@@ -7,25 +7,22 @@ interface LogoProps {
 
 export function Logo({ size = "md", className }: LogoProps) {
   const sizeClasses = {
-    sm: "h-8 w-8",
-    md: "h-10 w-10",
-    lg: "h-14 w-14",
+    sm: "h-12 w-12 text-xl",
+    md: "h-12 w-12 text-xl",
+    lg: "h-14 w-14 text-2xl",
   };
 
   return (
     <div
       className={cn(
-        "rounded-xl flex items-center justify-center font-display font-bold text-white shadow-lg",
-        "bg-gradient-to-br from-primary to-secondary",
+        "rounded-xl flex items-center justify-center font-display font-bold text-white",
+        "bg-gradient-to-br from-[hsl(239,84%,67%)] to-[hsl(180,75%,40%)]",
+        "shadow-[0_8px_16px_hsla(239,84%,67%,0.25)]",
         sizeClasses[size],
         className
       )}
     >
-      <span className={cn(
-        size === "sm" ? "text-sm" : size === "md" ? "text-base" : "text-xl"
-      )}>
-        S
-      </span>
+      <span>S</span>
     </div>
   );
 }
