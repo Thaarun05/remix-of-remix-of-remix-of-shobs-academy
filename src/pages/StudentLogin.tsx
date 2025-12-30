@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { signIn, signUpStudent } from "@/lib/auth";
-import { GraduationCap, BookOpen, ArrowLeft, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { GraduationCap, ArrowLeft, Loader2 } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { z } from "zod";
 
 const signInSchema = z.object({
@@ -37,6 +39,14 @@ const StudentLogin = () => {
   });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, role, loading: authLoading } = useAuth();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user && role) {
+      navigate(`/${role}`, { replace: true });
+    }
+  }, [user, role, authLoading, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +59,7 @@ const StudentLogin = () => {
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
-      navigate("/student");
+      // Navigation handled by AuthContext
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast({
@@ -87,7 +97,7 @@ const StudentLogin = () => {
         title: "Account created!",
         description: "Welcome to Shobs Academy.",
       });
-      navigate("/student");
+      // Navigation handled by AuthContext
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast({
@@ -119,8 +129,17 @@ const StudentLogin = () => {
     }
   };
 
+  // Show loading if checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen page flex flex-col">
+    <div className="min-h-screen page flex flex-col bg-decorative-pattern">
       <div className="max-w-[1280px] mx-auto px-6 py-6 w-full">
         <nav className="flex items-center justify-between mb-8">
           <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
@@ -128,9 +147,7 @@ const StudentLogin = () => {
             Back to Home
           </Link>
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-              <BookOpen className="h-5 w-5 text-primary-foreground" />
-            </div>
+            <Logo size="sm" />
             <span className="font-display text-xl font-semibold text-foreground">
               Shobs Academy
             </span>
@@ -139,9 +156,9 @@ const StudentLogin = () => {
       </div>
 
       <div className="flex-1 flex items-center justify-center px-6 pb-16">
-        <Card className="w-full max-w-md border-student/30 shadow-xl">
+        <Card className="w-full max-w-md border-student/30 shadow-xl animate-fade-in">
           <CardHeader className="text-center pb-2">
-            <div className="h-16 w-16 rounded-2xl bg-student/10 flex items-center justify-center mx-auto mb-4">
+            <div className="h-16 w-16 rounded-2xl bg-student/10 flex items-center justify-center mx-auto mb-4 icon-hover-animate">
               <GraduationCap className="h-8 w-8 text-student" />
             </div>
             <CardTitle className="font-display text-2xl">Student Portal</CardTitle>
@@ -166,6 +183,7 @@ const StudentLogin = () => {
                       placeholder="student@example.com"
                       value={signInData.email}
                       onChange={(e) => setSignInData({ ...signInData, email: e.target.value })}
+                      className="input-focus-glow"
                       required
                     />
                   </div>
@@ -177,6 +195,7 @@ const StudentLogin = () => {
                       placeholder="••••••••"
                       value={signInData.password}
                       onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
+                      className="input-focus-glow"
                       required
                     />
                   </div>
@@ -203,6 +222,7 @@ const StudentLogin = () => {
                       placeholder="student@example.com"
                       value={signUpData.email}
                       onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
+                      className="input-focus-glow"
                       required
                     />
                   </div>
@@ -214,6 +234,7 @@ const StudentLogin = () => {
                       placeholder="••••••••"
                       value={signUpData.password}
                       onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
+                      className="input-focus-glow"
                       required
                     />
                   </div>
@@ -225,6 +246,7 @@ const StudentLogin = () => {
                       placeholder="Your unique student name"
                       value={signUpData.studentName}
                       onChange={(e) => setSignUpData({ ...signUpData, studentName: e.target.value })}
+                      className="input-focus-glow"
                       required
                     />
                   </div>
@@ -237,6 +259,7 @@ const StudentLogin = () => {
                         placeholder="John Doe"
                         value={signUpData.fullName}
                         onChange={(e) => setSignUpData({ ...signUpData, fullName: e.target.value })}
+                        className="input-focus-glow"
                       />
                     </div>
                     <div className="space-y-2">
@@ -247,6 +270,7 @@ const StudentLogin = () => {
                         placeholder="10th"
                         value={signUpData.grade}
                         onChange={(e) => setSignUpData({ ...signUpData, grade: e.target.value })}
+                        className="input-focus-glow"
                       />
                     </div>
                   </div>
@@ -258,6 +282,7 @@ const StudentLogin = () => {
                       placeholder="+1 234 567 8900"
                       value={signUpData.phone}
                       onChange={(e) => setSignUpData({ ...signUpData, phone: e.target.value })}
+                      className="input-focus-glow"
                     />
                   </div>
                   <Button type="submit" variant="student" className="w-full" disabled={loading}>
