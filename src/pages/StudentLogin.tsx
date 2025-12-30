@@ -1,16 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { signIn, signUpStudent } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
-import { GraduationCap, ArrowLeft, Loader2 } from "lucide-react";
+import { GraduationCap, Loader2, Eye, EyeOff, Check, AlertCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { z } from "zod";
+import shobsLogo from "@/assets/shobs-academy-logo.png";
 
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -28,28 +25,50 @@ const signUpSchema = z.object({
 
 const StudentLogin = () => {
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [signInData, setSignInData] = useState({ email: "", password: "" });
   const [signUpData, setSignUpData] = useState({
     email: "",
     password: "",
+    confirmPassword: "",
     studentName: "",
     fullName: "",
     phone: "",
     grade: "",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, role, loading: authLoading } = useAuth();
 
-  // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user && role) {
       navigate(`/${role}`, { replace: true });
     }
   }, [user, role, authLoading, navigate]);
 
+  const getPasswordStrength = (password: string) => {
+    let strength = 0;
+    if (password.length >= 6) strength++;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+    return strength;
+  };
+
+  const getStrengthLabel = (strength: number) => {
+    if (strength <= 1) return { label: "Weak", color: "bg-red-500" };
+    if (strength <= 2) return { label: "Fair", color: "bg-orange-500" };
+    if (strength <= 3) return { label: "Good", color: "bg-yellow-500" };
+    return { label: "Strong", color: "bg-green-500" };
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     setLoading(true);
 
     try {
@@ -59,14 +78,13 @@ const StudentLogin = () => {
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
-      // Navigation handled by AuthContext
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        toast({
-          title: "Validation Error",
-          description: error.errors[0].message,
-          variant: "destructive",
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) newErrors[err.path[0] as string] = err.message;
         });
+        setErrors(newErrors);
       } else {
         toast({
           title: "Sign in failed",
@@ -81,6 +99,13 @@ const StudentLogin = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+    
+    if (signUpData.password !== signUpData.confirmPassword) {
+      setErrors({ confirmPassword: "Passwords do not match" });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -97,26 +122,17 @@ const StudentLogin = () => {
         title: "Account created!",
         description: "Welcome to Shobs Academy.",
       });
-      // Navigation handled by AuthContext
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        toast({
-          title: "Validation Error",
-          description: error.errors[0].message,
-          variant: "destructive",
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) newErrors[err.path[0] as string] = err.message;
         });
+        setErrors(newErrors);
       } else if (error.message?.includes("duplicate")) {
-        toast({
-          title: "Sign up failed",
-          description: "This student name is already taken. Please choose a different one.",
-          variant: "destructive",
-        });
+        setErrors({ studentName: "This student name is already taken" });
       } else if (error.message?.includes("already registered")) {
-        toast({
-          title: "Sign up failed",
-          description: "This email is already registered. Please sign in instead.",
-          variant: "destructive",
-        });
+        setErrors({ email: "This email is already registered" });
       } else {
         toast({
           title: "Sign up failed",
@@ -129,165 +145,289 @@ const StudentLogin = () => {
     }
   };
 
-  // Show loading if checking auth
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center auth-page-student">
+        <Loader2 className="h-8 w-8 animate-spin text-student" />
       </div>
     );
   }
 
+  const passwordStrength = getPasswordStrength(signUpData.password);
+  const strengthInfo = getStrengthLabel(passwordStrength);
+
   return (
-    <div className="min-h-screen page flex flex-col bg-decorative-pattern">
-      {/* Global Navbar */}
+    <div className="min-h-screen flex flex-col auth-page-student">
       <Navbar showAboutLink={false} />
 
-      <div className="flex-1 flex items-center justify-center px-6 pb-16 pt-24">
-        <Card className="w-full max-w-md border-student/30 shadow-xl animate-fade-in">
-          <CardHeader className="text-center pb-2">
-            <div className="h-16 w-16 rounded-2xl bg-student/10 flex items-center justify-center mx-auto mb-4 icon-hover-animate">
-              <GraduationCap className="h-8 w-8 text-student" />
-            </div>
-            <CardTitle className="font-display text-2xl">Student Portal</CardTitle>
-            <CardDescription>
-              Sign in to access your learning dashboard
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
+      <div className="flex-1 flex items-center justify-center px-4 py-8 pt-24">
+        <div className="auth-card auth-card-student animate-auth-fade-in">
+          {/* Logo */}
+          <div className="auth-logo auth-logo-student">
+            <img src={shobsLogo} alt="Shobs Academy" className="w-10 h-10 object-contain" />
+          </div>
 
-              <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="student@example.com"
-                      value={signInData.email}
-                      onChange={(e) => setSignInData({ ...signInData, email: e.target.value })}
-                      className="input-focus-glow"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
-                    <Input
-                      id="signin-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signInData.password}
-                      onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
-                      className="input-focus-glow"
-                      required
-                    />
-                  </div>
-                  <Button type="submit" variant="student" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Signing in...
-                      </>
-                    ) : (
-                      "Sign In"
-                    )}
-                  </Button>
-                </form>
-              </TabsContent>
+          {/* Header */}
+          <h1 className="auth-heading">
+            {activeTab === "signin" ? "Welcome Back!" : "Create Student Account"}
+          </h1>
+          <p className="auth-subheading">
+            {activeTab === "signin" 
+              ? "Sign in to access your personalized learning dashboard" 
+              : "Join Shobs Academy and start your learning journey"}
+          </p>
 
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email *</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="student@example.com"
-                      value={signUpData.email}
-                      onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
-                      className="input-focus-glow"
-                      required
-                    />
+          {/* Tab Switcher */}
+          <div className="auth-tabs">
+            <button
+              className={`auth-tab ${activeTab === "signin" ? "auth-tab-active-student" : ""}`}
+              onClick={() => setActiveTab("signin")}
+            >
+              Sign In
+            </button>
+            <button
+              className={`auth-tab ${activeTab === "signup" ? "auth-tab-active-student" : ""}`}
+              onClick={() => setActiveTab("signup")}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          {/* Sign In Form */}
+          {activeTab === "signin" && (
+            <form onSubmit={handleSignIn} className="auth-form">
+              <div className="auth-field">
+                <label className="auth-label">Email</label>
+                <Input
+                  type="email"
+                  placeholder="student@example.com"
+                  value={signInData.email}
+                  onChange={(e) => setSignInData({ ...signInData, email: e.target.value })}
+                  className={`auth-input auth-input-student ${errors.email ? "auth-input-error" : ""}`}
+                  required
+                />
+                {errors.email && (
+                  <div className="auth-error">
+                    <AlertCircle className="w-3 h-3" />
+                    {errors.email}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password *</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signUpData.password}
-                      onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
-                      className="input-focus-glow"
-                      required
-                    />
+                )}
+              </div>
+
+              <div className="auth-field">
+                <label className="auth-label">Password</label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={signInData.password}
+                    onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
+                    className={`auth-input auth-input-student pr-10 ${errors.password ? "auth-input-error" : ""}`}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <div className="auth-error">
+                    <AlertCircle className="w-3 h-3" />
+                    {errors.password}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="student-name">Student Name *</Label>
-                    <Input
-                      id="student-name"
-                      type="text"
-                      placeholder="Your unique student name"
-                      value={signUpData.studentName}
-                      onChange={(e) => setSignUpData({ ...signUpData, studentName: e.target.value })}
-                      className="input-focus-glow"
-                      required
-                    />
+                )}
+              </div>
+
+              <button type="submit" className="auth-button auth-button-student" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* Sign Up Form */}
+          {activeTab === "signup" && (
+            <form onSubmit={handleSignUp} className="auth-form">
+              <div className="auth-field">
+                <label className="auth-label">Email *</label>
+                <Input
+                  type="email"
+                  placeholder="student@example.com"
+                  value={signUpData.email}
+                  onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
+                  className={`auth-input auth-input-student ${errors.email ? "auth-input-error" : ""}`}
+                  required
+                />
+                {errors.email && (
+                  <div className="auth-error">
+                    <AlertCircle className="w-3 h-3" />
+                    {errors.email}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="full-name">Full Name</Label>
-                      <Input
-                        id="full-name"
-                        type="text"
-                        placeholder="John Doe"
-                        value={signUpData.fullName}
-                        onChange={(e) => setSignUpData({ ...signUpData, fullName: e.target.value })}
-                        className="input-focus-glow"
-                      />
+                )}
+              </div>
+
+              <div className="auth-field">
+                <label className="auth-label">Student Name *</label>
+                <Input
+                  type="text"
+                  placeholder="Your unique student name"
+                  value={signUpData.studentName}
+                  onChange={(e) => setSignUpData({ ...signUpData, studentName: e.target.value })}
+                  className={`auth-input auth-input-student ${errors.studentName ? "auth-input-error" : ""}`}
+                  required
+                />
+                {errors.studentName && (
+                  <div className="auth-error">
+                    <AlertCircle className="w-3 h-3" />
+                    {errors.studentName}
+                  </div>
+                )}
+              </div>
+
+              <div className="auth-field">
+                <label className="auth-label">Password *</label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Min 6 characters"
+                    value={signUpData.password}
+                    onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
+                    className={`auth-input auth-input-student pr-10 ${errors.password ? "auth-input-error" : ""}`}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {signUpData.password && (
+                  <div className="mt-2">
+                    <div className="flex gap-1 mb-1">
+                      {[1, 2, 3, 4].map((level) => (
+                        <div
+                          key={level}
+                          className={`h-1.5 flex-1 rounded-full transition-colors ${
+                            passwordStrength >= level ? strengthInfo.color : "bg-muted"
+                          }`}
+                        />
+                      ))}
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="grade">Grade</Label>
-                      <Input
-                        id="grade"
-                        type="text"
-                        placeholder="10th"
-                        value={signUpData.grade}
-                        onChange={(e) => setSignUpData({ ...signUpData, grade: e.target.value })}
-                        className="input-focus-glow"
-                      />
-                    </div>
+                    <span className="text-xs text-muted-foreground">{strengthInfo.label}</span>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="+1 234 567 8900"
-                      value={signUpData.phone}
-                      onChange={(e) => setSignUpData({ ...signUpData, phone: e.target.value })}
-                      className="input-focus-glow"
-                    />
+                )}
+                {errors.password && (
+                  <div className="auth-error">
+                    <AlertCircle className="w-3 h-3" />
+                    {errors.password}
                   </div>
-                  <Button type="submit" variant="student" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Creating account...
-                      </>
-                    ) : (
-                      "Create Account"
-                    )}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+                )}
+              </div>
+
+              <div className="auth-field">
+                <label className="auth-label">Confirm Password *</label>
+                <div className="relative">
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm your password"
+                    value={signUpData.confirmPassword}
+                    onChange={(e) => setSignUpData({ ...signUpData, confirmPassword: e.target.value })}
+                    className={`auth-input auth-input-student pr-10 ${errors.confirmPassword ? "auth-input-error" : ""}`}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <div className="auth-error">
+                    <AlertCircle className="w-3 h-3" />
+                    {errors.confirmPassword}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="auth-field">
+                  <label className="auth-label">Full Name</label>
+                  <Input
+                    type="text"
+                    placeholder="John Doe"
+                    value={signUpData.fullName}
+                    onChange={(e) => setSignUpData({ ...signUpData, fullName: e.target.value })}
+                    className="auth-input auth-input-student"
+                  />
+                </div>
+                <div className="auth-field">
+                  <label className="auth-label">Grade</label>
+                  <Input
+                    type="text"
+                    placeholder="10th"
+                    value={signUpData.grade}
+                    onChange={(e) => setSignUpData({ ...signUpData, grade: e.target.value })}
+                    className="auth-input auth-input-student"
+                  />
+                </div>
+              </div>
+
+              <div className="auth-field">
+                <label className="auth-label">Phone</label>
+                <Input
+                  type="tel"
+                  placeholder="+1 234 567 8900"
+                  value={signUpData.phone}
+                  onChange={(e) => setSignUpData({ ...signUpData, phone: e.target.value })}
+                  className="auth-input auth-input-student"
+                />
+              </div>
+
+              <button type="submit" className="auth-button auth-button-student" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* Footer */}
+          <div className="auth-footer">
+            {activeTab === "signin" ? (
+              <p>
+                Don't have an account?{" "}
+                <button onClick={() => setActiveTab("signup")} className="auth-footer-link auth-footer-link-student">
+                  Sign up now
+                </button>
+              </p>
+            ) : (
+              <p>
+                Already have an account?{" "}
+                <button onClick={() => setActiveTab("signin")} className="auth-footer-link auth-footer-link-student">
+                  Sign in here
+                </button>
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

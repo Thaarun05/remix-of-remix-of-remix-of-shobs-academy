@@ -1067,3 +1067,380 @@
   align-items: center;
   gap: 0.75rem;
 }
+
+/* ============ AUTH FORMS PROFESSIONAL STYLING ============ */
+
+/* Page Backgrounds */
+.auth-page-student {
+  background: linear-gradient(135deg, 
+    hsl(180 75% 95%) 0%, 
+    hsl(239 84% 97%) 100%
+  );
+  background-attachment: fixed;
+}
+
+.auth-page-teacher,
+.auth-page-admin {
+  background: linear-gradient(135deg, 
+    hsl(239 84% 97%) 0%, 
+    hsl(250 60% 97%) 100%
+  );
+  background-attachment: fixed;
+}
+
+/* Auth Card */
+.auth-card {
+  width: 100%;
+  max-width: 450px;
+  background: hsl(0 0% 100%);
+  border-radius: 24px;
+  padding: 48px;
+  box-shadow: 0 20px 60px hsl(0 0% 0% / 0.1);
+  border: 1px solid hsl(0 0% 90% / 0.5);
+  text-align: center;
+}
+
+.auth-card-student {
+  border-top: 4px solid hsl(180 75% 40%);
+}
+
+.auth-card-teacher,
+.auth-card-admin {
+  border-top: 4px solid hsl(239 84% 67%);
+}
+
+/* Auth Logo */
+.auth-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  animation: auth-logo-bounce 0.8s ease-out;
+}
+
+.auth-logo-student {
+  background: linear-gradient(135deg, hsl(180 75% 40%), hsl(180 75% 35%));
+  box-shadow: 0 8px 24px hsl(180 75% 40% / 0.3);
+}
+
+.auth-logo-teacher,
+.auth-logo-admin {
+  background: linear-gradient(135deg, hsl(239 84% 67%), hsl(239 84% 55%));
+  box-shadow: 0 8px 24px hsl(239 84% 67% / 0.3);
+}
+
+@keyframes auth-logo-bounce {
+  0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+  50% { transform: scale(1.1) translateY(-8px); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Auth Headings */
+.auth-heading {
+  font-size: 28px;
+  font-weight: 700;
+  color: hsl(222 47% 11%);
+  margin-bottom: 12px;
+  font-family: 'Playfair Display', serif;
+}
+
+.auth-subheading {
+  font-size: 14px;
+  color: hsl(215 16% 47%);
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+/* Auth Tabs */
+.auth-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  background: hsl(0 0% 96%);
+  border-radius: 12px;
+  margin-bottom: 32px;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: hsl(215 16% 47%);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.auth-tab:hover {
+  color: hsl(222 47% 11%);
+}
+
+.auth-tab-active-student {
+  background: hsl(0 0% 100%);
+  color: hsl(180 75% 40%);
+  box-shadow: 0 2px 8px hsl(0 0% 0% / 0.08);
+}
+
+.auth-tab-active-teacher,
+.auth-tab-active-admin {
+  background: hsl(0 0% 100%);
+  color: hsl(239 84% 67%);
+  box-shadow: 0 2px 8px hsl(0 0% 0% / 0.08);
+}
+
+/* Auth Form */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: left;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: hsl(222 47% 11%);
+  letter-spacing: 0.3px;
+}
+
+/* Auth Inputs */
+.auth-input {
+  width: 100%;
+  padding: 14px 16px !important;
+  border: 2px solid hsl(0 0% 90%) !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  background: hsl(0 0% 100%) !important;
+  color: hsl(222 47% 11%) !important;
+  box-shadow: 0 2px 8px hsl(0 0% 0% / 0.02) !important;
+  transition: all 0.3s ease !important;
+}
+
+.auth-input::placeholder {
+  color: hsl(215 20% 65%) !important;
+  font-weight: 500;
+}
+
+.auth-input-student:focus {
+  border-color: hsl(180 75% 40%) !important;
+  box-shadow: 0 0 0 4px hsl(180 75% 40% / 0.15), 0 2px 8px hsl(0 0% 0% / 0.02) !important;
+  background: hsl(180 75% 40% / 0.02) !important;
+  outline: none !important;
+}
+
+.auth-input-teacher:focus,
+.auth-input-admin:focus {
+  border-color: hsl(239 84% 67%) !important;
+  box-shadow: 0 0 0 4px hsl(239 84% 67% / 0.15), 0 2px 8px hsl(0 0% 0% / 0.02) !important;
+  background: hsl(239 84% 67% / 0.02) !important;
+  outline: none !important;
+}
+
+.auth-input-error {
+  border-color: hsl(0 72% 50%) !important;
+  box-shadow: 0 0 0 4px hsl(0 72% 50% / 0.15) !important;
+  background: hsl(0 72% 50% / 0.02) !important;
+}
+
+/* Auth Error Message */
+.auth-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(0 72% 50%);
+  background: hsl(0 72% 50% / 0.05);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 3px solid hsl(0 72% 50%);
+  margin-top: 4px;
+}
+
+/* Auth Button */
+.auth-button {
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  color: hsl(0 0% 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  margin-top: 8px;
+}
+
+.auth-button-student {
+  background: linear-gradient(135deg, hsl(180 75% 40%), hsl(180 75% 35%));
+  box-shadow: 0 8px 20px hsl(180 75% 40% / 0.3);
+}
+
+.auth-button-student:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px hsl(180 75% 40% / 0.4);
+  filter: brightness(1.1);
+}
+
+.auth-button-teacher,
+.auth-button-admin {
+  background: linear-gradient(135deg, hsl(239 84% 67%), hsl(239 84% 55%));
+  box-shadow: 0 8px 20px hsl(239 84% 67% / 0.3);
+}
+
+.auth-button-teacher:hover:not(:disabled),
+.auth-button-admin:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px hsl(239 84% 67% / 0.4);
+  filter: brightness(1.1);
+}
+
+.auth-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.auth-button:disabled {
+  background: hsl(215 16% 77%);
+  color: hsl(215 20% 65%);
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+/* Auth Footer */
+.auth-footer {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid hsl(0 0% 92%);
+  text-align: center;
+}
+
+.auth-footer p {
+  font-size: 14px;
+  color: hsl(215 16% 47%);
+}
+
+.auth-footer-link {
+  font-weight: 700;
+  cursor: pointer;
+  background: none;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.auth-footer-link-student {
+  color: hsl(180 75% 40%);
+}
+
+.auth-footer-link-student:hover {
+  text-decoration: underline;
+  color: hsl(180 75% 35%);
+}
+
+.auth-footer-link-teacher,
+.auth-footer-link-admin {
+  color: hsl(239 84% 67%);
+}
+
+.auth-footer-link-teacher:hover,
+.auth-footer-link-admin:hover {
+  text-decoration: underline;
+  color: hsl(239 84% 55%);
+}
+
+/* Auth Info Box */
+.auth-info-box {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.auth-info-box-student {
+  background: hsl(180 75% 40% / 0.05);
+  border: 1px solid hsl(180 75% 40% / 0.1);
+}
+
+.auth-info-box-teacher,
+.auth-info-box-admin {
+  background: hsl(239 84% 67% / 0.05);
+  border: 1px solid hsl(239 84% 67% / 0.1);
+}
+
+.auth-info-box p {
+  color: hsl(215 16% 47%);
+  line-height: 1.6;
+}
+
+/* Auth Fade In Animation */
+@keyframes auth-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-auth-fade-in {
+  animation: auth-fade-in 0.6s ease-out;
+}
+
+/* Responsive Auth */
+@media (max-width: 768px) {
+  .auth-card {
+    padding: 32px 24px;
+    border-radius: 20px;
+  }
+
+  .auth-logo {
+    width: 56px;
+    height: 56px;
+  }
+
+  .auth-heading {
+    font-size: 24px;
+  }
+
+  .auth-input {
+    padding: 12px 14px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 24px 16px;
+    border-radius: 16px;
+  }
+
+  .auth-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .auth-heading {
+    font-size: 20px;
+  }
+
+  .auth-subheading {
+    font-size: 13px;
+  }
+}
