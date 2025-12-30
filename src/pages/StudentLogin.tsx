@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { signIn, signUpStudent } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { GraduationCap, ArrowLeft, Loader2 } from "lucide-react";
-import { Logo } from "@/components/Logo";
+import { Navbar } from "@/components/Navbar";
 import { z } from "zod";
 
 const signInSchema = z.object({
@@ -140,24 +140,10 @@ const StudentLogin = () => {
 
   return (
     <div className="min-h-screen page flex flex-col bg-decorative-pattern">
-      <div className="max-w-[1280px] mx-auto px-6 w-full">
-        <nav className="flex items-center justify-between py-4 px-8 bg-gradient-to-r from-card/95 to-background/95 backdrop-blur-xl border-b border-border/60">
-          <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Home
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="logo-spin">
-              <Logo size="sm" />
-            </div>
-            <span className="font-display text-2xl font-bold brand-float">
-              Shobs Academy
-            </span>
-          </div>
-        </nav>
-      </div>
+      {/* Global Navbar */}
+      <Navbar showAboutLink={false} />
 
-      <div className="flex-1 flex items-center justify-center px-6 pb-16">
+      <div className="flex-1 flex items-center justify-center px-6 pb-16 pt-24">
         <Card className="w-full max-w-md border-student/30 shadow-xl animate-fade-in">
           <CardHeader className="text-center pb-2">
             <div className="h-16 w-16 rounded-2xl bg-student/10 flex items-center justify-center mx-auto mb-4 icon-hover-animate">

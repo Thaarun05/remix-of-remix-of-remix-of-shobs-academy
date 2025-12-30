@@ -3,19 +3,20 @@ import { Button } from "@/components/ui/button";
 import { GraduationCap, Users, Shield, ArrowRight, BookOpen, User, ClipboardCheck, Target, Calendar, Zap, Mail, Phone } from "lucide-react";
 import { DemoRequestForm } from "@/components/DemoRequestForm";
 import { Logo } from "@/components/Logo";
+import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 
 const countries = [
-  { flag: "🇺🇸", code: "US", name: "USA", description: "Serving students across all 50 states" },
-  { flag: "🇨🇦", code: "CA", name: "Canada", description: "Growing student base in Canada" },
-  { flag: "🇦🇺", code: "AU", name: "Australia", description: "Services in Australia and Oceania" },
-  { flag: "🇳🇱", code: "NL", name: "Netherlands", description: "European presence in the Netherlands" },
-  { flag: "🇳🇿", code: "NZ", name: "New Zealand", description: "Expanding in New Zealand" },
-  { flag: "🇮🇳", code: "IN", name: "India", description: "Primary market, headquartered in Haryana" },
-  { flag: "🇦🇪", code: "AE", name: "Dubai", description: "Serving the UAE and Middle East" },
-  { flag: "🇸🇬", code: "SG", name: "Singapore", description: "Southeast Asian education hub" },
+  { flagUrl: "https://flagcdn.com/w320/us.png", code: "US", name: "USA", description: "Serving students across all 50 states" },
+  { flagUrl: "https://flagcdn.com/w320/ca.png", code: "CA", name: "Canada", description: "Growing student base in Canada" },
+  { flagUrl: "https://flagcdn.com/w320/au.png", code: "AU", name: "Australia", description: "Services in Australia and Oceania" },
+  { flagUrl: "https://flagcdn.com/w320/nl.png", code: "NL", name: "Netherlands", description: "European presence in the Netherlands" },
+  { flagUrl: "https://flagcdn.com/w320/nz.png", code: "NZ", name: "New Zealand", description: "Expanding in New Zealand" },
+  { flagUrl: "https://flagcdn.com/w320/in.png", code: "IN", name: "India", description: "Primary market, headquartered in Haryana" },
+  { flagUrl: "https://flagcdn.com/w320/ae.png", code: "AE", name: "Dubai", description: "Serving the UAE and Middle East" },
+  { flagUrl: "https://flagcdn.com/w320/sg.png", code: "SG", name: "Singapore", description: "Southeast Asian education hub" },
 ];
 
 const features = [
@@ -44,8 +45,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
+      {/* Global Navbar */}
+      <Navbar showAboutLink={true} />
+
       {/* 1. HERO SECTION */}
-      <section className="flex flex-col items-center justify-center text-center px-6 py-16 md:py-24">
+      <section className="flex flex-col items-center justify-center text-center px-6 py-16 md:py-24 pt-24">
         {/* Logo - Static, 80px, no rotation */}
         <div className="mb-6 animate-fade-in">
           <Logo size="lg" />
@@ -95,15 +99,13 @@ const Index = () => {
               {countries.map((country, idx) => (
                 <div
                   key={country.code}
-                  className="country-card animate-fade-in"
-                  style={{ animationDelay: `${0.1 * idx}s` }}
+                  className="country-card"
                 >
-                  <span 
-                    className="text-5xl mb-4 block country-flag" 
-                    style={{ animationDelay: `${0.2 * idx}s` }}
-                  >
-                    {country.flag}
-                  </span>
+                  <img 
+                    src={country.flagUrl}
+                    alt={`${country.name} flag`}
+                    className="country-flag-image"
+                  />
                   <span className="country-code text-xs font-bold tracking-widest text-primary uppercase mb-2 block">
                     {country.code}
                   </span>
