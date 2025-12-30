@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.create-teacher]
 verify_jwt = false
+
+[functions.send-demo-request]
+verify_jwt = false
