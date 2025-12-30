@@ -24,14 +24,16 @@ const Index = () => {
       <div className="max-w-[1280px] mx-auto px-6">
         {/* Header */}
         <nav className="flex items-center justify-between py-6 mb-8">
-          <div className="flex items-center gap-3">
-            <Logo size="sm" />
+          <div className="flex items-center gap-3 brand-hover cursor-pointer">
+            <div className="logo-icon">
+              <Logo size="sm" />
+            </div>
             <span className="font-display text-xl font-semibold text-foreground">
               Shobs Academy
             </span>
           </div>
           <Link to="/about">
-            <Button variant="ghost" size="sm">About Us</Button>
+            <Button variant="ghost" size="sm" className="about-us-highlight animate-pulse-glow-text pr-6">About Us</Button>
           </Link>
         </nav>
 
@@ -44,7 +46,7 @@ const Index = () => {
 
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6 leading-[1.1] animate-fade-up" style={{ animationDelay: "0.1s" }}>
             Empowering Education,{" "}
-            <span className="text-gradient">One Student at a Time</span>
+            <span className="text-shimmer">One Student at a Time</span>
           </h1>
 
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: "0.2s" }}>

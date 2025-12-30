@@ -18,7 +18,7 @@ interface Conversation {
 }
 
 interface MessagingPanelProps {
-  userRole: "student" | "teacher";
+  userRole: "student" | "teacher" | "admin";
   preselectedConversationId?: string | null;
 }
 
@@ -47,6 +47,10 @@ export const MessagingPanel = ({ userRole, preselectedConversationId }: Messagin
 
   const getReceiverUserId = () => {
     if (!selectedConversation || !user) return "";
+    if (userRole === "admin") {
+      // Admin can view but not directly reply - they're viewing conversations
+      return selectedConversation.student_user_id;
+    }
     return userRole === "student"
       ? selectedConversation.teacher_user_id
       : selectedConversation.student_user_id;

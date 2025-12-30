@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { EmptyState } from "@/components/EmptyState";
 import { FileDownload, SubmissionFiles } from "@/components/FileDownload";
 import { TeacherCalendar } from "@/components/TeacherCalendar";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
