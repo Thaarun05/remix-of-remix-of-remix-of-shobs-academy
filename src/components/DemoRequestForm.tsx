@@ -87,7 +87,7 @@ export function DemoRequestForm() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-demo-request", {
+      const { data, error } = await supabase.functions.invoke("submit-demo-request", {
         body: {
           ...formData,
           days: formData.days.join(", "),
