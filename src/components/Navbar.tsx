@@ -37,10 +37,6 @@ export function Navbar({ showAboutLink = true, variant = "default" }: NavbarProp
     }
   };
 
-  const scrollToAbout = () => {
-    document.getElementById("about-section")?.scrollIntoView({ behavior: "smooth" });
-  };
-
   const isLoggedIn = !!user && !!role;
   const linkColorClass = variant === "student" ? "text-student" : "text-teacher";
   const logoutColorClass = variant === "student" 
@@ -57,8 +53,17 @@ export function Navbar({ showAboutLink = true, variant = "default" }: NavbarProp
         <span className="navbar-name hidden sm:block">Shobs Academy</span>
       </Link>
 
-      {/* CENTER: Empty */}
-      <div className="navbar-nav"></div>
+      {/* CENTER: Navigation Links */}
+      <div className="navbar-nav">
+        {showAboutLink && !isLoggedIn && (
+          <Link 
+            to="/about" 
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            About Us
+          </Link>
+        )}
+      </div>
 
       {/* RIGHT: User Info + Logout */}
       <div className="navbar-right">

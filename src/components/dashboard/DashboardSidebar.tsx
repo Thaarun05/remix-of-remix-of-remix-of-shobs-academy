@@ -5,11 +5,9 @@ import { cn } from "@/lib/utils";
 import { 
   Menu,
   X,
-  LayoutDashboard,
   Calendar,
   CalendarDays,
   FileText,
-  GraduationCap,
   Users,
   Video,
   MessageSquare,
@@ -17,8 +15,7 @@ import {
   ClipboardList,
   UserPlus,
   CalendarCheck,
-  BarChart3,
-  BookOpen,
+  GraduationCap,
   ChevronRight
 } from "lucide-react";
 
@@ -186,6 +183,7 @@ export const teacherSidebarItems: SidebarItem[] = [
 export const adminSidebarItems: SidebarItem[] = [
   { id: "demo-requests", label: "Demo Requests", icon: CalendarCheck },
   { id: "create-teacher", label: "Create Teacher", icon: UserPlus },
+  { id: "create-student", label: "Create Student", icon: GraduationCap },
   { id: "messages", label: "Messages", icon: MessageSquare },
   { id: "all-users", label: "All Users", icon: Users },
 ];

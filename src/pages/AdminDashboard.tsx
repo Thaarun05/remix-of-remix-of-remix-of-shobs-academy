@@ -60,6 +60,15 @@ const createTeacherSchema = z.object({
   bio: z.string().max(500, "Bio is too long").optional(),
 });
 
+const createStudentSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  studentName: z.string().min(2, "Student name is required").max(100, "Name is too long"),
+  fullName: z.string().max(100, "Full name is too long").optional(),
+  phone: z.string().max(20, "Phone is too long").optional(),
+  grade: z.string().max(50, "Grade is too long").optional(),
+});
+
 const AdminDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -67,7 +76,8 @@ const AdminDashboard = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [demoRequests, setDemoRequests] = useState<DemoRequest[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [createSuccess, setCreateSuccess] = useState(false);
+  const [createTeacherSuccess, setCreateTeacherSuccess] = useState(false);
+  const [createStudentSuccess, setCreateStudentSuccess] = useState(false);
   const [sendingConfirmation, setSendingConfirmation] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("demo-requests");
@@ -80,6 +90,15 @@ const AdminDashboard = () => {
     subjects: "",
     availability: "",
     bio: "",
+  });
+
+  const [studentForm, setStudentForm] = useState({
+    email: "",
+    password: "",
+    studentName: "",
+    fullName: "",
+    phone: "",
+    grade: "",
   });
 
   useEffect(() => {
@@ -183,7 +202,7 @@ const AdminDashboard = () => {
   const handleCreateTeacher = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    setCreateSuccess(false);
+    setCreateTeacherSuccess(false);
 
     try {
       const validated = createTeacherSchema.parse(teacherForm);
@@ -203,7 +222,7 @@ const AdminDashboard = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setCreateSuccess(true);
+      setCreateTeacherSuccess(true);
       toast({
         title: "Teacher created!",
         description: `Account created for ${validated.email}. Share the credentials with the teacher.`,
@@ -230,6 +249,63 @@ const AdminDashboard = () => {
       } else {
         toast({
           title: "Error creating teacher",
+          description: error.message || "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCreateStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setCreateStudentSuccess(false);
+
+    try {
+      const validated = createStudentSchema.parse(studentForm);
+
+      const { data, error } = await supabase.functions.invoke("create-student", {
+        body: {
+          email: validated.email,
+          password: validated.password,
+          studentName: validated.studentName,
+          fullName: validated.fullName,
+          phone: validated.phone,
+          grade: validated.grade,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setCreateStudentSuccess(true);
+      toast({
+        title: "Student created!",
+        description: `Account created for ${validated.email}. Share the credentials with the student/parent.`,
+      });
+
+      setStudentForm({
+        email: "",
+        password: "",
+        studentName: "",
+        fullName: "",
+        phone: "",
+        grade: "",
+      });
+
+      fetchData();
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Validation Error",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error creating student",
           description: error.message || "Something went wrong. Please try again.",
           variant: "destructive",
         });
@@ -416,7 +492,7 @@ const AdminDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {createSuccess && (
+              {createTeacherSuccess && (
                 <div className="mb-4 p-4 rounded-lg bg-success/10 border border-success/20 flex items-center gap-3">
                   <CheckCircle2 className="h-5 w-5 text-success" />
                   <p className="text-sm text-success">
@@ -427,9 +503,9 @@ const AdminDashboard = () => {
               <form onSubmit={handleCreateTeacher} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
+                    <Label htmlFor="teacher-email">Email *</Label>
                     <Input
-                      id="email"
+                      id="teacher-email"
                       type="email"
                       placeholder="teacher@example.com"
                       value={teacherForm.email}
@@ -438,9 +514,9 @@ const AdminDashboard = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password">Temporary Password *</Label>
+                    <Label htmlFor="teacher-password">Temporary Password *</Label>
                     <Input
-                      id="password"
+                      id="teacher-password"
                       type="text"
                       placeholder="TempPass123!"
                       value={teacherForm.password}
@@ -451,9 +527,9 @@ const AdminDashboard = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name *</Label>
+                    <Label htmlFor="teacher-fullName">Full Name *</Label>
                     <Input
-                      id="fullName"
+                      id="teacher-fullName"
                       placeholder="John Doe"
                       value={teacherForm.fullName}
                       onChange={(e) => setTeacherForm({ ...teacherForm, fullName: e.target.value })}
@@ -461,9 +537,9 @@ const AdminDashboard = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
+                    <Label htmlFor="teacher-phone">Phone</Label>
                     <Input
-                      id="phone"
+                      id="teacher-phone"
                       placeholder="+1 234 567 8900"
                       value={teacherForm.phone}
                       onChange={(e) => setTeacherForm({ ...teacherForm, phone: e.target.value })}
@@ -472,18 +548,18 @@ const AdminDashboard = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="subjects">Subjects</Label>
+                    <Label htmlFor="teacher-subjects">Subjects</Label>
                     <Input
-                      id="subjects"
+                      id="teacher-subjects"
                       placeholder="Math, Physics"
                       value={teacherForm.subjects}
                       onChange={(e) => setTeacherForm({ ...teacherForm, subjects: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="availability">Availability</Label>
+                    <Label htmlFor="teacher-availability">Availability</Label>
                     <Input
-                      id="availability"
+                      id="teacher-availability"
                       placeholder="Mon-Fri 9am-5pm"
                       value={teacherForm.availability}
                       onChange={(e) => setTeacherForm({ ...teacherForm, availability: e.target.value })}
@@ -491,9 +567,9 @@ const AdminDashboard = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
+                  <Label htmlFor="teacher-bio">Bio</Label>
                   <Textarea
-                    id="bio"
+                    id="teacher-bio"
                     placeholder="Teacher's background and experience..."
                     value={teacherForm.bio}
                     onChange={(e) => setTeacherForm({ ...teacherForm, bio: e.target.value })}
@@ -505,6 +581,104 @@ const AdminDashboard = () => {
                     <><Loader2 className="h-4 w-4 animate-spin" />Creating...</>
                   ) : (
                     "Create Teacher Account"
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === "create-student" && (
+          <Card className="max-w-lg dashboard-list-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5" />
+                Create Student Account
+              </CardTitle>
+              <CardDescription>
+                Create a new student account. Share the credentials securely with the student or parent.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {createStudentSuccess && (
+                <div className="mb-4 p-4 rounded-lg bg-success/10 border border-success/20 flex items-center gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-success" />
+                  <p className="text-sm text-success">
+                    Student account created successfully! Share the login credentials with the student/parent.
+                  </p>
+                </div>
+              )}
+              <form onSubmit={handleCreateStudent} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="student-email">Email *</Label>
+                    <Input
+                      id="student-email"
+                      type="email"
+                      placeholder="student@example.com"
+                      value={studentForm.email}
+                      onChange={(e) => setStudentForm({ ...studentForm, email: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="student-password">Temporary Password *</Label>
+                    <Input
+                      id="student-password"
+                      type="text"
+                      placeholder="TempPass123!"
+                      value={studentForm.password}
+                      onChange={(e) => setStudentForm({ ...studentForm, password: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="student-studentName">Student Name *</Label>
+                    <Input
+                      id="student-studentName"
+                      placeholder="Student's display name"
+                      value={studentForm.studentName}
+                      onChange={(e) => setStudentForm({ ...studentForm, studentName: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="student-fullName">Full Name</Label>
+                    <Input
+                      id="student-fullName"
+                      placeholder="Full legal name"
+                      value={studentForm.fullName}
+                      onChange={(e) => setStudentForm({ ...studentForm, fullName: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="student-phone">Phone</Label>
+                    <Input
+                      id="student-phone"
+                      placeholder="+1 234 567 8900"
+                      value={studentForm.phone}
+                      onChange={(e) => setStudentForm({ ...studentForm, phone: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="student-grade">Grade</Label>
+                    <Input
+                      id="student-grade"
+                      placeholder="10th Grade"
+                      value={studentForm.grade}
+                      onChange={(e) => setStudentForm({ ...studentForm, grade: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <Button type="submit" className="w-full dashboard-btn dashboard-btn-admin" disabled={submitting}>
+                  {submitting ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" />Creating...</>
+                  ) : (
+                    "Create Student Account"
                   )}
                 </Button>
               </form>
@@ -527,7 +701,7 @@ const AdminDashboard = () => {
                 <EmptyState 
                   icon={Users}
                   title="No users registered yet"
-                  description="When students and teachers sign up, they'll appear here."
+                  description="When students and teachers are created, they'll appear here."
                 />
               ) : (
                 <div className="overflow-x-auto">
