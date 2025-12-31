@@ -238,7 +238,7 @@ const Index = () => {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
                 <div className="contact-item">
                   <Mail className="h-6 w-6 text-primary" />
-                  <span className="text-muted-foreground font-medium">contact@shobsacademy.com</span>
+                  <span className="text-muted-foreground font-medium">shobaraju@shobsacademy.com</span>
                 </div>
                 <div className="contact-item">
                   <Phone className="h-6 w-6 text-primary" />
