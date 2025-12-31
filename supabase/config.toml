@@ -1,1 +1,16 @@
 project_id = "ezbpvgfubzdxxwbqqcsm"
+
+[functions.create-initial-admin]
+verify_jwt = false
+
+[functions.create-teacher]
+verify_jwt = true
+
+[functions.send-demo-confirmation]
+verify_jwt = false
+
+[functions.send-demo-request]
+verify_jwt = false
+
+[functions.submit-demo-request]
+verify_jwt = false
