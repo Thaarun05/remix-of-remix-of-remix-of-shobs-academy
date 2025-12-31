@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Users, Shield, ArrowRight, BookOpen, User, ClipboardCheck, Target, Calendar, Zap, Mail, Phone } from "lucide-react";
+import { GraduationCap, Users, Shield, ArrowRight, BookOpen, User, ClipboardCheck, Target, Calendar, Zap, Mail } from "lucide-react";
 import { DemoRequestForm } from "@/components/DemoRequestForm";
 import { Logo } from "@/components/Logo";
 import { Navbar } from "@/components/Navbar";
@@ -241,8 +241,8 @@ const Index = () => {
                   <span className="text-muted-foreground font-medium">shobaraju@shobsacademy.com</span>
                 </div>
                 <div className="contact-item">
-                  <Phone className="h-6 w-6 text-primary" />
-                  <span className="text-muted-foreground font-medium">(123) 456-7890</span>
+                  
+                  
                 </div>
               </div>
             </div>
