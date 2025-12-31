@@ -1,10 +1,1 @@
-project_id = "qgdghdzlmqciyqbldbhq"
-
-[functions.create-initial-admin]
-verify_jwt = false
-
-[functions.create-teacher]
-verify_jwt = false
-
-[functions.send-demo-request]
-verify_jwt = false
+project_id = "tpaaawrnhwvxjvswards"

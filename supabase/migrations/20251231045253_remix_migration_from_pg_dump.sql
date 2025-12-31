@@ -1,8 +1,8 @@
-CREATE EXTENSION IF NOT EXISTS "pg_graphql" WITH SCHEMA "graphql";
+CREATE EXTENSION IF NOT EXISTS "pg_graphql";
 CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
-CREATE EXTENSION IF NOT EXISTS "plpgsql" WITH SCHEMA "pg_catalog";
-CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
+CREATE EXTENSION IF NOT EXISTS "plpgsql";
+CREATE EXTENSION IF NOT EXISTS "supabase_vault";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 BEGIN;
 
@@ -70,6 +70,22 @@ $$;
 
 
 --
+-- Name: is_conversation_participant(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_conversation_participant(_user_id uuid, _conversation_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.conversations
+    WHERE id = _conversation_id
+    AND (student_user_id = _user_id OR teacher_user_id = _user_id)
+  )
+$$;
+
+
+--
 -- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -126,6 +142,18 @@ CREATE TABLE public.attendance_records (
 
 
 --
+-- Name: conversations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.conversations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    student_user_id uuid NOT NULL,
+    teacher_user_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+--
 -- Name: demo_requests; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -162,6 +190,21 @@ CREATE TABLE public.events (
     created_by uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now(),
     CONSTRAINT events_event_type_check CHECK ((event_type = ANY (ARRAY['class'::text, 'assignment'::text])))
+);
+
+
+--
+-- Name: messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.messages (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    conversation_id uuid NOT NULL,
+    sender_user_id uuid NOT NULL,
+    receiver_user_id uuid NOT NULL,
+    content text NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    read_at timestamp with time zone
 );
 
 
@@ -233,6 +276,22 @@ ALTER TABLE ONLY public.attendance_records
 
 
 --
+-- Name: conversations conversations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.conversations
+    ADD CONSTRAINT conversations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: conversations conversations_student_user_id_teacher_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.conversations
+    ADD CONSTRAINT conversations_student_user_id_teacher_user_id_key UNIQUE (student_user_id, teacher_user_id);
+
+
+--
 -- Name: demo_requests demo_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -246,6 +305,14 @@ ALTER TABLE ONLY public.demo_requests
 
 ALTER TABLE ONLY public.events
     ADD CONSTRAINT events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: messages messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.messages
+    ADD CONSTRAINT messages_pkey PRIMARY KEY (id);
 
 
 --
@@ -350,6 +417,14 @@ ALTER TABLE ONLY public.events
 
 
 --
+-- Name: messages messages_conversation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.messages
+    ADD CONSTRAINT messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.conversations(id) ON DELETE CASCADE;
+
+
+--
 -- Name: profiles profiles_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -424,10 +499,24 @@ CREATE POLICY "Admins can manage all zoom links" ON public.zoom_links USING (pub
 
 
 --
+-- Name: conversations Admins can manage conversations; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage conversations" ON public.conversations USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+
+--
 -- Name: demo_requests Admins can manage demo requests; Type: POLICY; Schema: public; Owner: -
 --
 
 CREATE POLICY "Admins can manage demo requests" ON public.demo_requests USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+
+--
+-- Name: messages Admins can manage messages; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage messages" ON public.messages USING (public.has_role(auth.uid(), 'admin'::public.app_role));
 
 
 --
@@ -487,6 +576,13 @@ CREATE POLICY "Students can update their own student profile" ON public.student_
 
 
 --
+-- Name: conversations Students can view their conversations; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Students can view their conversations" ON public.conversations FOR SELECT USING ((student_user_id = auth.uid()));
+
+
+--
 -- Name: assignments Students can view their own assignments; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -519,6 +615,13 @@ CREATE POLICY "Students can view their own student profile" ON public.student_pr
 --
 
 CREATE POLICY "Students can view their own zoom link" ON public.zoom_links FOR SELECT USING ((student_user_id = auth.uid()));
+
+
+--
+-- Name: conversations Teachers can create conversations; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Teachers can create conversations" ON public.conversations FOR INSERT WITH CHECK (((teacher_user_id = auth.uid()) AND public.has_role(auth.uid(), 'teacher'::public.app_role)));
 
 
 --
@@ -620,6 +723,13 @@ CREATE POLICY "Teachers can view attendance they created" ON public.attendance_r
 
 
 --
+-- Name: conversations Teachers can view their conversations; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Teachers can view their conversations" ON public.conversations FOR SELECT USING ((teacher_user_id = auth.uid()));
+
+
+--
 -- Name: events Teachers can view their events; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -641,10 +751,31 @@ CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT
 
 
 --
+-- Name: messages Users can mark messages as read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can mark messages as read" ON public.messages FOR UPDATE USING ((receiver_user_id = auth.uid())) WITH CHECK ((receiver_user_id = auth.uid()));
+
+
+--
+-- Name: messages Users can send messages in their conversations; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can send messages in their conversations" ON public.messages FOR INSERT WITH CHECK (((sender_user_id = auth.uid()) AND public.is_conversation_participant(auth.uid(), conversation_id)));
+
+
+--
 -- Name: profiles Users can update their own profile except role; Type: POLICY; Schema: public; Owner: -
 --
 
 CREATE POLICY "Users can update their own profile except role" ON public.profiles FOR UPDATE USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+
+--
+-- Name: messages Users can view messages in their conversations; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view messages in their conversations" ON public.messages FOR SELECT USING (public.is_conversation_participant(auth.uid(), conversation_id));
 
 
 --
@@ -667,6 +798,12 @@ ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attendance_records ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: conversations; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: demo_requests; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -677,6 +814,12 @@ ALTER TABLE public.demo_requests ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: messages; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: profiles; Type: ROW SECURITY; Schema: public; Owner: -
