@@ -5,46 +5,46 @@ import { useToast } from "@/hooks/use-toast";
 import { LogOut, Loader2 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useState } from "react";
-
 interface NavbarProps {
   showAboutLink?: boolean;
   variant?: "default" | "student" | "teacher" | "admin";
 }
-
-export function Navbar({ showAboutLink = true, variant = "default" }: NavbarProps) {
-  const { user, role } = useAuth();
+export function Navbar({
+  showAboutLink = true,
+  variant = "default"
+}: NavbarProps) {
+  const {
+    user,
+    role
+  } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [signingOut, setSigningOut] = useState(false);
-
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
       await signOut();
       toast({
         title: "Signed out",
-        description: "You have been successfully signed out.",
+        description: "You have been successfully signed out."
       });
       navigate("/");
     } catch (error: any) {
       toast({
         title: "Error",
         description: "Failed to sign out. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setSigningOut(false);
     }
   };
-
   const isLoggedIn = !!user && !!role;
   const linkColorClass = variant === "student" ? "text-student" : "text-teacher";
-  const logoutColorClass = variant === "student" 
-    ? "text-student hover:bg-student/10" 
-    : "text-teacher hover:bg-teacher/10";
-
-  return (
-    <nav className="navbar">
+  const logoutColorClass = variant === "student" ? "text-student hover:bg-student/10" : "text-teacher hover:bg-teacher/10";
+  return <nav className="navbar">
       {/* LEFT: Logo + Brand Name */}
       <Link to="/" className="navbar-brand">
         <div className="navbar-logo">
@@ -55,40 +55,22 @@ export function Navbar({ showAboutLink = true, variant = "default" }: NavbarProp
 
       {/* CENTER: Navigation Links */}
       <div className="navbar-nav">
-        {showAboutLink && !isLoggedIn && (
-          <Link 
-            to="/about" 
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            About Us
-          </Link>
-        )}
+        {showAboutLink && !isLoggedIn}
       </div>
 
       {/* RIGHT: User Info + Logout */}
       <div className="navbar-right">
-        {isLoggedIn && (
-          <>
+        {isLoggedIn && <>
             <span className="navbar-user-email hidden sm:block">
               {user?.email}
             </span>
-            <button
-              onClick={handleSignOut}
-              disabled={signingOut}
-              className={`navbar-logout-btn ${logoutColorClass}`}
-            >
-              {signingOut ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
+            <button onClick={handleSignOut} disabled={signingOut} className={`navbar-logout-btn ${logoutColorClass}`}>
+              {signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <>
                   <LogOut className="h-4 w-4 mr-1.5 inline" />
                   <span className="hidden sm:inline">Sign Out</span>
-                </>
-              )}
+                </>}
             </button>
-          </>
-        )}
+          </>}
       </div>
-    </nav>
-  );
+    </nav>;
 }
