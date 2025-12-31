@@ -23,8 +23,21 @@ import {
   Mail,
   Phone,
   Clock,
-  XCircle
+  XCircle,
+  Check,
+  Trash2
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { z } from "zod";
 
 interface Profile {
@@ -80,6 +93,8 @@ const AdminDashboard = () => {
   const [createStudentSuccess, setCreateStudentSuccess] = useState(false);
   const [sendingConfirmation, setSendingConfirmation] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [deletingRequest, setDeletingRequest] = useState<string | null>(null);
+  const [demoFilter, setDemoFilter] = useState<"all" | "pending" | "approved" | "done">("pending");
   const [activeTab, setActiveTab] = useState("demo-requests");
   
   const [teacherForm, setTeacherForm] = useState({
@@ -170,7 +185,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleUpdateDemoStatus = async (requestId: string, newStatus: "approved" | "rejected") => {
+  const handleUpdateDemoStatus = async (requestId: string, newStatus: "approved" | "rejected" | "done") => {
     setUpdatingStatus(requestId);
     
     try {
@@ -196,6 +211,35 @@ const AdminDashboard = () => {
       });
     } finally {
       setUpdatingStatus(null);
+    }
+  };
+
+  const handleDeleteDemoRequest = async (requestId: string) => {
+    setDeletingRequest(requestId);
+    
+    try {
+      const { error } = await supabase
+        .from("demo_requests")
+        .delete()
+        .eq("id", requestId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Request deleted",
+        description: "Demo request has been removed.",
+      });
+
+      fetchData();
+    } catch (error: any) {
+      console.error("Error deleting request:", error);
+      toast({
+        title: "Failed to delete",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingRequest(null);
     }
   };
 
@@ -363,119 +407,218 @@ const AdminDashboard = () => {
                 Demo Class Requests
               </CardTitle>
               <CardDescription>View and manage demo class requests from parents</CardDescription>
+              {/* Filter Tabs */}
+              <div className="flex flex-wrap gap-2 mt-4">
+                {(["pending", "approved", "done", "all"] as const).map((filter) => (
+                  <Button
+                    key={filter}
+                    size="sm"
+                    variant={demoFilter === filter ? "default" : "outline"}
+                    onClick={() => setDemoFilter(filter)}
+                    className={demoFilter === filter ? "dashboard-btn dashboard-btn-admin" : ""}
+                  >
+                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                    {filter !== "all" && (
+                      <span className="ml-1.5 text-xs opacity-70">
+                        ({demoRequests.filter(r => 
+                          filter === "pending" ? (r.status === "sent" || r.status === "pending" || !r.status) :
+                          r.status === filter
+                        ).length})
+                      </span>
+                    )}
+                    {filter === "all" && (
+                      <span className="ml-1.5 text-xs opacity-70">({demoRequests.length})</span>
+                    )}
+                  </Button>
+                ))}
+              </div>
             </CardHeader>
             <CardContent>
-              {demoRequests.length === 0 ? (
-                <EmptyState 
-                  icon={CalendarCheck}
-                  title="No demo requests yet"
-                  description="When parents submit demo class requests, they'll appear here for you to manage."
-                />
-              ) : (
-                <div className="space-y-4">
-                  {demoRequests.map((request) => (
-                    <div key={request.id} className="border border-border rounded-xl p-4 hover:border-admin/30 transition-all hover:shadow-md bg-card">
-                      <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-lg">{request.student_name}</h3>
-                            <Badge 
-                              variant={
-                                request.status === "approved" ? "default" : 
-                                request.status === "rejected" ? "destructive" :
-                                request.status === "confirmed" ? "default" : "secondary"
-                              }
-                              className={
-                                request.status === "approved" ? "bg-success/10 text-success border-success/20" :
-                                request.status === "rejected" ? "bg-destructive/10 text-destructive border-destructive/20" :
-                                request.status === "confirmed" ? "bg-primary/10 text-primary border-primary/20" :
-                                "bg-warning/10 text-warning border-warning/20"
-                              }
-                            >
-                              {request.status === "approved" ? "Approved" : 
-                               request.status === "rejected" ? "Rejected" :
-                               request.status === "confirmed" ? "Confirmed" : "Pending"}
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-muted-foreground space-y-1">
-                            <p><strong>Age:</strong> {request.age} | <strong>Grade:</strong> {request.grade}</p>
-                            <p><strong>Subject:</strong> {request.subject}</p>
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              <span>{request.timing} on {request.days}</span>
-                            </div>
-                          </div>
-                          <div className="pt-2 border-t border-border/50 text-sm">
-                            <p><strong>Parent:</strong> {request.parent_name}</p>
-                            <div className="flex flex-wrap items-center gap-4 mt-1 text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Mail className="h-3 w-3" />
-                                {request.parent_email}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {request.phone}
-                              </span>
-                            </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Submitted: {new Date(request.created_at).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          {request.status !== "approved" && request.status !== "rejected" && (
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                className="dashboard-btn dashboard-btn-admin"
-                                onClick={() => handleUpdateDemoStatus(request.id, "approved")}
-                                disabled={updatingStatus === request.id}
+              {(() => {
+                const filteredRequests = demoRequests.filter(r => {
+                  if (demoFilter === "all") return true;
+                  if (demoFilter === "pending") return r.status === "sent" || r.status === "pending" || !r.status;
+                  return r.status === demoFilter;
+                });
+                
+                if (filteredRequests.length === 0) {
+                  return (
+                    <EmptyState 
+                      icon={CalendarCheck}
+                      title={demoFilter === "all" ? "No demo requests yet" : `No ${demoFilter} requests`}
+                      description={demoFilter === "all" 
+                        ? "When parents submit demo class requests, they'll appear here for you to manage."
+                        : `There are no ${demoFilter} demo requests at this time.`
+                      }
+                    />
+                  );
+                }
+                
+                return (
+                  <div className="space-y-4">
+                    {filteredRequests.map((request) => (
+                      <div key={request.id} className="border border-border rounded-xl p-4 hover:border-admin/30 transition-all hover:shadow-md bg-card">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-semibold text-lg">{request.student_name}</h3>
+                              <Badge 
+                                variant={
+                                  request.status === "approved" ? "default" : 
+                                  request.status === "rejected" ? "destructive" :
+                                  request.status === "done" ? "default" :
+                                  request.status === "confirmed" ? "default" : "secondary"
+                                }
+                                className={
+                                  request.status === "approved" ? "bg-success/10 text-success border-success/20" :
+                                  request.status === "rejected" ? "bg-destructive/10 text-destructive border-destructive/20" :
+                                  request.status === "done" ? "bg-muted text-muted-foreground border-border" :
+                                  request.status === "confirmed" ? "bg-primary/10 text-primary border-primary/20" :
+                                  "bg-warning/10 text-warning border-warning/20"
+                                }
                               >
-                                {updatingStatus === request.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <><CheckCircle2 className="h-4 w-4 mr-1" />Approve</>
-                                )}
-                              </Button>
+                                {request.status === "approved" ? "Approved" : 
+                                 request.status === "rejected" ? "Rejected" :
+                                 request.status === "done" ? "Done" :
+                                 request.status === "confirmed" ? "Confirmed" : "Pending"}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <p><strong>Age:</strong> {request.age} | <strong>Grade:</strong> {request.grade}</p>
+                              <p><strong>Subject:</strong> {request.subject}</p>
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                <span>{request.timing} on {request.days}</span>
+                              </div>
+                            </div>
+                            <div className="pt-2 border-t border-border/50 text-sm">
+                              <p><strong>Parent:</strong> {request.parent_name}</p>
+                              <div className="flex flex-wrap items-center gap-4 mt-1 text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Mail className="h-3 w-3" />
+                                  {request.parent_email}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Phone className="h-3 w-3" />
+                                  {request.phone}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Submitted: {new Date(request.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            {request.status !== "approved" && request.status !== "rejected" && request.status !== "done" && (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  className="dashboard-btn dashboard-btn-admin"
+                                  onClick={() => handleUpdateDemoStatus(request.id, "approved")}
+                                  disabled={updatingStatus === request.id}
+                                >
+                                  {updatingStatus === request.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <><CheckCircle2 className="h-4 w-4 mr-1" />Approve</>
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleUpdateDemoStatus(request.id, "rejected")}
+                                  disabled={updatingStatus === request.id}
+                                  className="text-destructive hover:bg-destructive/10 border-destructive/30"
+                                >
+                                  {updatingStatus === request.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <><XCircle className="h-4 w-4 mr-1" />Reject</>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {request.status !== "done" && (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleUpdateDemoStatus(request.id, "rejected")}
+                                onClick={() => handleSendConfirmation(request)}
+                                disabled={sendingConfirmation === request.id}
+                              >
+                                {sendingConfirmation === request.id ? (
+                                  <><Loader2 className="h-4 w-4 animate-spin mr-1" />Sending...</>
+                                ) : (
+                                  <><Mail className="h-4 w-4 mr-1" />{request.status === "confirmed" ? "Resend" : "Send"} Email</>
+                                )}
+                              </Button>
+                            )}
+                            
+                            {/* Done button */}
+                            {request.status !== "done" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUpdateDemoStatus(request.id, "done")}
                                 disabled={updatingStatus === request.id}
-                                className="text-destructive hover:bg-destructive/10 border-destructive/30"
+                                className="text-success hover:bg-success/10 border-success/30"
                               >
                                 {updatingStatus === request.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
-                                  <><XCircle className="h-4 w-4 mr-1" />Reject</>
+                                  <><Check className="h-4 w-4 mr-1" />Mark Done</>
                                 )}
                               </Button>
-                            </div>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleSendConfirmation(request)}
-                            disabled={sendingConfirmation === request.id}
-                          >
-                            {sendingConfirmation === request.id ? (
-                              <><Loader2 className="h-4 w-4 animate-spin mr-1" />Sending...</>
-                            ) : (
-                              <><Mail className="h-4 w-4 mr-1" />{request.status === "confirmed" ? "Resend" : "Send"} Email</>
                             )}
-                          </Button>
-                          <a 
-                            href={`mailto:${request.parent_email}`}
-                            className="text-xs text-center text-muted-foreground hover:text-foreground"
-                          >
-                            Open in email client
-                          </a>
+                            
+                            {/* Delete button with confirmation */}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-destructive hover:bg-destructive/10"
+                                  disabled={deletingRequest === request.id}
+                                >
+                                  {deletingRequest === request.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <><Trash2 className="h-4 w-4 mr-1" />Delete</>
+                                  )}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete demo request?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete the demo request from {request.parent_name} for {request.student_name}. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteDemoRequest(request.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                            
+                            <a 
+                              href={`mailto:${request.parent_email}`}
+                              className="text-xs text-center text-muted-foreground hover:text-foreground"
+                            >
+                              Open in email client
+                            </a>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         )}
