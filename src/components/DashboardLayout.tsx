@@ -9,7 +9,6 @@ import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { LogOut, Loader2, MessageSquare } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
-import { NotificationBell } from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
 
 interface SidebarItem {
@@ -85,15 +84,12 @@ export function DashboardLayout({
                   {roleLabel}
                 </span>
               </div>
-              <div className="flex items-center gap-3">
-                {unreadCount > 0 && (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
-                    <MessageSquare className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-semibold text-primary">{unreadCount} unread</span>
-                  </div>
-                )}
-                <NotificationBell />
-              </div>
+              {unreadCount > 0 && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                  <MessageSquare className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-primary">{unreadCount} unread</span>
+                </div>
+              )}
             </header>
 
             {/* Page Content */}

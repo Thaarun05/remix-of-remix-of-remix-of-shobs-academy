@@ -21,7 +21,9 @@ const SUBJECTS = [
   "English",
   "Reading",
   "Writing",
-  "Social Studies"
+  "Social Studies",
+  "Computer Science",
+  "Other"
 ];
 
 const TIMINGS = [

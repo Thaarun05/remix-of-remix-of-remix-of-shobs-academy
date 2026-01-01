@@ -216,9 +216,6 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string | null
-          deleted_at: string | null
-          deleted_by: string | null
-          deleted_for_role: string | null
           id: string
           read_at: string | null
           receiver_user_id: string
@@ -228,9 +225,6 @@ export type Database = {
           content: string
           conversation_id: string
           created_at?: string | null
-          deleted_at?: string | null
-          deleted_by?: string | null
-          deleted_for_role?: string | null
           id?: string
           read_at?: string | null
           receiver_user_id: string
@@ -240,9 +234,6 @@ export type Database = {
           content?: string
           conversation_id?: string
           created_at?: string | null
-          deleted_at?: string | null
-          deleted_by?: string | null
-          deleted_for_role?: string | null
           id?: string
           read_at?: string | null
           receiver_user_id?: string
@@ -257,48 +248,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      notifications: {
-        Row: {
-          body: string | null
-          created_at: string | null
-          entity_id: string | null
-          entity_table: string | null
-          id: string
-          is_read: boolean | null
-          recipient_id: string
-          role_target: string | null
-          sender_id: string | null
-          title: string
-          type: string
-        }
-        Insert: {
-          body?: string | null
-          created_at?: string | null
-          entity_id?: string | null
-          entity_table?: string | null
-          id?: string
-          is_read?: boolean | null
-          recipient_id: string
-          role_target?: string | null
-          sender_id?: string | null
-          title: string
-          type: string
-        }
-        Update: {
-          body?: string | null
-          created_at?: string | null
-          entity_id?: string | null
-          entity_table?: string | null
-          id?: string
-          is_read?: boolean | null
-          recipient_id?: string
-          role_target?: string | null
-          sender_id?: string | null
-          title?: string
-          type?: string
-        }
-        Relationships: []
       }
       profiles: {
         Row: {
@@ -324,68 +273,20 @@ export type Database = {
         }
         Relationships: []
       }
-      student_fees: {
-        Row: {
-          admin_viewed_at: string | null
-          class_dates: string | null
-          created_at: string | null
-          fee_per_hour: number | null
-          id: string
-          month: string
-          status: string | null
-          student_ack_status: string | null
-          student_id: string
-          subjects: string | null
-          teacher_id: string
-          total_hours: number | null
-        }
-        Insert: {
-          admin_viewed_at?: string | null
-          class_dates?: string | null
-          created_at?: string | null
-          fee_per_hour?: number | null
-          id?: string
-          month: string
-          status?: string | null
-          student_ack_status?: string | null
-          student_id: string
-          subjects?: string | null
-          teacher_id: string
-          total_hours?: number | null
-        }
-        Update: {
-          admin_viewed_at?: string | null
-          class_dates?: string | null
-          created_at?: string | null
-          fee_per_hour?: number | null
-          id?: string
-          month?: string
-          status?: string | null
-          student_ack_status?: string | null
-          student_id?: string
-          subjects?: string | null
-          teacher_id?: string
-          total_hours?: number | null
-        }
-        Relationships: []
-      }
       student_profiles: {
         Row: {
-          assigned_teacher_id: string | null
           created_at: string | null
           grade: string | null
           student_name: string
           user_id: string
         }
         Insert: {
-          assigned_teacher_id?: string | null
           created_at?: string | null
           grade?: string | null
           student_name: string
           user_id: string
         }
         Update: {
-          assigned_teacher_id?: string | null
           created_at?: string | null
           grade?: string | null
           student_name?: string
@@ -414,39 +315,6 @@ export type Database = {
           subjects?: string | null
           updated_at?: string | null
           user_id?: string
-        }
-        Relationships: []
-      }
-      teacher_salary: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          id: string
-          num_classes: number | null
-          salary_per_hour: number | null
-          status: string | null
-          teacher_id: string
-          total_hours: number | null
-        }
-        Insert: {
-          amount?: number | null
-          created_at?: string | null
-          id?: string
-          num_classes?: number | null
-          salary_per_hour?: number | null
-          status?: string | null
-          teacher_id: string
-          total_hours?: number | null
-        }
-        Update: {
-          amount?: number | null
-          created_at?: string | null
-          id?: string
-          num_classes?: number | null
-          salary_per_hour?: number | null
-          status?: string | null
-          teacher_id?: string
-          total_hours?: number | null
         }
         Relationships: []
       }

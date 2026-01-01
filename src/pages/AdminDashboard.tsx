@@ -605,6 +605,13 @@ const AdminDashboard = () => {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
+                            
+                            <a 
+                              href={`mailto:${request.parent_email}`}
+                              className="text-xs text-center text-muted-foreground hover:text-foreground"
+                            >
+                              Open in email client
+                            </a>
                           </div>
                         </div>
                       </div>
