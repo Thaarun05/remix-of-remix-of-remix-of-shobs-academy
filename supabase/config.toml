@@ -4,10 +4,10 @@ project_id = "ezbpvgfubzdxxwbqqcsm"
 verify_jwt = false
 
 [functions.create-teacher]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-student]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-demo-confirmation]
 verify_jwt = false
