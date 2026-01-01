@@ -543,14 +543,21 @@ const AdminDashboard = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleSendConfirmation(request)}
-                                disabled={sendingConfirmation === request.id}
+                                onClick={() => {
+                                  const subject = encodeURIComponent("Shobs Academy - Demo Class Request");
+                                  const body = encodeURIComponent(
+                                    `Hello ${request.parent_name},\n\nThanks for requesting a demo class for ${request.student_name}. We will contact you shortly.\n\nRegards,\nShobs Academy`
+                                  );
+                                  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(request.parent_email)}&su=${subject}&body=${body}`;
+                                  const mailtoUrl = `mailto:${request.parent_email}?subject=${subject}&body=${body}`;
+                                  
+                                  const newWindow = window.open(gmailUrl, "_blank", "noopener,noreferrer");
+                                  if (!newWindow || newWindow.closed || typeof newWindow.closed === "undefined") {
+                                    window.location.href = mailtoUrl;
+                                  }
+                                }}
                               >
-                                {sendingConfirmation === request.id ? (
-                                  <><Loader2 className="h-4 w-4 animate-spin mr-1" />Sending...</>
-                                ) : (
-                                  <><Mail className="h-4 w-4 mr-1" />{request.status === "confirmed" ? "Resend" : "Send"} Email</>
-                                )}
+                                <Mail className="h-4 w-4 mr-1" />Send Email
                               </Button>
                             )}
                             
