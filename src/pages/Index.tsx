@@ -68,6 +68,16 @@ const Index = () => {
       {/* Global Navbar */}
       <Navbar showAboutLink={true} />
 
+      {/* Sign Up Navigation - Top Right */}
+      <div className="fixed top-20 right-4 z-40 flex items-center gap-2 bg-background/80 backdrop-blur-sm rounded-lg px-3 py-2 border border-border/50 shadow-sm">
+        <span className="text-xs text-muted-foreground font-medium">Sign in as:</span>
+        <Link to="/student-login" className="text-xs font-semibold text-student hover:underline">Student</Link>
+        <span className="text-muted-foreground">|</span>
+        <Link to="/teacher-login" className="text-xs font-semibold text-teacher hover:underline">Teacher</Link>
+        <span className="text-muted-foreground">|</span>
+        <Link to="/admin-login" className="text-xs font-semibold text-admin hover:underline">Admin</Link>
+      </div>
+
       {/* 1. HERO SECTION */}
       <section className="flex flex-col items-center justify-center text-center px-6 py-16 md:py-24 pt-24">
         {/* Logo */}
