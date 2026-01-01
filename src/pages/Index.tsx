@@ -7,71 +7,64 @@ import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-
-const countries = [
-  {
-    flagUrl: "https://flagcdn.com/w320/us.png",
-    code: "US",
-    name: "USA",
-    description: "Serving students across all 50 states"
-  },
-  {
-    flagUrl: "https://flagcdn.com/w320/ca.png",
-    code: "CA",
-    name: "Canada",
-    description: "Growing student base in Canada"
-  },
-  {
-    flagUrl: "https://flagcdn.com/w320/au.png",
-    code: "AU",
-    name: "Australia",
-    description: "Services in Australia and Oceania"
-  },
-  {
-    flagUrl: "https://flagcdn.com/w320/nl.png",
-    code: "NL",
-    name: "Netherlands",
-    description: "European presence in the Netherlands"
-  },
-  {
-    flagUrl: "https://flagcdn.com/w320/nz.png",
-    code: "NZ",
-    name: "New Zealand",
-    description: "Expanding in New Zealand"
-  },
-  {
-    flagUrl: "https://flagcdn.com/w320/in.png",
-    code: "IN",
-    name: "India",
-    description: "Primary market, headquartered in Haryana"
-  },
-  {
-    flagUrl: "https://flagcdn.com/w320/ae.png",
-    code: "AE",
-    name: "Dubai",
-    description: "Serving the UAE and Middle East"
-  },
-  {
-    flagUrl: "https://flagcdn.com/w320/sg.png",
-    code: "SG",
-    name: "Singapore",
-    description: "Southeast Asian education hub"
-  }
-];
-
+const countries = [{
+  flagUrl: "https://flagcdn.com/w320/us.png",
+  code: "US",
+  name: "USA",
+  description: "Serving students across all 50 states"
+}, {
+  flagUrl: "https://flagcdn.com/w320/ca.png",
+  code: "CA",
+  name: "Canada",
+  description: "Growing student base in Canada"
+}, {
+  flagUrl: "https://flagcdn.com/w320/au.png",
+  code: "AU",
+  name: "Australia",
+  description: "Services in Australia and Oceania"
+}, {
+  flagUrl: "https://flagcdn.com/w320/nl.png",
+  code: "NL",
+  name: "Netherlands",
+  description: "European presence in the Netherlands"
+}, {
+  flagUrl: "https://flagcdn.com/w320/nz.png",
+  code: "NZ",
+  name: "New Zealand",
+  description: "Expanding in New Zealand"
+}, {
+  flagUrl: "https://flagcdn.com/w320/in.png",
+  code: "IN",
+  name: "India",
+  description: "Primary market, headquartered in Haryana"
+}, {
+  flagUrl: "https://flagcdn.com/w320/ae.png",
+  code: "AE",
+  name: "Dubai",
+  description: "Serving the UAE and Middle East"
+}, {
+  flagUrl: "https://flagcdn.com/w320/sg.png",
+  code: "SG",
+  name: "Singapore",
+  description: "Southeast Asian education hub"
+}];
 const Index = () => {
-  const { user, role, loading } = useAuth();
+  const {
+    user,
+    role,
+    loading
+  } = useAuth();
   const navigate = useNavigate();
 
   // Redirect logged-in users to their dashboard
   useEffect(() => {
     if (!loading && user && role) {
-      navigate(`/${role}`, { replace: true });
+      navigate(`/${role}`, {
+        replace: true
+      });
     }
   }, [user, role, loading, navigate]);
-
-  return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
+  return <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
       {/* Global Navbar */}
       <Navbar showAboutLink={true} />
 
@@ -83,17 +76,23 @@ const Index = () => {
         </div>
 
         {/* Brand Name */}
-        <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-4 brand-name-float animate-fade-in" style={{ animationDelay: "0.1s" }}>
+        <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-4 brand-name-float animate-fade-in" style={{
+        animationDelay: "0.1s"
+      }}>
           Shobs Academy
         </h1>
 
         {/* Tagline */}
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-in" style={{
+        animationDelay: "0.2s"
+      }}>
           Empowering Education, One Student at a Time
         </p>
 
         {/* DEMO BUTTON */}
-        <div className="mb-8 animate-fade-in animate-float" style={{ animationDelay: "0.25s" }}>
+        <div className="mb-8 animate-fade-in animate-float" style={{
+        animationDelay: "0.25s"
+      }}>
           <DemoRequestForm />
         </div>
       </section>
@@ -114,20 +113,14 @@ const Index = () => {
           {/* Countries Grid */}
           <div className="countries-section mb-12">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-              {countries.map((country) => (
-                <div key={country.code} className="country-card">
-                  <img 
-                    src={country.flagUrl} 
-                    alt={`${country.name} flag`} 
-                    className="country-flag-image" 
-                  />
+              {countries.map(country => <div key={country.code} className="country-card bg-primary-foreground">
+                  <img src={country.flagUrl} alt={`${country.name} flag`} className="country-flag-image" />
                   <span className="country-code text-xs font-bold tracking-widest text-primary uppercase mb-2 block">
                     {country.code}
                   </span>
                   <h3 className="font-semibold text-lg text-foreground mb-2">{country.name}</h3>
-                  <p className="text-sm text-muted-foreground">{country.description}</p>
-                </div>
-              ))}
+                  <p className="text-sm text-muted-foreground bg-primary-foreground">{country.description}</p>
+                </div>)}
             </div>
           </div>
 
@@ -216,8 +209,6 @@ const Index = () => {
           © {new Date().getFullYear()} Shobs Academy. All rights reserved.
         </p>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
