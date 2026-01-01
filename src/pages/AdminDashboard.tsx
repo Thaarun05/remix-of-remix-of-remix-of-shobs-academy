@@ -25,7 +25,8 @@ import {
   Clock,
   XCircle,
   Check,
-  Trash2
+  Trash2,
+  DollarSign
 } from "lucide-react";
 import {
   AlertDialog,
@@ -61,6 +62,24 @@ interface DemoRequest {
   days: string;
   phone: string;
   status: string;
+}
+
+interface TeacherOption {
+  user_id: string;
+  full_name: string | null;
+}
+
+interface SalaryRecord {
+  id: string;
+  created_at: string;
+  teacher_id: string;
+  teacher_name: string | null;
+  num_classes: number | null;
+  total_hours: number | null;
+  salary_per_hour: number | null;
+  total_amount: number | null;
+  status: string | null;
+  note: string | null;
 }
 
 const createTeacherSchema = z.object({
@@ -116,6 +135,18 @@ const AdminDashboard = () => {
     grade: "",
   });
 
+  // Salary state
+  const [teachers, setTeachers] = useState<TeacherOption[]>([]);
+  const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
+  const [salaryForm, setSalaryForm] = useState({
+    teacherId: "",
+    numClasses: "",
+    totalHours: "",
+    salaryPerHour: "",
+    note: "",
+  });
+  const [submittingSalary, setSubmittingSalary] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, [user]);
@@ -125,7 +156,7 @@ const AdminDashboard = () => {
     setLoading(true);
 
     try {
-      const [profilesRes, demoRes] = await Promise.all([
+      const [profilesRes, demoRes, salaryRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("user_id, role, full_name, phone, created_at")
@@ -133,11 +164,23 @@ const AdminDashboard = () => {
         supabase
           .from("demo_requests")
           .select("*")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("teacher_salary")
+          .select("*")
           .order("created_at", { ascending: false })
+          .limit(20)
       ]);
 
       setProfiles(profilesRes.data || []);
       setDemoRequests(demoRes.data || []);
+      setSalaryRecords(salaryRes.data || []);
+      
+      // Extract teachers from profiles
+      const teachersList = (profilesRes.data || [])
+        .filter(p => p.role === "teacher")
+        .map(p => ({ user_id: p.user_id, full_name: p.full_name }));
+      setTeachers(teachersList);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
