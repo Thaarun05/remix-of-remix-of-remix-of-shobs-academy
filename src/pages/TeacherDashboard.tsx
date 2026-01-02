@@ -35,7 +35,9 @@ import {
   GraduationCap,
   DollarSign,
   Calculator,
-  Send
+  Send,
+  Eye,
+  Trash2
 } from "lucide-react";
 
 interface Student {
@@ -76,6 +78,37 @@ interface TeacherSalary {
   amount: number | null;
   status: string | null;
   note: string | null;
+  deleted_at?: string | null;
+}
+
+interface AttendanceRecord {
+  id: string;
+  date: string;
+  status: string;
+  hours: number | null;
+  topic: string | null;
+  student_user_id: string;
+  student_name?: string;
+  deleted_at?: string | null;
+}
+
+interface ZoomLink {
+  student_user_id: string;
+  meeting_url: string;
+  meeting_id: string | null;
+  passcode: string | null;
+  student_name?: string;
+  deleted_at?: string | null;
+}
+
+interface StudentFee {
+  id: string;
+  created_at: string;
+  month: string;
+  student_name: string | null;
+  total_amount: number | null;
+  status: string | null;
+  deleted_at?: string | null;
 }
 
 const TeacherDashboard = () => {
@@ -85,6 +118,9 @@ const TeacherDashboard = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [assignments, setAssignments] = useState<AssignmentWithFiles[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [zoomLinks, setZoomLinks] = useState<ZoomLink[]>([]);
+  const [recentFees, setRecentFees] = useState<StudentFee[]>([]);
   const [salaries, setSalaries] = useState<TeacherSalary[]>([]);
   
   // Navigation state
@@ -140,7 +176,7 @@ const TeacherDashboard = () => {
     setLoading(true);
 
     try {
-      const [studentsRes, profileRes, assignmentsRes, salaryRes] = await Promise.all([
+      const [studentsRes, profileRes, assignmentsRes, salaryRes, attendanceRes, zoomRes, feesRes] = await Promise.all([
         supabase
           .from("student_profiles")
           .select("user_id, student_name, grade")
@@ -152,14 +188,34 @@ const TeacherDashboard = () => {
           .maybeSingle(),
         supabase
           .from("assignments")
-          .select("id, title, subject, description, due_date, status, created_at, student_user_id, has_attachments, attachments, submission_attachments")
+          .select("id, title, subject, description, due_date, status, created_at, student_user_id, has_attachments, attachments, submission_attachments, deleted_at")
           .eq("teacher_user_id", user.id)
+          .is("deleted_at", null)
           .order("created_at", { ascending: false }),
         supabase
           .from("teacher_salary")
           .select("*")
           .eq("teacher_id", user.id)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("attendance_records")
+          .select("id, date, status, hours, topic, student_user_id, deleted_at")
+          .eq("teacher_user_id", user.id)
+          .is("deleted_at", null)
           .order("created_at", { ascending: false })
+          .limit(20),
+        supabase
+          .from("zoom_links")
+          .select("student_user_id, meeting_url, meeting_id, passcode, deleted_at")
+          .is("deleted_at", null),
+        supabase
+          .from("student_fees")
+          .select("id, created_at, month, student_name, total_amount, status, deleted_at")
+          .eq("teacher_id", user.id)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(10)
       ]);
 
       setStudents(studentsRes.data || []);
@@ -173,6 +229,22 @@ const TeacherDashboard = () => {
         student_name: studentsMap.get(a.student_user_id) || "Unknown Student"
       }));
       setAssignments(assignmentsWithNames);
+      
+      // Set attendance records with student names
+      const attendanceWithNames = (attendanceRes.data || []).map(a => ({
+        ...a,
+        student_name: studentsMap.get(a.student_user_id) || "Unknown Student"
+      }));
+      setAttendanceRecords(attendanceWithNames);
+      
+      // Set zoom links with student names
+      const zoomWithNames = (zoomRes.data || []).map(z => ({
+        ...z,
+        student_name: studentsMap.get(z.student_user_id) || "Unknown Student"
+      }));
+      setZoomLinks(zoomWithNames);
+      
+      setRecentFees(feesRes.data || []);
 
       if (profileRes.data) {
         setProfileForm({
@@ -514,8 +586,50 @@ const TeacherDashboard = () => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
+  
+  const handleSoftDelete = async (table: string, id: string) => {
+    try {
+      const { error } = await supabase
+        .from(table as any)
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
+      
+      if (error) throw error;
+      toast({ title: "Deleted", description: "Item removed successfully." });
+      fetchData();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+  
+  const handleMarkAssignmentViewed = async (assignmentId: string, studentUserId: string) => {
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .update({ status: "viewed" })
+        .eq("id", assignmentId);
+      
+      if (error) throw error;
+      
+      // Notify student
+      await supabase.from("notifications").insert({
+        recipient_id: studentUserId,
+        sender_id: user?.id,
+        type: "assignment",
+        title: "Assignment Reviewed",
+        body: "Your teacher has reviewed your assignment submission.",
+        entity_table: "assignments",
+        entity_id: assignmentId,
+      });
+      
+      toast({ title: "Marked as viewed", description: "Assignment has been reviewed." });
+      fetchData();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
 
-  const pendingSubmissions = assignments.filter(a => a.status !== "submitted").length;
+  const pendingSubmissions = assignments.filter(a => a.status !== "submitted" && a.status !== "viewed").length;
   const submittedCount = assignments.filter(a => a.status === "submitted").length;
 
   const handleMessageStudent = (conversationId: string) => {
@@ -607,69 +721,101 @@ const TeacherDashboard = () => {
         )}
 
         {activeTab === "attendance" && (
-          <Card className="max-w-lg dashboard-list-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Record Attendance
-              </CardTitle>
-              <CardDescription>Mark attendance for the selected student</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAddAttendance} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="dashboard-list-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="h-5 w-5" />
+                  Record Attendance
+                </CardTitle>
+                <CardDescription>Mark attendance for the selected student</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAddAttendance} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Date</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={attendanceForm.date}
+                        onChange={(e) => setAttendanceForm({ ...attendanceForm, date: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select
+                        value={attendanceForm.status}
+                        onValueChange={(v) => setAttendanceForm({ ...attendanceForm, status: v as "present" | "absent" })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="present">Present</SelectItem>
+                          <SelectItem value="absent">Absent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <div className="space-y-2">
-                    <Label htmlFor="date">Date</Label>
+                    <Label htmlFor="hours">Hours (optional)</Label>
                     <Input
-                      id="date"
-                      type="date"
-                      value={attendanceForm.date}
-                      onChange={(e) => setAttendanceForm({ ...attendanceForm, date: e.target.value })}
-                      required
+                      id="hours"
+                      type="number"
+                      step="0.5"
+                      placeholder="e.g., 2"
+                      value={attendanceForm.hours}
+                      onChange={(e) => setAttendanceForm({ ...attendanceForm, hours: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select
-                      value={attendanceForm.status}
-                      onValueChange={(v) => setAttendanceForm({ ...attendanceForm, status: v as "present" | "absent" })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="present">Present</SelectItem>
-                        <SelectItem value="absent">Absent</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="topic">Topic (optional)</Label>
+                    <Input
+                      id="topic"
+                      placeholder="What was covered in class?"
+                      value={attendanceForm.topic}
+                      onChange={(e) => setAttendanceForm({ ...attendanceForm, topic: e.target.value })}
+                    />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="hours">Hours (optional)</Label>
-                  <Input
-                    id="hours"
-                    type="number"
-                    step="0.5"
-                    placeholder="e.g., 2"
-                    value={attendanceForm.hours}
-                    onChange={(e) => setAttendanceForm({ ...attendanceForm, hours: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="topic">Topic (optional)</Label>
-                  <Input
-                    id="topic"
-                    placeholder="What was covered in class?"
-                    value={attendanceForm.topic}
-                    onChange={(e) => setAttendanceForm({ ...attendanceForm, topic: e.target.value })}
-                  />
-                </div>
-                <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting}>
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Record Attendance"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+                  <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting}>
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Record Attendance"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+            
+            {/* Recent Attendance Records */}
+            <Card className="dashboard-list-card h-fit">
+              <CardHeader>
+                <CardTitle className="text-base">Recent Attendance</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
+                {attendanceRecords.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No records yet</p>
+                ) : (
+                  attendanceRecords.map((record) => (
+                    <div key={record.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{record.student_name}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(record.date).toLocaleDateString()} • {record.status}</p>
+                        {record.topic && <p className="text-xs text-muted-foreground truncate">{record.topic}</p>}
+                      </div>
+                      <div className="flex items-center gap-2 ml-2">
+                        <Badge className={record.status === "present" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}>
+                          {record.hours ? `${record.hours}h` : record.status}
+                        </Badge>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleSoftDelete("attendance_records", record.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {activeTab === "assignments" && (
@@ -792,7 +938,7 @@ const TeacherDashboard = () => {
                 <EmptyState icon={FileText} title="No assignments created yet" description="Create your first assignment to get started." />
               ) : (
                 <div className="space-y-4">
-                  {assignments.map((assignment) => (
+                  {assignments.filter(a => a.status !== "viewed").map((assignment) => (
                     <div key={assignment.id} className="p-4 rounded-xl border border-border hover:border-teacher/30 transition-all hover:shadow-md bg-card">
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex-1">
@@ -809,12 +955,20 @@ const TeacherDashboard = () => {
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           {assignment.status === "submitted" ? (
-                            <Badge className="bg-success/10 text-success border-success/20">
-                              <CheckCircle2 className="h-3 w-3 mr-1" />Submitted
-                            </Badge>
+                            <>
+                              <Badge className="bg-success/10 text-success border-success/20">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />Submitted
+                              </Badge>
+                              <Button size="sm" className="dashboard-btn dashboard-btn-teacher" onClick={() => handleMarkAssignmentViewed(assignment.id, assignment.student_user_id)}>
+                                <Eye className="h-4 w-4 mr-1" />Mark Viewed
+                              </Button>
+                            </>
                           ) : (
                             <Badge variant="outline" className="text-warning border-warning/30 bg-warning/5">Pending</Badge>
                           )}
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleSoftDelete("assignments", assignment.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
 
@@ -838,53 +992,77 @@ const TeacherDashboard = () => {
         )}
 
         {activeTab === "zoom" && (
-          <Card className="max-w-lg dashboard-list-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Video className="h-5 w-5" />
-                Manage Zoom Link
-              </CardTitle>
-              <CardDescription>Set the Zoom meeting link for the selected student</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleUpdateZoom} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="meetingUrl">Meeting URL *</Label>
-                  <Input
-                    id="meetingUrl"
-                    type="url"
-                    placeholder="https://zoom.us/j/..."
-                    value={zoomForm.meetingUrl}
-                    onChange={(e) => setZoomForm({ ...zoomForm, meetingUrl: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="dashboard-list-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Video className="h-5 w-5" />
+                  Manage Zoom Link
+                </CardTitle>
+                <CardDescription>Set the Zoom meeting link for the selected student</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleUpdateZoom} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="meetingId">Meeting ID</Label>
+                    <Label htmlFor="meetingUrl">Meeting URL *</Label>
                     <Input
-                      id="meetingId"
-                      placeholder="123 456 7890"
-                      value={zoomForm.meetingId}
-                      onChange={(e) => setZoomForm({ ...zoomForm, meetingId: e.target.value })}
+                      id="meetingUrl"
+                      type="url"
+                      placeholder="https://zoom.us/j/..."
+                      value={zoomForm.meetingUrl}
+                      onChange={(e) => setZoomForm({ ...zoomForm, meetingUrl: e.target.value })}
+                      required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="passcode">Passcode</Label>
-                    <Input
-                      id="passcode"
-                      placeholder="abc123"
-                      value={zoomForm.passcode}
-                      onChange={(e) => setZoomForm({ ...zoomForm, passcode: e.target.value })}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="meetingId">Meeting ID</Label>
+                      <Input
+                        id="meetingId"
+                        placeholder="123 456 7890"
+                        value={zoomForm.meetingId}
+                        onChange={(e) => setZoomForm({ ...zoomForm, meetingId: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="passcode">Passcode</Label>
+                      <Input
+                        id="passcode"
+                        placeholder="abc123"
+                        value={zoomForm.passcode}
+                        onChange={(e) => setZoomForm({ ...zoomForm, passcode: e.target.value })}
+                      />
+                    </div>
                   </div>
-                </div>
-                <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting}>
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Zoom Link"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+                  <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting}>
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Zoom Link"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+            
+            {/* Recent Zoom Links */}
+            <Card className="dashboard-list-card h-fit">
+              <CardHeader>
+                <CardTitle className="text-base">Active Zoom Links</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
+                {zoomLinks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No Zoom links set</p>
+                ) : (
+                  zoomLinks.map((link) => (
+                    <div key={link.student_user_id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{link.student_name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{link.meeting_url}</p>
+                        {link.meeting_id && <p className="text-xs text-muted-foreground">ID: {link.meeting_id}</p>}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {activeTab === "messages" && (
@@ -942,79 +1120,72 @@ const TeacherDashboard = () => {
         )}
 
         {activeTab === "fees" && (
-          <Card className="max-w-lg dashboard-list-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                Student Fee Calculator
-              </CardTitle>
-              <CardDescription>Calculate and send fee details to admin</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSendFeeToAdmin} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Month *</Label>
-                    <Input
-                      type="month"
-                      value={feeForm.month}
-                      onChange={(e) => setFeeForm({ ...feeForm, month: e.target.value })}
-                      required
-                    />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="dashboard-list-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  Student Fee Calculator
+                </CardTitle>
+                <CardDescription>Calculate and send fee details to admin</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSendFeeToAdmin} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Month *</Label>
+                      <Input type="month" value={feeForm.month} onChange={(e) => setFeeForm({ ...feeForm, month: e.target.value })} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Total Hours *</Label>
+                      <Input type="number" step="0.5" placeholder="e.g., 20" value={feeForm.totalHours} onChange={(e) => setFeeForm({ ...feeForm, totalHours: e.target.value })} required />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Total Hours *</Label>
-                    <Input
-                      type="number"
-                      step="0.5"
-                      placeholder="e.g., 20"
-                      value={feeForm.totalHours}
-                      onChange={(e) => setFeeForm({ ...feeForm, totalHours: e.target.value })}
-                      required
-                    />
+                    <Label>Fee Per Hour *</Label>
+                    <Input type="number" step="0.01" placeholder="e.g., 30.00" value={feeForm.feePerHour} onChange={(e) => setFeeForm({ ...feeForm, feePerHour: e.target.value })} required />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Fee Per Hour *</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="e.g., 30.00"
-                    value={feeForm.feePerHour}
-                    onChange={(e) => setFeeForm({ ...feeForm, feePerHour: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-sm text-muted-foreground">Total Amount</p>
-                  <p className="text-2xl font-bold text-teacher">
-                    ${((parseFloat(feeForm.totalHours) || 0) * (parseFloat(feeForm.feePerHour) || 0)).toFixed(2)}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Class Dates</Label>
-                  <Textarea
-                    placeholder="e.g., Jan 5, 7, 12, 14, 19, 21, 26, 28"
-                    value={feeForm.classDates}
-                    onChange={(e) => setFeeForm({ ...feeForm, classDates: e.target.value })}
-                    rows={2}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Subjects Covered</Label>
-                  <Textarea
-                    placeholder="e.g., Algebra, Geometry, Trigonometry"
-                    value={feeForm.subjects}
-                    onChange={(e) => setFeeForm({ ...feeForm, subjects: e.target.value })}
-                    rows={2}
-                  />
-                </div>
-                <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting}>
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4 mr-2" />Send to Admin</>}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+                  <div className="p-3 rounded-lg bg-muted">
+                    <p className="text-sm text-muted-foreground">Total Amount</p>
+                    <p className="text-2xl font-bold text-teacher">${((parseFloat(feeForm.totalHours) || 0) * (parseFloat(feeForm.feePerHour) || 0)).toFixed(2)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Class Dates</Label>
+                    <Textarea placeholder="e.g., Jan 5, 7, 12, 14..." value={feeForm.classDates} onChange={(e) => setFeeForm({ ...feeForm, classDates: e.target.value })} rows={2} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Subjects Covered</Label>
+                    <Textarea placeholder="e.g., Algebra, Geometry..." value={feeForm.subjects} onChange={(e) => setFeeForm({ ...feeForm, subjects: e.target.value })} rows={2} />
+                  </div>
+                  <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting}>
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4 mr-2" />Send to Admin</>}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+            
+            <Card className="dashboard-list-card h-fit">
+              <CardHeader><CardTitle className="text-base">Recent Fees Sent</CardTitle></CardHeader>
+              <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
+                {recentFees.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No fees sent yet</p>
+                ) : (
+                  recentFees.map((fee) => (
+                    <div key={fee.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{fee.student_name}</p>
+                        <p className="text-xs text-muted-foreground">{fee.month} • ${fee.total_amount?.toFixed(2)}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={fee.status === "sent_to_student" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}>{fee.status === "sent_to_student" ? "Sent" : "Pending"}</Badge>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleSoftDelete("student_fees", fee.id)}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {activeTab === "salary" && (
