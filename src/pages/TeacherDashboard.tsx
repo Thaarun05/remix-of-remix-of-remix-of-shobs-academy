@@ -32,7 +32,10 @@ import {
   ClipboardList,
   CheckCircle2,
   Clock,
-  GraduationCap
+  GraduationCap,
+  DollarSign,
+  Calculator,
+  Send
 } from "lucide-react";
 
 interface Student {
@@ -63,6 +66,18 @@ interface AssignmentWithFiles {
   student_name?: string;
 }
 
+interface TeacherSalary {
+  id: string;
+  created_at: string;
+  teacher_name: string | null;
+  num_classes: number | null;
+  total_hours: number | null;
+  salary_per_hour: number | null;
+  amount: number | null;
+  status: string | null;
+  note: string | null;
+}
+
 const TeacherDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -70,6 +85,7 @@ const TeacherDashboard = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [assignments, setAssignments] = useState<AssignmentWithFiles[]>([]);
+  const [salaries, setSalaries] = useState<TeacherSalary[]>([]);
   
   // Navigation state
   const [activeTab, setActiveTab] = useState("calendar");
@@ -99,6 +115,13 @@ const TeacherDashboard = () => {
     availability: "",
     bio: "",
   });
+  const [feeForm, setFeeForm] = useState({
+    month: new Date().toISOString().slice(0, 7),
+    totalHours: "",
+    feePerHour: "",
+    classDates: "",
+    subjects: "",
+  });
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -117,27 +140,33 @@ const TeacherDashboard = () => {
     setLoading(true);
 
     try {
-      const { data: studentsData } = await supabase
-        .from("student_profiles")
-        .select("user_id, student_name, grade")
-        .order("student_name");
+      const [studentsRes, profileRes, assignmentsRes, salaryRes] = await Promise.all([
+        supabase
+          .from("student_profiles")
+          .select("user_id, student_name, grade")
+          .order("student_name"),
+        supabase
+          .from("teacher_profiles")
+          .select("subjects, availability, bio")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("assignments")
+          .select("id, title, subject, description, due_date, status, created_at, student_user_id, has_attachments, attachments, submission_attachments")
+          .eq("teacher_user_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("teacher_salary")
+          .select("*")
+          .eq("teacher_id", user.id)
+          .order("created_at", { ascending: false })
+      ]);
 
-      const { data: profileData } = await supabase
-        .from("teacher_profiles")
-        .select("subjects, availability, bio")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      const { data: assignmentsData } = await supabase
-        .from("assignments")
-        .select("id, title, subject, description, due_date, status, created_at, student_user_id, has_attachments, attachments, submission_attachments")
-        .eq("teacher_user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      setStudents(studentsData || []);
+      setStudents(studentsRes.data || []);
+      setSalaries(salaryRes.data || []);
       
-      const studentsMap = new Map(studentsData?.map(s => [s.user_id, s.student_name]) || []);
-      const assignmentsWithNames = (assignmentsData || []).map(a => ({
+      const studentsMap = new Map(studentsRes.data?.map(s => [s.user_id, s.student_name]) || []);
+      const assignmentsWithNames = (assignmentsRes.data || []).map(a => ({
         ...a,
         attachments: (a.attachments as unknown as FileInfo[]) || [],
         submission_attachments: (a.submission_attachments as unknown as FileInfo[]) || [],
@@ -145,11 +174,11 @@ const TeacherDashboard = () => {
       }));
       setAssignments(assignmentsWithNames);
 
-      if (profileData) {
+      if (profileRes.data) {
         setProfileForm({
-          subjects: profileData.subjects || "",
-          availability: profileData.availability || "",
-          bio: profileData.bio || "",
+          subjects: profileRes.data.subjects || "",
+          availability: profileRes.data.availability || "",
+          bio: profileRes.data.bio || "",
         });
       }
     } catch (error) {
@@ -382,6 +411,108 @@ const TeacherDashboard = () => {
   const isOverdue = (dueDate: string | null) => {
     if (!dueDate) return false;
     return new Date(dueDate) < new Date();
+  };
+  
+  const handleSendFeeToAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !selectedStudent) return;
+    setSubmitting(true);
+    
+    try {
+      const student = students.find(s => s.user_id === selectedStudent);
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .single();
+      
+      const totalHours = parseFloat(feeForm.totalHours) || 0;
+      const feePerHour = parseFloat(feeForm.feePerHour) || 0;
+      const totalAmount = totalHours * feePerHour;
+      
+      const { error } = await supabase.from("student_fees").insert({
+        student_id: selectedStudent,
+        student_name: student?.student_name || null,
+        teacher_id: user.id,
+        teacher_name: profile?.full_name || null,
+        month: feeForm.month,
+        total_hours: totalHours,
+        fee_per_hour: feePerHour,
+        total_amount: totalAmount,
+        class_dates: feeForm.classDates || null,
+        subjects: feeForm.subjects || null,
+        status: "sent_to_admin",
+      });
+      
+      if (error) throw error;
+      
+      // Notify admins
+      const { data: admins } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("role", "admin");
+      
+      if (admins) {
+        for (const admin of admins) {
+          await supabase.from("notifications").insert({
+            recipient_id: admin.user_id,
+            sender_id: user.id,
+            type: "fee",
+            title: "New Fee Submitted",
+            body: `Fee details for ${student?.student_name || "student"} (${feeForm.month}) submitted for review.`,
+            entity_table: "student_fees",
+          });
+        }
+      }
+      
+      toast({ title: "Fee sent", description: "Fee details have been sent to admin for review." });
+      setFeeForm({ month: new Date().toISOString().slice(0, 7), totalHours: "", feePerHour: "", classDates: "", subjects: "" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
+  const handleSalaryResponse = async (salaryId: string, status: "confirmed" | "needs_correction") => {
+    try {
+      const { error } = await supabase
+        .from("teacher_salary")
+        .update({ status })
+        .eq("id", salaryId);
+      
+      if (error) throw error;
+      
+      // Notify admins
+      const { data: admins } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("role", "admin");
+      
+      if (admins && user) {
+        for (const admin of admins) {
+          await supabase.from("notifications").insert({
+            recipient_id: admin.user_id,
+            sender_id: user.id,
+            type: "salary",
+            title: status === "confirmed" ? "Salary Confirmed" : "Salary Needs Correction",
+            body: status === "confirmed" 
+              ? "Teacher has confirmed the salary details."
+              : "Teacher has requested corrections to salary details.",
+            entity_table: "teacher_salary",
+            entity_id: salaryId,
+          });
+        }
+      }
+      
+      toast({ 
+        title: status === "confirmed" ? "Confirmed" : "Correction requested", 
+        description: status === "confirmed" ? "Salary details confirmed." : "Admin has been notified about needed corrections."
+      });
+      fetchData();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
   };
 
   const pendingSubmissions = assignments.filter(a => a.status !== "submitted").length;
@@ -806,6 +937,145 @@ const TeacherDashboard = () => {
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Profile"}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === "fees" && (
+          <Card className="max-w-lg dashboard-list-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calculator className="h-5 w-5" />
+                Student Fee Calculator
+              </CardTitle>
+              <CardDescription>Calculate and send fee details to admin</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSendFeeToAdmin} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Month *</Label>
+                    <Input
+                      type="month"
+                      value={feeForm.month}
+                      onChange={(e) => setFeeForm({ ...feeForm, month: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Total Hours *</Label>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      placeholder="e.g., 20"
+                      value={feeForm.totalHours}
+                      onChange={(e) => setFeeForm({ ...feeForm, totalHours: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Fee Per Hour *</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="e.g., 30.00"
+                    value={feeForm.feePerHour}
+                    onChange={(e) => setFeeForm({ ...feeForm, feePerHour: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="p-3 rounded-lg bg-muted">
+                  <p className="text-sm text-muted-foreground">Total Amount</p>
+                  <p className="text-2xl font-bold text-teacher">
+                    ${((parseFloat(feeForm.totalHours) || 0) * (parseFloat(feeForm.feePerHour) || 0)).toFixed(2)}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Class Dates</Label>
+                  <Textarea
+                    placeholder="e.g., Jan 5, 7, 12, 14, 19, 21, 26, 28"
+                    value={feeForm.classDates}
+                    onChange={(e) => setFeeForm({ ...feeForm, classDates: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subjects Covered</Label>
+                  <Textarea
+                    placeholder="e.g., Algebra, Geometry, Trigonometry"
+                    value={feeForm.subjects}
+                    onChange={(e) => setFeeForm({ ...feeForm, subjects: e.target.value })}
+                    rows={2}
+                  />
+                </div>
+                <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting}>
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4 mr-2" />Send to Admin</>}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === "salary" && (
+          <Card className="dashboard-list-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                My Salary
+              </CardTitle>
+              <CardDescription>View and respond to salary details from admin</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {salaries.length === 0 ? (
+                <EmptyState icon={DollarSign} title="No salary records" description="When admin sends salary details, they'll appear here." />
+              ) : (
+                <div className="space-y-4">
+                  {salaries.map((salary) => (
+                    <div key={salary.id} className="p-4 rounded-xl border border-border hover:border-teacher/30 transition-all">
+                      <div className="flex flex-wrap justify-between items-start gap-4">
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(salary.created_at || "").toLocaleDateString()}
+                          </p>
+                          <p className="text-lg font-semibold">
+                            {salary.total_hours}h × ${salary.salary_per_hour}/h = ${salary.amount?.toFixed(2)}
+                          </p>
+                          {salary.num_classes && <p className="text-sm text-muted-foreground">{salary.num_classes} classes</p>}
+                          {salary.note && <p className="text-sm text-muted-foreground">Note: {salary.note}</p>}
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge className={
+                            salary.status === "confirmed" ? "bg-success/10 text-success" :
+                            salary.status === "needs_correction" ? "bg-destructive/10 text-destructive" :
+                            "bg-warning/10 text-warning"
+                          }>
+                            {salary.status === "sent_to_teacher" ? "Pending Review" : salary.status}
+                          </Badge>
+                          {salary.status === "sent_to_teacher" && (
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                className="dashboard-btn dashboard-btn-teacher"
+                                onClick={() => handleSalaryResponse(salary.id, "confirmed")}
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-1" />Yes, All Correct
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleSalaryResponse(salary.id, "needs_correction")}
+                              >
+                                Need Corrections
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
