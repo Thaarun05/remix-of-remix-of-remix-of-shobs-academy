@@ -422,30 +422,36 @@ export type Database = {
           amount: number | null
           created_at: string | null
           id: string
+          note: string | null
           num_classes: number | null
           salary_per_hour: number | null
           status: string | null
           teacher_id: string
+          teacher_name: string | null
           total_hours: number | null
         }
         Insert: {
           amount?: number | null
           created_at?: string | null
           id?: string
+          note?: string | null
           num_classes?: number | null
           salary_per_hour?: number | null
           status?: string | null
           teacher_id: string
+          teacher_name?: string | null
           total_hours?: number | null
         }
         Update: {
           amount?: number | null
           created_at?: string | null
           id?: string
+          note?: string | null
           num_classes?: number | null
           salary_per_hour?: number | null
           status?: string | null
           teacher_id?: string
+          teacher_name?: string | null
           total_hours?: number | null
         }
         Relationships: []
