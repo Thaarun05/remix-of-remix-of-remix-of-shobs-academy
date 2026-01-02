@@ -335,8 +335,11 @@ export type Database = {
           status: string | null
           student_ack_status: string | null
           student_id: string
+          student_name: string | null
           subjects: string | null
           teacher_id: string
+          teacher_name: string | null
+          total_amount: number | null
           total_hours: number | null
         }
         Insert: {
@@ -349,8 +352,11 @@ export type Database = {
           status?: string | null
           student_ack_status?: string | null
           student_id: string
+          student_name?: string | null
           subjects?: string | null
           teacher_id: string
+          teacher_name?: string | null
+          total_amount?: number | null
           total_hours?: number | null
         }
         Update: {
@@ -363,8 +369,11 @@ export type Database = {
           status?: string | null
           student_ack_status?: string | null
           student_id?: string
+          student_name?: string | null
           subjects?: string | null
           teacher_id?: string
+          teacher_name?: string | null
+          total_amount?: number | null
           total_hours?: number | null
         }
         Relationships: []
