@@ -18,7 +18,6 @@ export type Database = {
         Row: {
           attachments: Json | null
           created_at: string | null
-          deleted_at: string | null
           description: string | null
           due_date: string | null
           has_attachments: boolean | null
@@ -34,7 +33,6 @@ export type Database = {
         Insert: {
           attachments?: Json | null
           created_at?: string | null
-          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           has_attachments?: boolean | null
@@ -50,7 +48,6 @@ export type Database = {
         Update: {
           attachments?: Json | null
           created_at?: string | null
-          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           has_attachments?: boolean | null
@@ -69,7 +66,6 @@ export type Database = {
         Row: {
           created_at: string | null
           date: string
-          deleted_at: string | null
           hours: number | null
           id: string
           status: string
@@ -80,7 +76,6 @@ export type Database = {
         Insert: {
           created_at?: string | null
           date: string
-          deleted_at?: string | null
           hours?: number | null
           id?: string
           status: string
@@ -91,7 +86,6 @@ export type Database = {
         Update: {
           created_at?: string | null
           date?: string
-          deleted_at?: string | null
           hours?: number | null
           id?: string
           status?: string
@@ -225,9 +219,7 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           deleted_for_role: string | null
-          edited_at: string | null
           id: string
-          original_content: string | null
           read_at: string | null
           receiver_user_id: string
           sender_user_id: string
@@ -239,9 +231,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           deleted_for_role?: string | null
-          edited_at?: string | null
           id?: string
-          original_content?: string | null
           read_at?: string | null
           receiver_user_id: string
           sender_user_id: string
@@ -253,9 +243,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           deleted_for_role?: string | null
-          edited_at?: string | null
           id?: string
-          original_content?: string | null
           read_at?: string | null
           receiver_user_id?: string
           sender_user_id?: string
@@ -341,7 +329,6 @@ export type Database = {
           admin_viewed_at: string | null
           class_dates: string | null
           created_at: string | null
-          deleted_at: string | null
           fee_per_hour: number | null
           id: string
           month: string
@@ -359,7 +346,6 @@ export type Database = {
           admin_viewed_at?: string | null
           class_dates?: string | null
           created_at?: string | null
-          deleted_at?: string | null
           fee_per_hour?: number | null
           id?: string
           month: string
@@ -377,7 +363,6 @@ export type Database = {
           admin_viewed_at?: string | null
           class_dates?: string | null
           created_at?: string | null
-          deleted_at?: string | null
           fee_per_hour?: number | null
           id?: string
           month?: string
@@ -445,7 +430,6 @@ export type Database = {
         Row: {
           amount: number | null
           created_at: string | null
-          deleted_at: string | null
           id: string
           note: string | null
           num_classes: number | null
@@ -458,7 +442,6 @@ export type Database = {
         Insert: {
           amount?: number | null
           created_at?: string | null
-          deleted_at?: string | null
           id?: string
           note?: string | null
           num_classes?: number | null
@@ -471,7 +454,6 @@ export type Database = {
         Update: {
           amount?: number | null
           created_at?: string | null
-          deleted_at?: string | null
           id?: string
           note?: string | null
           num_classes?: number | null
@@ -485,7 +467,6 @@ export type Database = {
       }
       zoom_links: {
         Row: {
-          deleted_at: string | null
           meeting_id: string | null
           meeting_url: string
           passcode: string | null
@@ -493,7 +474,6 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          deleted_at?: string | null
           meeting_id?: string | null
           meeting_url: string
           passcode?: string | null
@@ -501,7 +481,6 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          deleted_at?: string | null
           meeting_id?: string | null
           meeting_url?: string
           passcode?: string | null

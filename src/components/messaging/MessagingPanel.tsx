@@ -106,7 +106,7 @@ export const MessagingPanel = ({ userRole, preselectedConversationId }: Messagin
         >
           {selectedConversationId && selectedConversation ? (
             <>
-              <MessageThread conversationId={selectedConversationId} userRole={userRole} />
+              <MessageThread conversationId={selectedConversationId} />
               <MessageInput
                 conversationId={selectedConversationId}
                 receiverUserId={getReceiverUserId()}
