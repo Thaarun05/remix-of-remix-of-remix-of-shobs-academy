@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -26,10 +25,7 @@ import {
   Clock,
   XCircle,
   Check,
-  Trash2,
-  Calculator,
-  DollarSign,
-  Eye
+  Trash2
 } from "lucide-react";
 import {
   AlertDialog,
@@ -50,37 +46,6 @@ interface Profile {
   full_name: string | null;
   phone: string | null;
   created_at: string;
-}
-
-interface TeacherSalary {
-  id: string;
-  created_at: string;
-  teacher_id: string;
-  teacher_name: string | null;
-  num_classes: number | null;
-  total_hours: number | null;
-  salary_per_hour: number | null;
-  amount: number | null;
-  status: string | null;
-  note: string | null;
-}
-
-interface StudentFee {
-  id: string;
-  created_at: string;
-  month: string;
-  student_id: string;
-  student_name: string | null;
-  teacher_id: string;
-  teacher_name: string | null;
-  total_hours: number | null;
-  fee_per_hour: number | null;
-  total_amount: number | null;
-  class_dates: string | null;
-  subjects: string | null;
-  status: string | null;
-  admin_viewed_at: string | null;
-  student_ack_status: string | null;
 }
 
 interface DemoRequest {
@@ -123,8 +88,6 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [demoRequests, setDemoRequests] = useState<DemoRequest[]>([]);
-  const [teacherSalaries, setTeacherSalaries] = useState<TeacherSalary[]>([]);
-  const [studentFees, setStudentFees] = useState<StudentFee[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [createTeacherSuccess, setCreateTeacherSuccess] = useState(false);
   const [createStudentSuccess, setCreateStudentSuccess] = useState(false);
@@ -133,15 +96,6 @@ const AdminDashboard = () => {
   const [deletingRequest, setDeletingRequest] = useState<string | null>(null);
   const [demoFilter, setDemoFilter] = useState<"all" | "pending" | "approved" | "done">("pending");
   const [activeTab, setActiveTab] = useState("demo-requests");
-  
-  // Salary calculator form
-  const [salaryForm, setSalaryForm] = useState({
-    teacherId: "",
-    numClasses: "",
-    totalHours: "",
-    salaryPerHour: "",
-    note: "",
-  });
   
   const [teacherForm, setTeacherForm] = useState({
     email: "",
@@ -171,7 +125,7 @@ const AdminDashboard = () => {
     setLoading(true);
 
     try {
-      const [profilesRes, demoRes, salaryRes, feesRes] = await Promise.all([
+      const [profilesRes, demoRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("user_id, role, full_name, phone, created_at")
@@ -179,100 +133,15 @@ const AdminDashboard = () => {
         supabase
           .from("demo_requests")
           .select("*")
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("teacher_salary")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(20),
-        supabase
-          .from("student_fees")
-          .select("*")
-          .eq("status", "sent_to_admin")
           .order("created_at", { ascending: false })
       ]);
 
       setProfiles(profilesRes.data || []);
       setDemoRequests(demoRes.data || []);
-      setTeacherSalaries(salaryRes.data || []);
-      setStudentFees(feesRes.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
-    }
-  };
-  
-  const teachers = profiles.filter(p => p.role === "teacher");
-  
-  const handleSendSalary = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!salaryForm.teacherId) return;
-    setSubmitting(true);
-    
-    try {
-      const teacher = teachers.find(t => t.user_id === salaryForm.teacherId);
-      const totalHours = parseFloat(salaryForm.totalHours) || 0;
-      const salaryPerHour = parseFloat(salaryForm.salaryPerHour) || 0;
-      const totalAmount = totalHours * salaryPerHour;
-      
-      const { error } = await supabase.from("teacher_salary").insert({
-        teacher_id: salaryForm.teacherId,
-        teacher_name: teacher?.full_name || null,
-        num_classes: parseInt(salaryForm.numClasses) || null,
-        total_hours: totalHours,
-        salary_per_hour: salaryPerHour,
-        amount: totalAmount,
-        note: salaryForm.note || null,
-        status: "sent_to_teacher",
-      });
-      
-      if (error) throw error;
-      
-      // Create notification for teacher
-      await supabase.from("notifications").insert({
-        recipient_id: salaryForm.teacherId,
-        sender_id: user.id,
-        type: "salary",
-        title: "Salary Details Sent",
-        body: `Your salary details have been sent. Total amount: $${totalAmount.toFixed(2)}`,
-        entity_table: "teacher_salary",
-      });
-      
-      toast({ title: "Salary sent", description: "Salary details have been sent to the teacher." });
-      setSalaryForm({ teacherId: "", numClasses: "", totalHours: "", salaryPerHour: "", note: "" });
-      fetchData();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-  
-  const handleMarkFeeViewed = async (fee: StudentFee) => {
-    try {
-      const { error } = await supabase
-        .from("student_fees")
-        .update({ status: "sent_to_student", admin_viewed_at: new Date().toISOString() })
-        .eq("id", fee.id);
-      
-      if (error) throw error;
-      
-      // Notify student
-      await supabase.from("notifications").insert({
-        recipient_id: fee.student_id,
-        sender_id: user?.id,
-        type: "fee",
-        title: "Fee Details Available",
-        body: `Your fee details for ${fee.month} are now available to view.`,
-        entity_table: "student_fees",
-        entity_id: fee.id,
-      });
-      
-      toast({ title: "Fee forwarded", description: "Fee details have been sent to the student." });
-      fetchData();
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
@@ -1009,167 +878,6 @@ const AdminDashboard = () => {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {activeTab === "salary" && (
-          <div className="grid lg:grid-cols-2 gap-6">
-            <Card className="dashboard-list-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calculator className="h-5 w-5" />
-                  Teacher Salary Calculator
-                </CardTitle>
-                <CardDescription>Calculate and send salary details to teachers</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSendSalary} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Select Teacher *</Label>
-                    <Select value={salaryForm.teacherId} onValueChange={(v) => setSalaryForm({ ...salaryForm, teacherId: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a teacher" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {teachers.map((t) => (
-                          <SelectItem key={t.user_id} value={t.user_id}>
-                            {t.full_name || t.user_id}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Number of Classes</Label>
-                      <Input
-                        type="number"
-                        placeholder="e.g., 20"
-                        value={salaryForm.numClasses}
-                        onChange={(e) => setSalaryForm({ ...salaryForm, numClasses: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Total Hours *</Label>
-                      <Input
-                        type="number"
-                        step="0.5"
-                        placeholder="e.g., 40"
-                        value={salaryForm.totalHours}
-                        onChange={(e) => setSalaryForm({ ...salaryForm, totalHours: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Salary Per Hour *</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="e.g., 25.00"
-                      value={salaryForm.salaryPerHour}
-                      onChange={(e) => setSalaryForm({ ...salaryForm, salaryPerHour: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="p-3 rounded-lg bg-muted">
-                    <p className="text-sm text-muted-foreground">Total Amount</p>
-                    <p className="text-2xl font-bold text-admin">
-                      ${((parseFloat(salaryForm.totalHours) || 0) * (parseFloat(salaryForm.salaryPerHour) || 0)).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Note (optional)</Label>
-                    <Textarea
-                      placeholder="Any additional notes..."
-                      value={salaryForm.note}
-                      onChange={(e) => setSalaryForm({ ...salaryForm, note: e.target.value })}
-                      rows={2}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full dashboard-btn dashboard-btn-admin" disabled={!salaryForm.teacherId || submitting}>
-                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send to Teacher"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-            
-            <Card className="dashboard-list-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Recent Salary Records
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {teacherSalaries.length === 0 ? (
-                  <EmptyState icon={DollarSign} title="No salary records" description="Salary records will appear here." />
-                ) : (
-                  <div className="space-y-3">
-                    {teacherSalaries.map((s) => (
-                      <div key={s.id} className="p-3 rounded-lg border border-border">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">{s.teacher_name || "Teacher"}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {s.total_hours}h × ${s.salary_per_hour}/h = ${s.amount?.toFixed(2)}
-                            </p>
-                          </div>
-                          <Badge className={
-                            s.status === "confirmed" ? "bg-success/10 text-success" :
-                            s.status === "needs_correction" ? "bg-destructive/10 text-destructive" :
-                            "bg-warning/10 text-warning"
-                          }>
-                            {s.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === "fees" && (
-          <Card className="dashboard-list-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Student Fees (Pending Review)
-              </CardTitle>
-              <CardDescription>Review fee details from teachers and forward to students</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {studentFees.length === 0 ? (
-                <EmptyState icon={DollarSign} title="No pending fees" description="When teachers submit fee details, they'll appear here for review." />
-              ) : (
-                <div className="space-y-4">
-                  {studentFees.map((fee) => (
-                    <div key={fee.id} className="p-4 rounded-xl border border-border hover:border-admin/30 transition-all">
-                      <div className="flex flex-wrap justify-between items-start gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold">{fee.student_name || "Student"}</h4>
-                            <Badge variant="outline">{fee.month}</Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">Teacher: {fee.teacher_name || "Unknown"}</p>
-                          <p className="text-sm">
-                            {fee.total_hours}h × ${fee.fee_per_hour}/h = <span className="font-semibold">${fee.total_amount?.toFixed(2)}</span>
-                          </p>
-                          {fee.subjects && <p className="text-xs text-muted-foreground">Subjects: {fee.subjects}</p>}
-                          {fee.class_dates && <p className="text-xs text-muted-foreground">Dates: {fee.class_dates}</p>}
-                        </div>
-                        <Button onClick={() => handleMarkFeeViewed(fee)} className="dashboard-btn dashboard-btn-admin">
-                          <Eye className="h-4 w-4 mr-1" />Viewed - Send to Student
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               )}
             </CardContent>
