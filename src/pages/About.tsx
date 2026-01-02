@@ -1,5 +1,7 @@
+import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Logo } from "@/components/Logo";
+import { Button } from "@/components/ui/button";
 import { 
   BookOpen, 
   User, 
@@ -9,7 +11,8 @@ import {
   Zap, 
   GraduationCap, 
   Users, 
-  Mail 
+  Mail,
+  ArrowLeft
 } from "lucide-react";
 
 const features = [
@@ -50,8 +53,20 @@ const About = () => {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
       <Navbar showAboutLink={false} />
 
+      {/* Back to Home Button */}
+      <section className="pt-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <Link to="/">
+            <Button variant="outline" size="sm" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Home
+            </Button>
+          </Link>
+        </div>
+      </section>
+
       {/* Hero */}
-      <section className="pt-28 pb-12 px-6 text-center">
+      <section className="pt-8 pb-12 px-6 text-center">
         <div className="mb-6">
           <Logo size="lg" className="mx-auto" />
         </div>
