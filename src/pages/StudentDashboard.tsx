@@ -28,8 +28,20 @@ import {
   CalendarDays,
   MessageSquare,
   GraduationCap,
-  BookOpen
+  BookOpen,
+  DollarSign,
+  AlertTriangle
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AttendanceRecord {
   id: string;
@@ -65,6 +77,21 @@ interface ZoomLink {
   passcode: string | null;
 }
 
+interface StudentFee {
+  id: string;
+  created_at: string;
+  month: string;
+  student_name: string | null;
+  teacher_name: string | null;
+  total_hours: number | null;
+  fee_per_hour: number | null;
+  total_amount: number | null;
+  class_dates: string | null;
+  subjects: string | null;
+  status: string | null;
+  student_ack_status: string | null;
+}
+
 const StudentDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -72,7 +99,10 @@ const StudentDashboard = () => {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [zoomLink, setZoomLink] = useState<ZoomLink | null>(null);
+  const [fees, setFees] = useState<StudentFee[]>([]);
   const [activeTab, setActiveTab] = useState("schedule");
+  const [feeDialogOpen, setFeeDialogOpen] = useState(false);
+  const [selectedFee, setSelectedFee] = useState<StudentFee | null>(null);
 
   // File upload states
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -91,31 +121,38 @@ const StudentDashboard = () => {
     setLoading(true);
 
     try {
-      const { data: attendanceData } = await supabase
-        .from("attendance_records")
-        .select("id, date, status, hours, topic")
-        .eq("student_user_id", user.id)
-        .order("date", { ascending: false });
+      const [attendanceRes, assignmentsRes, zoomRes, feesRes] = await Promise.all([
+        supabase
+          .from("attendance_records")
+          .select("id, date, status, hours, topic")
+          .eq("student_user_id", user.id)
+          .order("date", { ascending: false }),
+        supabase
+          .from("assignments")
+          .select("id, title, subject, description, due_date, status, created_at, has_attachments, attachments, submission_attachments")
+          .eq("student_user_id", user.id)
+          .order("due_date", { ascending: true }),
+        supabase
+          .from("zoom_links")
+          .select("meeting_url, meeting_id, passcode")
+          .eq("student_user_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("student_fees")
+          .select("*")
+          .eq("student_id", user.id)
+          .eq("status", "sent_to_student")
+          .order("created_at", { ascending: false })
+      ]);
 
-      const { data: assignmentsData } = await supabase
-        .from("assignments")
-        .select("id, title, subject, description, due_date, status, created_at, has_attachments, attachments, submission_attachments")
-        .eq("student_user_id", user.id)
-        .order("due_date", { ascending: true });
-
-      const { data: zoomData } = await supabase
-        .from("zoom_links")
-        .select("meeting_url, meeting_id, passcode")
-        .eq("student_user_id", user.id)
-        .maybeSingle();
-
-      setAttendance(attendanceData || []);
-      setAssignments((assignmentsData || []).map(a => ({
+      setAttendance(attendanceRes.data || []);
+      setAssignments((assignmentsRes.data || []).map(a => ({
         ...a,
         attachments: (a.attachments as unknown as FileInfo[]) || [],
         submission_attachments: (a.submission_attachments as unknown as FileInfo[]) || [],
       })));
-      setZoomLink(zoomData);
+      setZoomLink(zoomRes.data);
+      setFees(feesRes.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -228,6 +265,50 @@ const StudentDashboard = () => {
   const isOverdue = (dueDate: string | null) => {
     if (!dueDate) return false;
     return new Date(dueDate) < new Date();
+  };
+  
+  const handleFeeResponse = async (feeId: string, response: "ok" | "needs_correction") => {
+    try {
+      const { error } = await supabase
+        .from("student_fees")
+        .update({ student_ack_status: response })
+        .eq("id", feeId);
+      
+      if (error) throw error;
+      
+      // Notify admins
+      const { data: admins } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("role", "admin");
+      
+      if (admins && user) {
+        for (const admin of admins) {
+          await supabase.from("notifications").insert({
+            recipient_id: admin.user_id,
+            sender_id: user.id,
+            type: "fee",
+            title: response === "ok" ? "Fee Acknowledged" : "Fee Needs Correction",
+            body: response === "ok" 
+              ? "Student has acknowledged the fee details."
+              : "Student has requested corrections to fee details.",
+            entity_table: "student_fees",
+            entity_id: feeId,
+          });
+        }
+      }
+      
+      setFeeDialogOpen(false);
+      toast({ 
+        title: response === "ok" ? "Thank you!" : "Correction requested",
+        description: response === "ok" 
+          ? "Thank you for your cooperation." 
+          : "The corrected fee details will be sent shortly."
+      });
+      fetchData();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
   };
 
   if (loading) {
@@ -499,7 +580,90 @@ const StudentDashboard = () => {
             <MessagingPanel userRole="student" />
           </div>
         )}
+
+        {activeTab === "fees" && (
+          <Card className="dashboard-list-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Fee Details
+              </CardTitle>
+              <CardDescription>View your fee details sent by the academy</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {fees.length === 0 ? (
+                <EmptyState icon={DollarSign} title="No fee details" description="When fee details are available, they'll appear here." />
+              ) : (
+                <div className="space-y-4">
+                  {fees.map((fee) => (
+                    <div key={fee.id} className="p-4 rounded-xl border border-border hover:border-student/30 transition-all">
+                      <div className="flex flex-wrap justify-between items-start gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold">{fee.month}</h4>
+                            {fee.student_ack_status && (
+                              <Badge className={fee.student_ack_status === "ok" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}>
+                                {fee.student_ack_status === "ok" ? "Acknowledged" : "Correction Requested"}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-lg font-semibold">
+                            {fee.total_hours}h × ${fee.fee_per_hour}/h = ${fee.total_amount?.toFixed(2)}
+                          </p>
+                          {fee.subjects && <p className="text-sm text-muted-foreground">Subjects: {fee.subjects}</p>}
+                          {fee.class_dates && <p className="text-sm text-muted-foreground">Dates: {fee.class_dates}</p>}
+                        </div>
+                        {!fee.student_ack_status && (
+                          <Button 
+                            className="dashboard-btn dashboard-btn-student"
+                            onClick={() => { setSelectedFee(fee); setFeeDialogOpen(true); }}
+                          >
+                            View & Respond
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      {/* Fee Acknowledgment Dialog */}
+      <AlertDialog open={feeDialogOpen} onOpenChange={setFeeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Please Call Your Parents
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Please call your parents before viewing this fee information. They should review the details with you.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {selectedFee && (
+            <div className="p-4 rounded-lg bg-muted my-4">
+              <p className="font-semibold">{selectedFee.month}</p>
+              <p className="text-xl font-bold">${selectedFee.total_amount?.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">{selectedFee.total_hours}h × ${selectedFee.fee_per_hour}/h</p>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => selectedFee && handleFeeResponse(selectedFee.id, "needs_correction")}>
+              No, Corrections Needed
+            </AlertDialogAction>
+            <AlertDialogAction 
+              className="bg-success hover:bg-success/90"
+              onClick={() => selectedFee && handleFeeResponse(selectedFee.id, "ok")}
+            >
+              OK, All Correct
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };
