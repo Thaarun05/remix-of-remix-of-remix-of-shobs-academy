@@ -108,12 +108,10 @@ const Index = () => {
       </section>
 
       {/* Gold Gradient Divider */}
-      <div className="w-full flex justify-center py-4">
-        <div 
-          className="h-1 w-40 md:w-56 rounded-full"
-          style={{ background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)' }}
-        />
-      </div>
+      <div 
+        className="w-full h-1"
+        style={{ background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)' }}
+      />
 
       {/* 2. ABOUT US SECTION - Countries Only */}
       <section id="about-section" className="py-20 px-6 bg-gradient-to-b from-muted/30 to-background">
@@ -155,12 +153,10 @@ const Index = () => {
       </section>
 
       {/* Gold Gradient Divider */}
-      <div className="w-full flex justify-center py-4">
-        <div 
-          className="h-1 w-40 md:w-56 rounded-full"
-          style={{ background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)' }}
-        />
-      </div>
+      <div 
+        className="w-full h-1"
+        style={{ background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)' }}
+      />
 
       {/* 3. PORTAL CARDS SECTION */}
       <section className="py-20 px-6 bg-gradient-to-b from-background to-muted/30">
@@ -230,12 +226,10 @@ const Index = () => {
       </section>
 
       {/* Gold Gradient Divider */}
-      <div className="w-full flex justify-center py-4">
-        <div 
-          className="h-1 w-40 md:w-56 rounded-full"
-          style={{ background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)' }}
-        />
-      </div>
+      <div 
+        className="w-full h-1"
+        style={{ background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)' }}
+      />
 
       {/* 4. FOOTER */}
       <footer className="bg-foreground text-background text-center py-10">
