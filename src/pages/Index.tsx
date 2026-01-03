@@ -107,8 +107,13 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Gold Gradient Divider */}
+      <div className="w-full flex justify-center py-2">
+        <div className="h-1 w-32 md:w-48 rounded-full bg-gradient-to-r from-transparent via-gold to-transparent opacity-80" />
+      </div>
+
       {/* 2. ABOUT US SECTION - Countries Only */}
-      <section id="about-section" className="py-20 px-6 bg-gradient-to-b from-muted/30 to-background border-t border-border/50">
+      <section id="about-section" className="py-20 px-6 bg-gradient-to-b from-muted/30 to-background">
         <div className="max-w-6xl mx-auto">
           {/* About Us Heading */}
           <h2 className="text-3xl sm:text-4xl font-display font-bold text-center mb-6 about-title-float">
@@ -146,8 +151,13 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Gold Gradient Divider */}
+      <div className="w-full flex justify-center py-2">
+        <div className="h-1 w-32 md:w-48 rounded-full bg-gradient-to-r from-transparent via-gold to-transparent opacity-80" />
+      </div>
+
       {/* 3. PORTAL CARDS SECTION */}
-      <section className="py-20 px-6 bg-gradient-to-b from-background to-muted/30 border-t border-border/50">
+      <section className="py-20 px-6 bg-gradient-to-b from-background to-muted/30">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-12 text-foreground">
             Get Started Today
@@ -212,6 +222,11 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Gold Gradient Divider */}
+      <div className="w-full flex justify-center py-2">
+        <div className="h-1 w-32 md:w-48 rounded-full bg-gradient-to-r from-transparent via-gold to-transparent opacity-80" />
+      </div>
 
       {/* 4. FOOTER */}
       <footer className="bg-foreground text-background text-center py-10">
