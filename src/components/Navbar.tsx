@@ -4,6 +4,7 @@ import { signOut } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, Loader2 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useState } from "react";
 interface NavbarProps {
   showAboutLink?: boolean;
@@ -58,8 +59,9 @@ export function Navbar({
         {showAboutLink && !isLoggedIn}
       </div>
 
-      {/* RIGHT: User Info + Logout */}
+      {/* RIGHT: Theme Toggle + User Info + Logout */}
       <div className="navbar-right">
+        <ThemeToggle />
         {isLoggedIn && <>
             <span className="navbar-user-email hidden sm:block">
               {user?.email}
