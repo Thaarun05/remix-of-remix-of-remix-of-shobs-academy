@@ -1433,6 +1433,10 @@
   letter-spacing: 0.3px;
 }
 
+.dark .auth-label {
+  color: hsl(40 10% 92%);
+}
+
 /* Auth Inputs */
 .auth-input {
   width: 100%;
