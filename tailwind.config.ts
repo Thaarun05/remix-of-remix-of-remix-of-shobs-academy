@@ -118,10 +118,15 @@ export default {
   				DEFAULT: 'hsl(var(--teacher))',
   				foreground: 'hsl(var(--teacher-foreground))'
   			},
-  			admin: {
-  				DEFAULT: 'hsl(var(--admin))',
-  				foreground: 'hsl(var(--admin-foreground))'
-  			}
+			admin: {
+				DEFAULT: 'hsl(var(--admin))',
+				foreground: 'hsl(var(--admin-foreground))'
+			},
+			gold: {
+				DEFAULT: 'hsl(var(--gold))',
+				light: 'hsl(var(--gold-light))',
+				dark: 'hsl(var(--gold-dark))'
+			}
   		},
   		borderRadius: {
   			lg: 'var(--radius)',
