@@ -4,6 +4,7 @@ import { GraduationCap, Users, Shield, ArrowRight } from "lucide-react";
 import { DemoRequestForm } from "@/components/DemoRequestForm";
 import { Logo } from "@/components/Logo";
 import { Navbar } from "@/components/Navbar";
+import { GoldDivider } from "@/components/GoldDivider";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -107,8 +108,11 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Gold Divider */}
+      <GoldDivider className="py-6" />
+
       {/* 2. ABOUT US SECTION - Countries Only */}
-      <section id="about-section" className="py-20 px-6 bg-gradient-to-b from-muted/30 to-background border-t border-border/50">
+      <section id="about-section" className="py-20 px-6 bg-gradient-to-b from-muted/30 to-background">
         <div className="max-w-6xl mx-auto">
           {/* About Us Heading */}
           <h2 className="text-3xl sm:text-4xl font-display font-bold text-center mb-6 about-title-float">
@@ -146,8 +150,11 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Gold Divider */}
+      <GoldDivider className="py-6" />
+
       {/* 3. PORTAL CARDS SECTION */}
-      <section className="py-20 px-6 bg-gradient-to-b from-background to-muted/30 border-t border-border/50">
+      <section className="py-20 px-6 bg-gradient-to-b from-background to-muted/30">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-12 text-foreground">
             Get Started Today
@@ -212,6 +219,9 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Gold Divider */}
+      <GoldDivider className="py-6" />
 
       {/* 4. FOOTER */}
       <footer className="bg-foreground text-background text-center py-10">
