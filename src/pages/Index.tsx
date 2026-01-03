@@ -93,10 +93,10 @@ const Index = () => {
         </h1>
 
         {/* Tagline */}
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-in" style={{
+        <p style={{
         animationDelay: "0.2s"
-      }}>
-          Empowering Education, One Student at a Time
+      }} className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-in font-sans">
+          Guiding Students to Academic Excellence
         </p>
 
         {/* DEMO BUTTON */}
@@ -108,10 +108,9 @@ const Index = () => {
       </section>
 
       {/* Gold Gradient Divider */}
-      <div 
-        className="w-full h-1"
-        style={{ background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)' }}
-      />
+      <div className="w-full h-1" style={{
+      background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)'
+    }} />
 
       {/* 2. ABOUT US SECTION - Countries Only */}
       <section id="about-section" className="py-20 px-6 bg-gradient-to-b from-muted/30 to-background">
@@ -153,10 +152,9 @@ const Index = () => {
       </section>
 
       {/* Gold Gradient Divider */}
-      <div 
-        className="w-full h-1"
-        style={{ background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)' }}
-      />
+      <div className="w-full h-1" style={{
+      background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)'
+    }} />
 
       {/* 3. PORTAL CARDS SECTION */}
       <section className="py-20 px-6 bg-gradient-to-b from-background to-muted/30">
@@ -226,10 +224,9 @@ const Index = () => {
       </section>
 
       {/* Gold Gradient Divider */}
-      <div 
-        className="w-full h-1"
-        style={{ background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)' }}
-      />
+      <div className="w-full h-1" style={{
+      background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)'
+    }} />
 
       {/* 4. FOOTER */}
       <footer className="bg-foreground text-background text-center py-10">
