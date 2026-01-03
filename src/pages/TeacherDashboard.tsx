@@ -180,6 +180,7 @@ const TeacherDashboard = () => {
         supabase
           .from("student_profiles")
           .select("user_id, student_name, grade")
+          .eq("assigned_teacher_id", user.id)
           .order("student_name"),
         supabase
           .from("teacher_profiles")
