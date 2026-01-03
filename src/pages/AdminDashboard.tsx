@@ -115,6 +115,7 @@ const createStudentSchema = z.object({
   fullName: z.string().max(100, "Full name is too long").optional(),
   phone: z.string().max(20, "Phone is too long").optional(),
   grade: z.string().max(50, "Grade is too long").optional(),
+  assignedTeacherId: z.string().uuid("Please select a teacher"),
 });
 
 const AdminDashboard = () => {
@@ -160,6 +161,7 @@ const AdminDashboard = () => {
     fullName: "",
     phone: "",
     grade: "",
+    assignedTeacherId: "",
   });
 
   useEffect(() => {
@@ -449,6 +451,7 @@ const AdminDashboard = () => {
           fullName: validated.fullName,
           phone: validated.phone,
           grade: validated.grade,
+          assignedTeacherId: validated.assignedTeacherId,
         },
       });
 
@@ -468,6 +471,7 @@ const AdminDashboard = () => {
         fullName: "",
         phone: "",
         grade: "",
+        assignedTeacherId: "",
       });
 
       fetchData();
@@ -947,6 +951,24 @@ const AdminDashboard = () => {
                       onChange={(e) => setStudentForm({ ...studentForm, grade: e.target.value })}
                     />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="student-teacher">Assign Teacher *</Label>
+                  <Select
+                    value={studentForm.assignedTeacherId}
+                    onValueChange={(value) => setStudentForm({ ...studentForm, assignedTeacherId: value })}
+                  >
+                    <SelectTrigger id="student-teacher">
+                      <SelectValue placeholder="Select a teacher" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {profiles.filter(p => p.role === "teacher").map((teacher) => (
+                        <SelectItem key={teacher.user_id} value={teacher.user_id}>
+                          {teacher.full_name || "Unnamed Teacher"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button type="submit" className="w-full dashboard-btn dashboard-btn-admin" disabled={submitting}>
                   {submitting ? (

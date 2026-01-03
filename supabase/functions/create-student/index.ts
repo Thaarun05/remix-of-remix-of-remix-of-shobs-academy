@@ -134,13 +134,14 @@ serve(async (req) => {
       );
     }
 
-    // Create student_profiles entry
+    // Create student_profiles entry with assigned teacher
     const { error: studentProfileError } = await supabaseAdmin
       .from("student_profiles")
       .insert({
         user_id: newUser.user.id,
         student_name: body.studentName,
         grade: body.grade || null,
+        assigned_teacher_id: body.assignedTeacherId || null,
       });
 
     if (studentProfileError) {
