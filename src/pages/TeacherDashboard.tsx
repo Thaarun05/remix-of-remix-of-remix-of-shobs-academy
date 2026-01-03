@@ -604,9 +604,10 @@ const TeacherDashboard = () => {
   
   const handleMarkAssignmentViewed = async (assignmentId: string, studentUserId: string) => {
     try {
+      // Update status to viewed AND soft-delete so it disappears from both teacher and student views
       const { error } = await supabase
         .from("assignments")
-        .update({ status: "viewed" })
+        .update({ status: "viewed", deleted_at: new Date().toISOString() })
         .eq("id", assignmentId);
       
       if (error) throw error;
@@ -622,7 +623,7 @@ const TeacherDashboard = () => {
         entity_id: assignmentId,
       });
       
-      toast({ title: "Marked as viewed", description: "Assignment has been reviewed." });
+      toast({ title: "Marked as viewed", description: "Assignment has been reviewed and removed from pending lists." });
       fetchData();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
