@@ -336,6 +336,92 @@ export type Database = {
         }
         Relationships: []
       }
+      student_fee_invoice_rows: {
+        Row: {
+          class_date: string
+          created_at: string
+          hours: number
+          id: string
+          invoice_id: string
+          row_order: number
+          topic: string
+        }
+        Insert: {
+          class_date: string
+          created_at?: string
+          hours?: number
+          id?: string
+          invoice_id: string
+          row_order?: number
+          topic?: string
+        }
+        Update: {
+          class_date?: string
+          created_at?: string
+          hours?: number
+          id?: string
+          invoice_id?: string
+          row_order?: number
+          topic?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_fee_invoice_rows_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "student_fee_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_fee_invoices: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          created_by_admin_user_id: string
+          deleted_at: string | null
+          fee_per_hour: number
+          id: string
+          reviewed_at: string | null
+          sent_at: string | null
+          status: string
+          student_name: string
+          student_notes: string | null
+          student_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          created_by_admin_user_id: string
+          deleted_at?: string | null
+          fee_per_hour?: number
+          id?: string
+          reviewed_at?: string | null
+          sent_at?: string | null
+          status?: string
+          student_name: string
+          student_notes?: string | null
+          student_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          created_by_admin_user_id?: string
+          deleted_at?: string | null
+          fee_per_hour?: number
+          id?: string
+          reviewed_at?: string | null
+          sent_at?: string | null
+          status?: string
+          student_name?: string
+          student_notes?: string | null
+          student_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       student_fees: {
         Row: {
           admin_viewed_at: string | null
