@@ -18,7 +18,8 @@ import {
   GraduationCap,
   ChevronRight,
   DollarSign,
-  Receipt
+  Receipt,
+  FileSpreadsheet
 } from "lucide-react";
 
 type RoleColor = "student" | "teacher" | "admin";
@@ -169,7 +170,7 @@ export const studentSidebarItems: SidebarItem[] = [
   { id: "attendance", label: "Attendance", icon: Calendar },
   { id: "zoom", label: "Zoom", icon: Video },
   { id: "assignments", label: "Assignments", icon: FileText },
-  { id: "fees", label: "Fee Details", icon: Receipt },
+  { id: "fee-sheet", label: "Fee Sheet", icon: FileSpreadsheet },
   { id: "messages", label: "Messages", icon: MessageSquare },
 ];
 
@@ -188,7 +189,8 @@ export const adminSidebarItems: SidebarItem[] = [
   { id: "demo-requests", label: "Demo Requests", icon: CalendarCheck },
   { id: "create-teacher", label: "Create Teacher", icon: UserPlus },
   { id: "create-student", label: "Create Student", icon: GraduationCap },
-  { id: "fees", label: "Student Fees", icon: Receipt },
+  { id: "fee-sheet", label: "Fee Sheet", icon: FileSpreadsheet },
+  { id: "fees", label: "Student Fees (Old)", icon: Receipt },
   { id: "salary", label: "Teacher Salary", icon: DollarSign },
   { id: "messages", label: "Messages", icon: MessageSquare },
   { id: "all-users", label: "All Users", icon: Users },

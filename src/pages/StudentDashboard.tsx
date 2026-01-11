@@ -13,6 +13,7 @@ import { StudentCalendar } from "@/components/StudentCalendar";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { studentSidebarItems } from "@/components/dashboard/DashboardSidebar";
+import { StudentFeeSheet } from "@/components/student/StudentFeeSheet";
 import { 
   Calendar, 
   Video, 
@@ -581,6 +582,10 @@ const StudentDashboard = () => {
             <h3 className="text-lg font-semibold mb-4">My Teachers</h3>
             <MessagingPanel userRole="student" />
           </div>
+        )}
+
+        {activeTab === "fee-sheet" && (
+          <StudentFeeSheet />
         )}
 
         {activeTab === "fees" && (

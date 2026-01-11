@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { adminSidebarItems } from "@/components/dashboard/DashboardSidebar";
+import { FeeSheetCalculator } from "@/components/admin/FeeSheetCalculator";
 import { 
   Users, 
   GraduationCap,
@@ -1155,6 +1156,10 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {activeTab === "fee-sheet" && (
+          <FeeSheetCalculator />
         )}
 
         {activeTab === "fees" && (
