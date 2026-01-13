@@ -22,7 +22,27 @@ import {
   Loader2,
   User,
   Link as LinkIcon,
+  Pencil,
+  Trash2,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Student {
   user_id: string;
@@ -62,6 +82,12 @@ export const TeacherCalendar = ({ students }: TeacherCalendarProps) => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  
+  // Edit/Delete state
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const [form, setForm] = useState({
     studentId: "",
@@ -72,6 +98,14 @@ export const TeacherCalendar = ({ students }: TeacherCalendarProps) => {
     startTime: "09:00",
     endTime: "10:00",
     assignmentId: "",
+  });
+  
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    startDate: undefined as Date | undefined,
+    startTime: "09:00",
+    endTime: "10:00",
   });
 
   useEffect(() => {
@@ -178,13 +212,92 @@ export const TeacherCalendar = ({ students }: TeacherCalendarProps) => {
 
   const handleDeleteEvent = async (eventId: string) => {
     try {
+      const event = events.find(e => e.id === eventId);
       const { error } = await supabase.from("events").delete().eq("id", eventId);
       if (error) throw error;
+      
+      // Notify student about event deletion
+      if (event && user) {
+        await supabase.from("notifications").insert({
+          recipient_id: event.student_user_id,
+          sender_id: user.id,
+          type: "event",
+          title: "Event Cancelled",
+          body: `The event "${event.title}" has been cancelled.`,
+          entity_table: "events",
+        });
+      }
+      
       toast({ title: "Event deleted" });
       setEvents((prev) => prev.filter((e) => e.id !== eventId));
+      setDeleteDialogOpen(false);
+      setDeletingEventId(null);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to delete event";
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
+    }
+  };
+  
+  const handleEditClick = (event: Event) => {
+    setEditingEvent(event);
+    setEditForm({
+      title: event.title,
+      description: event.description || "",
+      startDate: new Date(event.start_time),
+      startTime: format(new Date(event.start_time), "HH:mm"),
+      endTime: event.end_time ? format(new Date(event.end_time), "HH:mm") : "",
+    });
+    setEditDialogOpen(true);
+  };
+  
+  const handleUpdateEvent = async () => {
+    if (!editingEvent || !editForm.startDate || !user) return;
+    setSubmitting(true);
+    
+    try {
+      const startDateTime = new Date(editForm.startDate);
+      const [startHour, startMinute] = editForm.startTime.split(":").map(Number);
+      startDateTime.setHours(startHour, startMinute, 0, 0);
+
+      let endDateTime: Date | null = null;
+      if (editForm.endTime) {
+        endDateTime = new Date(editForm.startDate);
+        const [endHour, endMinute] = editForm.endTime.split(":").map(Number);
+        endDateTime.setHours(endHour, endMinute, 0, 0);
+      }
+      
+      const { error } = await supabase
+        .from("events")
+        .update({
+          title: editForm.title,
+          description: editForm.description || null,
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime?.toISOString() || null,
+        })
+        .eq("id", editingEvent.id);
+      
+      if (error) throw error;
+      
+      // Notify student about event update
+      await supabase.from("notifications").insert({
+        recipient_id: editingEvent.student_user_id,
+        sender_id: user.id,
+        type: "event",
+        title: "Event Updated",
+        body: `The event "${editForm.title}" has been updated.`,
+        entity_table: "events",
+        entity_id: editingEvent.id,
+      });
+      
+      toast({ title: "Event updated", description: "The student has been notified." });
+      setEditDialogOpen(false);
+      setEditingEvent(null);
+      fetchEvents();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update event";
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -239,14 +352,27 @@ export const TeacherCalendar = ({ students }: TeacherCalendarProps) => {
             </div>
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={() => handleDeleteEvent(event.id)}
-        >
-          Delete
-        </Button>
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={() => handleEditClick(event)}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => {
+              setDeletingEventId(event.id);
+              setDeleteDialogOpen(true);
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -449,6 +575,103 @@ export const TeacherCalendar = ({ students }: TeacherCalendarProps) => {
           </Card>
         )}
       </div>
+      
+      {/* Edit Event Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Event</DialogTitle>
+            <DialogDescription>Update the event details below.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn("w-full justify-start text-left font-normal", !editForm.startDate && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {editForm.startDate ? format(editForm.startDate, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={editForm.startDate}
+                    onSelect={(d) => setEditForm({ ...editForm, startDate: d })}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Start Time</Label>
+                <Input
+                  type="time"
+                  value={editForm.startTime}
+                  onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>End Time</Label>
+                <Input
+                  type="time"
+                  value={editForm.endTime}
+                  onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateEvent} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Event?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this event and notify the student. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingEventId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingEventId && handleDeleteEvent(deletingEventId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
