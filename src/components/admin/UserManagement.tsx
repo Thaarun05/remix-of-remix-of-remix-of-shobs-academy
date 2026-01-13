@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/EmptyState";
@@ -15,7 +17,7 @@ import {
   Loader2,
   Pencil,
   Plus,
-  Phone,
+  Trash2,
 } from "lucide-react";
 
 interface Profile {
@@ -24,6 +26,20 @@ interface Profile {
   full_name: string | null;
   phone: string | null;
   created_at: string;
+}
+
+interface TeacherProfile {
+  user_id: string;
+  subjects: string | null;
+  availability: string | null;
+  bio: string | null;
+}
+
+interface StudentProfile {
+  user_id: string;
+  student_name: string;
+  grade: string | null;
+  assigned_teacher_id: string | null;
 }
 
 interface UserManagementProps {
@@ -35,13 +51,36 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
   const { toast } = useToast();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
+  const [deletingUser, setDeletingUser] = useState<Profile | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [addUserType, setAddUserType] = useState<"student" | "teacher">("student");
+  
+  // Extended profile data for editing
+  const [teacherProfileData, setTeacherProfileData] = useState<TeacherProfile | null>(null);
+  const [studentProfileData, setStudentProfileData] = useState<StudentProfile | null>(null);
 
-  const [editForm, setEditForm] = useState({
+  // Edit form for teachers
+  const [editTeacherForm, setEditTeacherForm] = useState({
+    email: "",
+    password: "",
     fullName: "",
     phone: "",
+    subjects: "",
+    availability: "",
+    bio: "",
+  });
+
+  // Edit form for students
+  const [editStudentForm, setEditStudentForm] = useState({
+    email: "",
+    password: "",
+    studentName: "",
+    fullName: "",
+    phone: "",
+    grade: "",
+    assignedTeacherId: "",
   });
 
   const [addTeacherForm, setAddTeacherForm] = useState({
@@ -66,33 +105,134 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
 
   const teachers = profiles.filter(p => p.role === "teacher");
 
-  const handleEditClick = (profile: Profile) => {
+  const fetchUserEmail = async (userId: string): Promise<string> => {
+    // We can't directly fetch email from auth.users, so we'll leave it empty
+    // The admin can update it if needed
+    return "";
+  };
+
+  const fetchTeacherProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("teacher_profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    
+    if (!error && data) {
+      setTeacherProfileData(data);
+      return data;
+    }
+    return null;
+  };
+
+  const fetchStudentProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("student_profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    
+    if (!error && data) {
+      setStudentProfileData(data);
+      return data;
+    }
+    return null;
+  };
+
+  const handleEditClick = async (profile: Profile) => {
     setEditingUser(profile);
-    setEditForm({
-      fullName: profile.full_name || "",
-      phone: profile.phone || "",
-    });
+    
+    if (profile.role === "teacher") {
+      const teacherData = await fetchTeacherProfile(profile.user_id);
+      setEditTeacherForm({
+        email: "",
+        password: "",
+        fullName: profile.full_name || "",
+        phone: profile.phone || "",
+        subjects: teacherData?.subjects || "",
+        availability: teacherData?.availability || "",
+        bio: teacherData?.bio || "",
+      });
+    } else if (profile.role === "student") {
+      const studentData = await fetchStudentProfile(profile.user_id);
+      setEditStudentForm({
+        email: "",
+        password: "",
+        studentName: studentData?.student_name || "",
+        fullName: profile.full_name || "",
+        phone: profile.phone || "",
+        grade: studentData?.grade || "",
+        assignedTeacherId: studentData?.assigned_teacher_id || "",
+      });
+    }
+    
     setIsEditDialogOpen(true);
   };
 
-  const handleSaveEdit = async () => {
+  const handleDeleteClick = (profile: Profile) => {
+    setDeletingUser(profile);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingUser) return;
+    setSubmitting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { userId: deletingUser.user_id },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "User deleted",
+        description: `${deletingUser.full_name || "User"} has been deleted successfully.`,
+      });
+
+      setIsDeleteDialogOpen(false);
+      setDeletingUser(null);
+      onRefresh();
+    } catch (error: any) {
+      toast({
+        title: "Error deleting user",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveTeacherEdit = async () => {
     if (!editingUser) return;
     setSubmitting(true);
 
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          full_name: editForm.fullName || null,
-          phone: editForm.phone || null,
-        })
-        .eq("user_id", editingUser.user_id);
+      const updatePayload: any = {
+        userId: editingUser.user_id,
+        fullName: editTeacherForm.fullName,
+        phone: editTeacherForm.phone,
+        subjects: editTeacherForm.subjects,
+        availability: editTeacherForm.availability,
+        bio: editTeacherForm.bio,
+      };
+
+      // Only include email/password if provided
+      if (editTeacherForm.email) updatePayload.email = editTeacherForm.email;
+      if (editTeacherForm.password) updatePayload.password = editTeacherForm.password;
+
+      const { data, error } = await supabase.functions.invoke("update-user", {
+        body: updatePayload,
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
-        title: "User updated",
-        description: "User profile has been updated successfully.",
+        title: "Teacher updated",
+        description: "Teacher profile has been updated successfully.",
       });
 
       setIsEditDialogOpen(false);
@@ -100,7 +240,51 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
       onRefresh();
     } catch (error: any) {
       toast({
-        title: "Error updating user",
+        title: "Error updating teacher",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveStudentEdit = async () => {
+    if (!editingUser) return;
+    setSubmitting(true);
+
+    try {
+      const updatePayload: any = {
+        userId: editingUser.user_id,
+        fullName: editStudentForm.fullName,
+        phone: editStudentForm.phone,
+        studentName: editStudentForm.studentName,
+        grade: editStudentForm.grade,
+        assignedTeacherId: editStudentForm.assignedTeacherId,
+      };
+
+      // Only include email/password if provided
+      if (editStudentForm.email) updatePayload.email = editStudentForm.email;
+      if (editStudentForm.password) updatePayload.password = editStudentForm.password;
+
+      const { data, error } = await supabase.functions.invoke("update-user", {
+        body: updatePayload,
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Student updated",
+        description: "Student profile has been updated successfully.",
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+      onRefresh();
+    } catch (error: any) {
+      toast({
+        title: "Error updating student",
         description: error.message || "Something went wrong",
         variant: "destructive",
       });
@@ -266,13 +450,27 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
                         {new Date(profile.created_at).toLocaleDateString()}
                       </td>
                       <td className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEditClick(profile)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          {profile.role !== "admin" && (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleEditClick(profile)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleDeleteClick(profile)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -283,32 +481,86 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
         </CardContent>
       </Card>
 
-      {/* Edit User Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+      {/* Edit Teacher Dialog */}
+      <Dialog open={isEditDialogOpen && editingUser?.role === "teacher"} onOpenChange={(open) => !open && setIsEditDialogOpen(false)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle>Edit Teacher</DialogTitle>
             <DialogDescription>
-              Update user profile information for {editingUser?.full_name || "this user"}.
+              Update all details for {editingUser?.full_name || "this teacher"}. Leave email/password blank to keep unchanged.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-fullName">Full Name</Label>
-              <Input
-                id="edit-fullName"
-                placeholder="Enter full name"
-                value={editForm.fullName}
-                onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-teacher-email">Email</Label>
+                <Input
+                  id="edit-teacher-email"
+                  type="email"
+                  placeholder="Leave blank to keep unchanged"
+                  value={editTeacherForm.email}
+                  onChange={(e) => setEditTeacherForm({ ...editTeacherForm, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-teacher-password">New Password</Label>
+                <Input
+                  id="edit-teacher-password"
+                  type="text"
+                  placeholder="Leave blank to keep unchanged"
+                  value={editTeacherForm.password}
+                  onChange={(e) => setEditTeacherForm({ ...editTeacherForm, password: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-teacher-fullName">Full Name *</Label>
+                <Input
+                  id="edit-teacher-fullName"
+                  placeholder="John Doe"
+                  value={editTeacherForm.fullName}
+                  onChange={(e) => setEditTeacherForm({ ...editTeacherForm, fullName: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-teacher-phone">Phone</Label>
+                <Input
+                  id="edit-teacher-phone"
+                  placeholder="+1 234 567 8900"
+                  value={editTeacherForm.phone}
+                  onChange={(e) => setEditTeacherForm({ ...editTeacherForm, phone: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-teacher-subjects">Subjects</Label>
+                <Input
+                  id="edit-teacher-subjects"
+                  placeholder="Math, Physics"
+                  value={editTeacherForm.subjects}
+                  onChange={(e) => setEditTeacherForm({ ...editTeacherForm, subjects: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-teacher-availability">Availability</Label>
+                <Input
+                  id="edit-teacher-availability"
+                  placeholder="Mon-Fri 9am-5pm"
+                  value={editTeacherForm.availability}
+                  onChange={(e) => setEditTeacherForm({ ...editTeacherForm, availability: e.target.value })}
+                />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-phone">Phone</Label>
-              <Input
-                id="edit-phone"
-                placeholder="+1 234 567 8900"
-                value={editForm.phone}
-                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+              <Label htmlFor="edit-teacher-bio">Bio</Label>
+              <Textarea
+                id="edit-teacher-bio"
+                placeholder="Teacher's background and experience..."
+                value={editTeacherForm.bio}
+                onChange={(e) => setEditTeacherForm({ ...editTeacherForm, bio: e.target.value })}
+                rows={3}
               />
             </div>
           </div>
@@ -317,7 +569,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
               Cancel
             </Button>
             <Button 
-              onClick={handleSaveEdit} 
+              onClick={handleSaveTeacherEdit} 
               className="dashboard-btn dashboard-btn-admin"
               disabled={submitting}
             >
@@ -326,6 +578,135 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Student Dialog */}
+      <Dialog open={isEditDialogOpen && editingUser?.role === "student"} onOpenChange={(open) => !open && setIsEditDialogOpen(false)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Student</DialogTitle>
+            <DialogDescription>
+              Update all details for {editingUser?.full_name || "this student"}. Leave email/password blank to keep unchanged.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-student-email">Email</Label>
+                <Input
+                  id="edit-student-email"
+                  type="email"
+                  placeholder="Leave blank to keep unchanged"
+                  value={editStudentForm.email}
+                  onChange={(e) => setEditStudentForm({ ...editStudentForm, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-student-password">New Password</Label>
+                <Input
+                  id="edit-student-password"
+                  type="text"
+                  placeholder="Leave blank to keep unchanged"
+                  value={editStudentForm.password}
+                  onChange={(e) => setEditStudentForm({ ...editStudentForm, password: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-student-studentName">Student Name *</Label>
+                <Input
+                  id="edit-student-studentName"
+                  placeholder="Student's display name"
+                  value={editStudentForm.studentName}
+                  onChange={(e) => setEditStudentForm({ ...editStudentForm, studentName: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-student-fullName">Full Name</Label>
+                <Input
+                  id="edit-student-fullName"
+                  placeholder="Full legal name"
+                  value={editStudentForm.fullName}
+                  onChange={(e) => setEditStudentForm({ ...editStudentForm, fullName: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-student-phone">Phone</Label>
+                <Input
+                  id="edit-student-phone"
+                  placeholder="+1 234 567 8900"
+                  value={editStudentForm.phone}
+                  onChange={(e) => setEditStudentForm({ ...editStudentForm, phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-student-grade">Grade</Label>
+                <Input
+                  id="edit-student-grade"
+                  placeholder="10th Grade"
+                  value={editStudentForm.grade}
+                  onChange={(e) => setEditStudentForm({ ...editStudentForm, grade: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-student-teacher">Assign Teacher *</Label>
+              <Select
+                value={editStudentForm.assignedTeacherId}
+                onValueChange={(value) => setEditStudentForm({ ...editStudentForm, assignedTeacherId: value })}
+              >
+                <SelectTrigger id="edit-student-teacher">
+                  <SelectValue placeholder="Select a teacher" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teachers.map((teacher) => (
+                    <SelectItem key={teacher.user_id} value={teacher.user_id}>
+                      {teacher.full_name || "Unnamed Teacher"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveStudentEdit} 
+              className="dashboard-btn dashboard-btn-admin"
+              disabled={submitting}
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {deletingUser?.full_name || "this user"}? This action cannot be undone and will remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={submitting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Add User Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -367,7 +748,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="add-teacher-password">Password *</Label>
+                    <Label htmlFor="add-teacher-password">Temporary Password *</Label>
                     <Input
                       id="add-teacher-password"
                       type="text"
@@ -397,22 +778,34 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="add-teacher-subjects">Subjects</Label>
-                  <Input
-                    id="add-teacher-subjects"
-                    placeholder="Math, Science, English"
-                    value={addTeacherForm.subjects}
-                    onChange={(e) => setAddTeacherForm({ ...addTeacherForm, subjects: e.target.value })}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="add-teacher-subjects">Subjects</Label>
+                    <Input
+                      id="add-teacher-subjects"
+                      placeholder="Math, Physics"
+                      value={addTeacherForm.subjects}
+                      onChange={(e) => setAddTeacherForm({ ...addTeacherForm, subjects: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="add-teacher-availability">Availability</Label>
+                    <Input
+                      id="add-teacher-availability"
+                      placeholder="Mon-Fri 9am-5pm"
+                      value={addTeacherForm.availability}
+                      onChange={(e) => setAddTeacherForm({ ...addTeacherForm, availability: e.target.value })}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="add-teacher-availability">Availability</Label>
-                  <Input
-                    id="add-teacher-availability"
-                    placeholder="Mon-Fri 9AM-5PM"
-                    value={addTeacherForm.availability}
-                    onChange={(e) => setAddTeacherForm({ ...addTeacherForm, availability: e.target.value })}
+                  <Label htmlFor="add-teacher-bio">Bio</Label>
+                  <Textarea
+                    id="add-teacher-bio"
+                    placeholder="Teacher's background and experience..."
+                    value={addTeacherForm.bio}
+                    onChange={(e) => setAddTeacherForm({ ...addTeacherForm, bio: e.target.value })}
+                    rows={3}
                   />
                 </div>
               </>
@@ -430,7 +823,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="add-student-password">Password *</Label>
+                    <Label htmlFor="add-student-password">Temporary Password *</Label>
                     <Input
                       id="add-student-password"
                       type="text"
