@@ -15,6 +15,7 @@ import { MessagingPanel } from "@/components/messaging/MessagingPanel";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { adminSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { FeeSheetCalculator } from "@/components/admin/FeeSheetCalculator";
+import { UserManagement } from "@/components/admin/UserManagement";
 import { 
   Users, 
   GraduationCap,
@@ -988,54 +989,7 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === "all-users" && (
-          <Card className="dashboard-list-card">
-            <CardHeader>
-              <CardTitle>All Users</CardTitle>
-              <CardDescription>View all registered users in the system</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {profiles.length === 0 ? (
-                <EmptyState 
-                  icon={Users}
-                  title="No users registered yet"
-                  description="When students and teachers are created, they'll appear here."
-                />
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="dashboard-table dashboard-table-admin">
-                    <thead>
-                      <tr>
-                        <th>Role</th>
-                        <th>Name</th>
-                        <th>Phone</th>
-                        <th>Joined</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {profiles.map((profile) => (
-                        <tr key={profile.user_id}>
-                          <td>
-                            <Badge className={
-                              profile.role === "student" ? "bg-student/10 text-student border-student/20" :
-                              profile.role === "teacher" ? "bg-teacher/10 text-teacher border-teacher/20" :
-                              "bg-admin/10 text-admin border-admin/20"
-                            }>
-                              {profile.role}
-                            </Badge>
-                          </td>
-                          <td>{profile.full_name || "-"}</td>
-                          <td className="text-muted-foreground">{profile.phone || "-"}</td>
-                          <td className="text-muted-foreground">
-                            {new Date(profile.created_at).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <UserManagement profiles={profiles} onRefresh={fetchData} />
         )}
 
         {activeTab === "salary" && (
