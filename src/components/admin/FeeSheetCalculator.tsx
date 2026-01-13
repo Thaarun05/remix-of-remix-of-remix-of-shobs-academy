@@ -12,6 +12,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Send, Save, Loader2, Calculator, FileSpreadsheet, Edit2 } from "lucide-react";
 import { format } from "date-fns";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface FeeRow {
   id?: string;
@@ -57,6 +67,11 @@ export const FeeSheetCalculator = () => {
   
   // Editing state for inline editing
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; field: keyof FeeRow } | null>(null);
+  
+  // Delete state
+  const [deletingInvoiceId, setDeletingInvoiceId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchStudents();
@@ -252,6 +267,28 @@ export const FeeSheetCalculator = () => {
     } finally {
       setSaving(false);
       setSending(false);
+    }
+  };
+
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    setDeleting(true);
+    try {
+      // Soft delete by setting deleted_at
+      const { error } = await supabase
+        .from("student_fee_invoices")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", invoiceId);
+      
+      if (error) throw error;
+      
+      toast({ title: "Fee sheet deleted", description: "The fee sheet has been removed." });
+      setDeleteDialogOpen(false);
+      setDeletingInvoiceId(null);
+      fetchRecentInvoices();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -484,14 +521,27 @@ export const FeeSheetCalculator = () => {
                         </p>
                       )}
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => loadInvoiceForEdit(invoice)}
-                    >
-                      <Edit2 className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadInvoiceForEdit(invoice)}
+                      >
+                        <Edit2 className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          setDeletingInvoiceId(invoice.id);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -499,6 +549,28 @@ export const FeeSheetCalculator = () => {
           )}
         </CardContent>
       </Card>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Fee Sheet?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this fee sheet. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingInvoiceId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingInvoiceId && handleDeleteInvoice(deletingInvoiceId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

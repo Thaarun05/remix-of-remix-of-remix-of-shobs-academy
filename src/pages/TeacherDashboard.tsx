@@ -37,8 +37,27 @@ import {
   Calculator,
   Send,
   Eye,
-  Trash2
+  Trash2,
+  Pencil
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Student {
   user_id: string;
@@ -160,6 +179,33 @@ const TeacherDashboard = () => {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  
+  // Edit/Delete dialogs state
+  const [editAttendanceDialog, setEditAttendanceDialog] = useState(false);
+  const [editingAttendance, setEditingAttendance] = useState<AttendanceRecord | null>(null);
+  const [editAttendanceForm, setEditAttendanceForm] = useState({
+    date: "",
+    status: "present" as "present" | "absent",
+    hours: "",
+    topic: "",
+  });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingItem, setDeletingItem] = useState<{ table: string; id: string; name: string } | null>(null);
+  const [editAssignmentDialog, setEditAssignmentDialog] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState<AssignmentWithFiles | null>(null);
+  const [editAssignmentForm, setEditAssignmentForm] = useState({
+    title: "",
+    subject: "",
+    description: "",
+    dueDate: "",
+  });
+  const [editZoomDialog, setEditZoomDialog] = useState(false);
+  const [editingZoom, setEditingZoom] = useState<ZoomLink | null>(null);
+  const [editZoomForm, setEditZoomForm] = useState({
+    meetingUrl: "",
+    meetingId: "",
+    passcode: "",
+  });
 
   // File upload states
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -597,9 +643,163 @@ const TeacherDashboard = () => {
       
       if (error) throw error;
       toast({ title: "Deleted", description: "Item removed successfully." });
+      setDeleteDialogOpen(false);
+      setDeletingItem(null);
       fetchData();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+  
+  const openDeleteDialog = (table: string, id: string, name: string) => {
+    setDeletingItem({ table, id, name });
+    setDeleteDialogOpen(true);
+  };
+  
+  const openEditAttendance = (record: AttendanceRecord) => {
+    setEditingAttendance(record);
+    setEditAttendanceForm({
+      date: record.date,
+      status: record.status as "present" | "absent",
+      hours: record.hours?.toString() || "",
+      topic: record.topic || "",
+    });
+    setEditAttendanceDialog(true);
+  };
+  
+  const handleUpdateAttendance = async () => {
+    if (!editingAttendance || !user) return;
+    setSubmitting(true);
+    
+    try {
+      const { error } = await supabase
+        .from("attendance_records")
+        .update({
+          date: editAttendanceForm.date,
+          status: editAttendanceForm.status,
+          hours: editAttendanceForm.hours ? parseFloat(editAttendanceForm.hours) : null,
+          topic: editAttendanceForm.topic || null,
+        })
+        .eq("id", editingAttendance.id);
+      
+      if (error) throw error;
+      
+      // Notify student about updated attendance
+      await supabase.from("notifications").insert({
+        recipient_id: editingAttendance.student_user_id,
+        sender_id: user.id,
+        type: "attendance",
+        title: "Attendance Updated",
+        body: `Your attendance for ${editAttendanceForm.date} has been updated.`,
+        entity_table: "attendance_records",
+        entity_id: editingAttendance.id,
+      });
+      
+      toast({ title: "Attendance updated", description: "The student has been notified." });
+      setEditAttendanceDialog(false);
+      setEditingAttendance(null);
+      fetchData();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
+  const openEditAssignment = (assignment: AssignmentWithFiles) => {
+    setEditingAssignment(assignment);
+    setEditAssignmentForm({
+      title: assignment.title,
+      subject: assignment.subject || "",
+      description: assignment.description || "",
+      dueDate: assignment.due_date || "",
+    });
+    setEditAssignmentDialog(true);
+  };
+  
+  const handleUpdateAssignment = async () => {
+    if (!editingAssignment || !user) return;
+    setSubmitting(true);
+    
+    try {
+      const { error } = await supabase
+        .from("assignments")
+        .update({
+          title: editAssignmentForm.title,
+          subject: editAssignmentForm.subject || null,
+          description: editAssignmentForm.description || null,
+          due_date: editAssignmentForm.dueDate || null,
+        })
+        .eq("id", editingAssignment.id);
+      
+      if (error) throw error;
+      
+      // Notify student about updated assignment
+      await supabase.from("notifications").insert({
+        recipient_id: editingAssignment.student_user_id,
+        sender_id: user.id,
+        type: "assignment",
+        title: "Assignment Updated",
+        body: `The assignment "${editAssignmentForm.title}" has been updated.`,
+        entity_table: "assignments",
+        entity_id: editingAssignment.id,
+      });
+      
+      toast({ title: "Assignment updated", description: "The student has been notified." });
+      setEditAssignmentDialog(false);
+      setEditingAssignment(null);
+      fetchData();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
+  const openEditZoom = (link: ZoomLink) => {
+    setEditingZoom(link);
+    setEditZoomForm({
+      meetingUrl: link.meeting_url,
+      meetingId: link.meeting_id || "",
+      passcode: link.passcode || "",
+    });
+    setEditZoomDialog(true);
+  };
+  
+  const handleUpdateZoomLink = async () => {
+    if (!editingZoom || !user) return;
+    setSubmitting(true);
+    
+    try {
+      const { error } = await supabase
+        .from("zoom_links")
+        .update({
+          meeting_url: editZoomForm.meetingUrl,
+          meeting_id: editZoomForm.meetingId || null,
+          passcode: editZoomForm.passcode || null,
+        })
+        .eq("student_user_id", editingZoom.student_user_id);
+      
+      if (error) throw error;
+      
+      // Notify student about updated Zoom link
+      await supabase.from("notifications").insert({
+        recipient_id: editingZoom.student_user_id,
+        sender_id: user.id,
+        type: "zoom",
+        title: "Zoom Link Updated",
+        body: "Your Zoom meeting link has been updated.",
+        entity_table: "zoom_links",
+      });
+      
+      toast({ title: "Zoom link updated", description: "The student has been notified." });
+      setEditZoomDialog(false);
+      setEditingZoom(null);
+      fetchData();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
     }
   };
   
@@ -804,11 +1004,14 @@ const TeacherDashboard = () => {
                         <p className="text-xs text-muted-foreground">{new Date(record.date).toLocaleDateString()} • {record.status}</p>
                         {record.topic && <p className="text-xs text-muted-foreground truncate">{record.topic}</p>}
                       </div>
-                      <div className="flex items-center gap-2 ml-2">
+                      <div className="flex items-center gap-1 ml-2">
                         <Badge className={record.status === "present" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}>
                           {record.hours ? `${record.hours}h` : record.status}
                         </Badge>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleSoftDelete("attendance_records", record.id)}>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditAttendance(record)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => openDeleteDialog("attendance_records", record.id, `${record.student_name}'s attendance`)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -1253,6 +1456,64 @@ const TeacherDashboard = () => {
           </Card>
         )}
       </div>
+      
+      {/* Edit Attendance Dialog */}
+      <Dialog open={editAttendanceDialog} onOpenChange={setEditAttendanceDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Attendance</DialogTitle>
+            <DialogDescription>Update the attendance record.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input type="date" value={editAttendanceForm.date} onChange={(e) => setEditAttendanceForm({ ...editAttendanceForm, date: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={editAttendanceForm.status} onValueChange={(v) => setEditAttendanceForm({ ...editAttendanceForm, status: v as "present" | "absent" })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="present">Present</SelectItem>
+                    <SelectItem value="absent">Absent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Hours</Label>
+              <Input type="number" step="0.5" value={editAttendanceForm.hours} onChange={(e) => setEditAttendanceForm({ ...editAttendanceForm, hours: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Topic</Label>
+              <Input value={editAttendanceForm.topic} onChange={(e) => setEditAttendanceForm({ ...editAttendanceForm, topic: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditAttendanceDialog(false)}>Cancel</Button>
+            <Button onClick={handleUpdateAttendance} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {deletingItem?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingItem(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deletingItem && handleSoftDelete(deletingItem.table, deletingItem.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };
