@@ -9,10 +9,10 @@ export function Logo({
   className
 }: LogoProps) {
   const sizeClasses = {
-    sm: "h-16 w-auto",
-    md: "h-20 w-auto",
-    lg: "h-32 w-auto",
-    xl: "h-40 w-auto"
+    sm: "h-24 w-auto",
+    md: "h-32 w-auto",
+    lg: "h-48 w-auto",
+    xl: "h-64 w-auto"
   };
   return <img src={shobsLogo} alt="Shobs Academy" className={cn("", sizeClasses[size], className)} />;
 }
