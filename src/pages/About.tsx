@@ -2,55 +2,34 @@ import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import { 
-  BookOpen, 
-  User, 
-  ClipboardCheck, 
-  Target, 
-  Calendar, 
-  Zap, 
-  GraduationCap, 
-  Users, 
-  Mail,
-  ArrowLeft
-} from "lucide-react";
-
-const features = [
-  {
-    icon: BookOpen,
-    title: "Expert Tutoring",
-    description: "One-on-one sessions with qualified teachers across multiple subjects"
-  },
-  {
-    icon: User,
-    title: "Personalized Learning",
-    description: "Customized lesson plans tailored to each student's needs and pace"
-  },
-  {
-    icon: ClipboardCheck,
-    title: "Assignment Support",
-    description: "Homework help, assignment tracking, and submission management"
-  },
-  {
-    icon: Target,
-    title: "Progress Tracking",
-    description: "Detailed attendance records and performance monitoring"
-  },
-  {
-    icon: Calendar,
-    title: "Flexible Scheduling",
-    description: "Convenient online sessions that fit your schedule"
-  },
-  {
-    icon: Zap,
-    title: "Interactive Platform",
-    description: "Modern tools for seamless communication between students and teachers"
-  }
-];
-
+import { BookOpen, User, ClipboardCheck, Target, Calendar, Zap, GraduationCap, Users, Mail, ArrowLeft } from "lucide-react";
+const features = [{
+  icon: BookOpen,
+  title: "Expert Tutoring",
+  description: "One-on-one sessions with qualified teachers across multiple subjects"
+}, {
+  icon: User,
+  title: "Personalized Learning",
+  description: "Customized lesson plans tailored to each student's needs and pace"
+}, {
+  icon: ClipboardCheck,
+  title: "Assignment Support",
+  description: "Homework help, assignment tracking, and submission management"
+}, {
+  icon: Target,
+  title: "Progress Tracking",
+  description: "Detailed attendance records and performance monitoring"
+}, {
+  icon: Calendar,
+  title: "Flexible Scheduling",
+  description: "Convenient online sessions that fit your schedule"
+}, {
+  icon: Zap,
+  title: "Interactive Platform",
+  description: "Modern tools for seamless communication between students and teachers"
+}];
 const About = () => {
-  return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
+  return <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
       <Navbar showAboutLink={false} />
 
       {/* Back to Home Button */}
@@ -85,19 +64,15 @@ const About = () => {
             Our Features
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, idx) => (
-              <div 
-                key={feature.title} 
-                className="feature-card animate-fade-in" 
-                style={{ animationDelay: `${0.1 * idx}s` }}
-              >
+            {features.map((feature, idx) => <div key={feature.title} className="feature-card animate-fade-in" style={{
+            animationDelay: `${0.1 * idx}s`
+          }}>
                 <div className="feature-icon-wrapper">
                   <feature.icon className="h-8 w-8 text-primary" />
                 </div>
                 <h4 className="font-semibold text-lg text-foreground mb-2">{feature.title}</h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
-              </div>
-            ))}
+              </div>)}
           </div>
         </div>
       </section>
@@ -110,7 +85,9 @@ const About = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Students Card */}
-            <div className="serve-card animate-fade-in" style={{ animationDelay: "0.1s" }}>
+            <div className="serve-card animate-fade-in" style={{
+            animationDelay: "0.1s"
+          }}>
               <div className="serve-icon-wrapper">
                 <GraduationCap className="h-10 w-10 text-student" />
               </div>
@@ -132,7 +109,9 @@ const About = () => {
             </div>
 
             {/* Parents Card */}
-            <div className="serve-card animate-fade-in" style={{ animationDelay: "0.2s" }}>
+            <div className="serve-card animate-fade-in" style={{
+            animationDelay: "0.2s"
+          }}>
               <div className="serve-icon-wrapper">
                 <Users className="h-10 w-10 text-teacher" />
               </div>
@@ -164,7 +143,8 @@ const About = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
               <div className="contact-item">
                 <Mail className="h-6 w-6 text-primary" />
-                <span className="text-muted-foreground font-medium">shobaraju@shobsacademy.com</span>
+                <span className="text-muted-foreground font-medium">shobaraju@shobsacademy.com or shobsacademy@gmail.com
+              </span>
               </div>
             </div>
           </div>
@@ -177,8 +157,6 @@ const About = () => {
           © {new Date().getFullYear()} Shobs Academy. All rights reserved.
         </p>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default About;
