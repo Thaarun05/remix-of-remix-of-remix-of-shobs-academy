@@ -36,7 +36,7 @@ const countries = [{
   flagUrl: "https://flagcdn.com/w320/in.png",
   code: "IN",
   name: "India",
-  description: "Primary market, headquartered in Haryana"
+  description: "Primary location, headquarters in Coimbatore"
 }, {
   flagUrl: "https://flagcdn.com/w320/ae.png",
   code: "AE",
