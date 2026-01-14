@@ -48,9 +48,7 @@ export function Navbar({
   return <nav className="navbar">
       {/* LEFT: Logo + Brand Name */}
       <Link to="/" className="navbar-brand">
-        <div className="navbar-logo">
-          <Logo size="md" className="w-full h-full object-contain" />
-        </div>
+        
         <span className="navbar-name hidden sm:block">Shobs Academy</span>
       </Link>
 
