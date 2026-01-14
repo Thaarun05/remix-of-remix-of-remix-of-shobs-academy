@@ -18,7 +18,7 @@ export function Logo({ size = "md", className }: LogoProps) {
     <img
       src={shobsLogo}
       alt="Shobs Academy"
-      className={cn(sizeClasses[size], "mt-2", className)}
+      className={cn(sizeClasses[size], "mt-6", className)}
     />
   );
 }
