@@ -26,7 +26,7 @@ const countries = [{
   flagUrl: "https://flagcdn.com/w320/nl.png",
   code: "NL",
   name: "Netherlands",
-  description: "European presence in the Netherlands"
+  description: "Supporting students in the Netherlands"
 }, {
   flagUrl: "https://flagcdn.com/w320/nz.png",
   code: "NZ",
