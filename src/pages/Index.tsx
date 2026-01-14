@@ -121,7 +121,7 @@ const Index = () => {
           </h2>
 
           {/* Intro Text */}
-          <p className="text-lg text-muted-foreground text-center max-w-3xl mx-auto mb-16">
+          <p className="text-muted-foreground max-w-3xl mx-auto mb-16 text-center font-sans font-medium text-xl">
             ​Expert-led tutoring with personalized lesson plans and flexible online sessions, helping students worldwide master concepts, boost confidence, and earn better grades.
           </p>
 
