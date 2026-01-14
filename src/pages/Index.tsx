@@ -122,7 +122,7 @@ const Index = () => {
 
           {/* Intro Text */}
           <p className="text-lg text-muted-foreground text-center max-w-3xl mx-auto mb-16">
-            We are empowering education across multiple countries, providing quality tutoring to students worldwide.
+            ​Expert-led tutoring with personalized lesson plans and flexible online sessions, helping students worldwide master concepts, boost confidence, and earn better grades.
           </p>
 
           {/* Countries Grid */}
