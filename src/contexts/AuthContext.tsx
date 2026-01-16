@@ -11,16 +11,17 @@ interface AuthContextType {
   refreshRole: () => Promise<void>;
 }
 
-// Create context outside of HMR boundary to prevent re-creation on hot reload
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Persist context across HMR by storing on globalThis
+const AUTH_CONTEXT_KEY = "__SHOBS_AUTH_CONTEXT__";
 
-// Prevent HMR from invalidating this module's context
-if (import.meta.hot) {
-  import.meta.hot.accept(() => {
-    // Force full reload instead of HMR for this module
-    window.location.reload();
-  });
+function getOrCreateContext() {
+  if (!(globalThis as any)[AUTH_CONTEXT_KEY]) {
+    (globalThis as any)[AUTH_CONTEXT_KEY] = createContext<AuthContextType | undefined>(undefined);
+  }
+  return (globalThis as any)[AUTH_CONTEXT_KEY] as React.Context<AuthContextType | undefined>;
 }
+
+const AuthContext = getOrCreateContext();
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
