@@ -11,7 +11,16 @@ interface AuthContextType {
   refreshRole: () => Promise<void>;
 }
 
+// Create context outside of HMR boundary to prevent re-creation on hot reload
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Prevent HMR from invalidating this module's context
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    // Force full reload instead of HMR for this module
+    window.location.reload();
+  });
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
