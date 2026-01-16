@@ -79,8 +79,17 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  try {
+    // Use 'local' scope to only clear local session, avoiding 403 if session already invalid
+    const { error } = await supabase.auth.signOut({ scope: 'local' });
+    // Don't throw on signout errors - session may already be invalidated
+    if (error) {
+      console.warn("Sign out warning (non-fatal):", error.message);
+    }
+  } catch (err) {
+    // Catch any unexpected errors but don't propagate - user intent is to sign out
+    console.warn("Sign out error (non-fatal):", err);
+  }
 }
 
 export async function getUserRole(userId: string): Promise<UserRole | null> {
