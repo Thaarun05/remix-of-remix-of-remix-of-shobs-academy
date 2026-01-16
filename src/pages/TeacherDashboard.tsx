@@ -636,10 +636,13 @@ const TeacherDashboard = () => {
   
   const handleSoftDelete = async (table: string, id: string) => {
     try {
+      // Zoom links use student_user_id as the key, not id
+      const column = table === "zoom_links" ? "student_user_id" : "id";
+      
       const { error } = await supabase
         .from(table as any)
         .update({ deleted_at: new Date().toISOString() })
-        .eq("id", id);
+        .eq(column, id);
       
       if (error) throw error;
       toast({ title: "Deleted", description: "Item removed successfully." });
@@ -1262,6 +1265,14 @@ const TeacherDashboard = () => {
                         <p className="text-xs text-muted-foreground truncate">{link.meeting_url}</p>
                         {link.meeting_id && <p className="text-xs text-muted-foreground">ID: {link.meeting_id}</p>}
                       </div>
+                      <div className="flex items-center gap-1 ml-2">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditZoom(link)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => openDeleteDialog("zoom_links", link.student_user_id, `${link.student_name}'s Zoom link`)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -1493,6 +1504,51 @@ const TeacherDashboard = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditAttendanceDialog(false)}>Cancel</Button>
             <Button onClick={handleUpdateAttendance} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Zoom Dialog */}
+      <Dialog open={editZoomDialog} onOpenChange={setEditZoomDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Zoom Link</DialogTitle>
+            <DialogDescription>Update the Zoom meeting details for {editingZoom?.student_name}.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Meeting URL</Label>
+              <Input 
+                type="url" 
+                placeholder="https://zoom.us/j/..." 
+                value={editZoomForm.meetingUrl} 
+                onChange={(e) => setEditZoomForm({ ...editZoomForm, meetingUrl: e.target.value })} 
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Meeting ID</Label>
+                <Input 
+                  placeholder="123 456 7890" 
+                  value={editZoomForm.meetingId} 
+                  onChange={(e) => setEditZoomForm({ ...editZoomForm, meetingId: e.target.value })} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Passcode</Label>
+                <Input 
+                  placeholder="abc123" 
+                  value={editZoomForm.passcode} 
+                  onChange={(e) => setEditZoomForm({ ...editZoomForm, passcode: e.target.value })} 
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditZoomDialog(false)}>Cancel</Button>
+            <Button onClick={handleUpdateZoomLink} disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
             </Button>
           </DialogFooter>
