@@ -11,7 +11,7 @@ const countries = [{
   flagUrl: "https://flagcdn.com/w320/us.png",
   code: "US",
   name: "USA",
-  description: "Serving students across all 50 states"
+  description: "Serving students across different states"
 }, {
   flagUrl: "https://flagcdn.com/w320/ca.png",
   code: "CA",
