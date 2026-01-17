@@ -1205,48 +1205,97 @@ const TeacherDashboard = () => {
             <Card className="dashboard-list-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Video className="h-5 w-5" />
-                  Manage Zoom Link
+                  <Plus className="h-5 w-5" />
+                  {selectedStudent ? "Create / Update Zoom Link" : "Create New Zoom Link"}
                 </CardTitle>
-                <CardDescription>Set the Zoom meeting link for the selected student</CardDescription>
+                <CardDescription>
+                  {selectedStudent 
+                    ? `Setting Zoom link for: ${students.find(s => s.user_id === selectedStudent)?.student_name || "Selected Student"}`
+                    : "Select a student above to create or update their Zoom link"
+                  }
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleUpdateZoom} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="meetingUrl">Meeting URL *</Label>
-                    <Input
-                      id="meetingUrl"
-                      type="url"
-                      placeholder="https://zoom.us/j/..."
-                      value={zoomForm.meetingUrl}
-                      onChange={(e) => setZoomForm({ ...zoomForm, meetingUrl: e.target.value })}
-                      required
-                    />
+                {!selectedStudent ? (
+                  <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
+                    <Video className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground mb-2">No student selected</p>
+                    <p className="text-sm text-muted-foreground">Use the student selector above to choose a student</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="meetingId">Meeting ID</Label>
-                      <Input
-                        id="meetingId"
-                        placeholder="123 456 7890"
-                        value={zoomForm.meetingId}
-                        onChange={(e) => setZoomForm({ ...zoomForm, meetingId: e.target.value })}
-                      />
+                ) : (
+                  <form onSubmit={handleUpdateZoom} className="space-y-4">
+                    <div className="p-3 bg-teacher/10 rounded-lg border border-teacher/20 mb-4">
+                      <p className="text-sm font-medium text-teacher">
+                        Creating link for: {students.find(s => s.user_id === selectedStudent)?.student_name}
+                      </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="passcode">Passcode</Label>
+                      <Label htmlFor="meetingUrl">Meeting URL *</Label>
                       <Input
-                        id="passcode"
-                        placeholder="abc123"
-                        value={zoomForm.passcode}
-                        onChange={(e) => setZoomForm({ ...zoomForm, passcode: e.target.value })}
+                        id="meetingUrl"
+                        type="url"
+                        placeholder="https://zoom.us/j/..."
+                        value={zoomForm.meetingUrl}
+                        onChange={(e) => setZoomForm({ ...zoomForm, meetingUrl: e.target.value })}
+                        required
                       />
                     </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="meetingId">Meeting ID</Label>
+                        <Input
+                          id="meetingId"
+                          placeholder="123 456 7890"
+                          value={zoomForm.meetingId}
+                          onChange={(e) => setZoomForm({ ...zoomForm, meetingId: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="passcode">Passcode</Label>
+                        <Input
+                          id="passcode"
+                          placeholder="abc123"
+                          value={zoomForm.passcode}
+                          onChange={(e) => setZoomForm({ ...zoomForm, passcode: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={submitting}>
+                      {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                        <>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Save Zoom Link
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                )}
+                
+                {/* Quick Add for Students Without Links */}
+                {students.filter(s => !zoomLinks.some(z => z.student_user_id === s.user_id)).length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-border">
+                    <p className="text-sm font-medium mb-3">Students without Zoom links:</p>
+                    <div className="space-y-2">
+                      {students
+                        .filter(s => !zoomLinks.some(z => z.student_user_id === s.user_id))
+                        .map(student => (
+                          <div key={student.user_id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
+                            <span className="text-sm">{student.student_name}</span>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="h-7"
+                              onClick={() => setSelectedStudent(student.user_id)}
+                            >
+                              <Plus className="h-3.5 w-3.5 mr-1" />
+                              Add Link
+                            </Button>
+                          </div>
+                        ))
+                      }
+                    </div>
                   </div>
-                  <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting}>
-                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Zoom Link"}
-                  </Button>
-                </form>
+                )}
               </CardContent>
             </Card>
             
