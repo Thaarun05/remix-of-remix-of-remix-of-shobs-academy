@@ -70,7 +70,7 @@ const subjects = [
   "Chemistry",
   "Biology",
   "English Language & Literature",
-  "Computer Science",
+  "Social Studies",
   "Test Preparation (SAT, ACT, AP)",
   "Essay Writing & College Applications"
 ];
