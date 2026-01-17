@@ -2,16 +2,10 @@ import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { 
   BookOpen, User, ClipboardCheck, Target, Calendar, Zap, 
   GraduationCap, Users, Mail, ArrowLeft, Award, Globe, 
-  Heart, Lightbulb, CheckCircle2, Star, HelpCircle
+  Heart, Lightbulb, CheckCircle2, Star, Phone
 } from "lucide-react";
 
 const features = [
@@ -70,48 +64,13 @@ const coreValues = [
   }
 ];
 
-const faqs = [
-  {
-    question: "How do online tutoring sessions work?",
-    answer: "Our sessions are conducted via Zoom video calls. Each student receives a dedicated Zoom link for their classes. Teachers share their screen for explanations, use digital whiteboards, and interact with students in real-time just like an in-person session."
-  },
-  {
-    question: "What grade levels do you support?",
-    answer: "We support students from Kindergarten through 12th grade (K-12), as well as students preparing for standardized tests like SAT, ACT, and AP exams. Our teachers adapt their teaching style to match each student's age and learning level."
-  },
-  {
-    question: "How are teachers selected and trained?",
-    answer: "All our teachers undergo a rigorous selection process that includes background checks, subject matter expertise verification, and teaching demonstrations. They receive ongoing training to stay updated with curriculum changes and modern teaching techniques."
-  },
-  {
-    question: "Can I schedule sessions according to my timezone?",
-    answer: "Absolutely! We serve students across multiple countries and time zones. Our flexible scheduling system allows you to book sessions at times that work best for your family, including evenings and weekends."
-  },
-  {
-    question: "How do I track my child's progress?",
-    answer: "Parents receive regular progress updates through our platform. You can view attendance records, assignment completion status, and communicate directly with teachers. We also provide periodic progress reports highlighting areas of improvement and focus."
-  },
-  {
-    question: "What if my child needs help with homework?",
-    answer: "Homework help is a core part of our service! Students can bring their homework questions to sessions, and teachers will guide them through problems step-by-step, ensuring they understand the concepts rather than just getting answers."
-  },
-  {
-    question: "How much do tutoring sessions cost?",
-    answer: "Our rates vary based on the subject, grade level, and package chosen. We offer competitive pricing and flexible payment options. Contact us for a free consultation and personalized quote based on your child's needs."
-  },
-  {
-    question: "Can I try a session before committing?",
-    answer: "Yes! We offer a free demo session so you and your child can experience our teaching style and platform before making any commitment. This helps ensure we're the right fit for your child's learning needs."
-  }
-];
-
 const subjects = [
   "Mathematics (All Levels)",
   "Physics",
   "Chemistry",
   "Biology",
   "English Language & Literature",
-  "Social Studies",
+  "Computer Science",
   "Test Preparation (SAT, ACT, AP)",
   "Essay Writing & College Applications"
 ];
@@ -393,40 +352,6 @@ const About = () => {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Gold Gradient Divider */}
-      <div className="w-full h-1" style={{ background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)' }} />
-
-      {/* FAQ Section */}
-      <section className="py-16 px-6 bg-gradient-to-b from-muted/30 to-background">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <HelpCircle className="h-8 w-8 text-primary" />
-            <h2 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
-              Frequently Asked Questions
-            </h2>
-          </div>
-          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Find answers to common questions about our tutoring services
-          </p>
-          <Accordion type="single" collapsible className="space-y-4">
-            {faqs.map((faq, idx) => (
-              <AccordionItem
-                key={idx}
-                value={`item-${idx}`}
-                className="bg-card border border-border/50 rounded-xl px-6 shadow-sm"
-              >
-                <AccordionTrigger className="text-left font-semibold text-foreground hover:no-underline py-4">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground pb-4 leading-relaxed">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
         </div>
       </section>
 
