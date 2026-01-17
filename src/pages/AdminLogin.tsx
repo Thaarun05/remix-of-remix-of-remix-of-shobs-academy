@@ -9,12 +9,10 @@ import { Shield, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { z } from "zod";
 import shobsLogo from "@/assets/shobs-academy-logo.png";
-
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters")
 });
-
 const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -22,48 +20,54 @@ const AdminLogin = () => {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { user, role, loading: authLoading } = useAuth();
-
+  const {
+    toast
+  } = useToast();
+  const {
+    user,
+    role,
+    loading: authLoading
+  } = useAuth();
   useEffect(() => {
     if (!authLoading && user && role) {
-      navigate(`/${role}`, { replace: true });
+      navigate(`/${role}`, {
+        replace: true
+      });
     }
   }, [user, role, authLoading, navigate]);
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
     setLoading(true);
-
     try {
-      const validated = signInSchema.parse({ email, password });
-      const { user } = await signIn(validated.email, validated.password);
-      
+      const validated = signInSchema.parse({
+        email,
+        password
+      });
+      const {
+        user
+      } = await signIn(validated.email, validated.password);
       if (!user) {
         throw new Error("Sign in failed");
       }
-
       const userRole = await getUserRole(user.id);
-      
       if (userRole !== "admin") {
         await supabase.auth.signOut();
         toast({
           title: "Access Denied",
           description: "This portal is for administrators only.",
-          variant: "destructive",
+          variant: "destructive"
         });
         return;
       }
-
       toast({
         title: "Welcome back!",
-        description: "You have successfully signed in as administrator.",
+        description: "You have successfully signed in as administrator."
       });
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
-        error.errors.forEach((err) => {
+        error.errors.forEach(err => {
           if (err.path[0]) newErrors[err.path[0] as string] = err.message;
         });
         setErrors(newErrors);
@@ -71,24 +75,19 @@ const AdminLogin = () => {
         toast({
           title: "Sign in failed",
           description: error.message || "Please check your credentials and try again.",
-          variant: "destructive",
+          variant: "destructive"
         });
       }
     } finally {
       setLoading(false);
     }
   };
-
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center auth-page-admin">
+    return <div className="min-h-screen flex items-center justify-center auth-page-admin">
         <Loader2 className="h-8 w-8 animate-spin text-teacher" />
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen flex flex-col auth-page-admin">
+  return <div className="min-h-screen flex flex-col auth-page-admin">
       <Navbar showAboutLink={false} />
 
       <div className="flex-1 flex items-center justify-center px-4 py-8 pt-24">
@@ -107,59 +106,33 @@ const AdminLogin = () => {
           {/* Form */}
           <form onSubmit={handleSignIn} className="auth-form">
             <div className="auth-field">
-              <label className="auth-label">Admin Email</label>
-              <Input
-                type="email"
-                placeholder="admin@shobsacademy.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`auth-input auth-input-admin ${errors.email ? "auth-input-error" : ""}`}
-                required
-              />
-              {errors.email && (
-                <div className="auth-error">
+              <label className="auth-label">Admin User ID</label>
+              <Input type="email" placeholder="admin@shobsacademy.com" value={email} onChange={e => setEmail(e.target.value)} className={`auth-input auth-input-admin ${errors.email ? "auth-input-error" : ""}`} required />
+              {errors.email && <div className="auth-error">
                   <AlertCircle className="w-3 h-3" />
                   {errors.email}
-                </div>
-              )}
+                </div>}
             </div>
 
             <div className="auth-field">
               <label className="auth-label">Admin Password</label>
               <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`auth-input auth-input-admin pr-10 ${errors.password ? "auth-input-error" : ""}`}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
+                <Input type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} className={`auth-input auth-input-admin pr-10 ${errors.password ? "auth-input-error" : ""}`} required />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {errors.password && (
-                <div className="auth-error">
+              {errors.password && <div className="auth-error">
                   <AlertCircle className="w-3 h-3" />
                   {errors.password}
-                </div>
-              )}
+                </div>}
             </div>
 
             <button type="submit" className="auth-button auth-button-admin" disabled={loading}>
-              {loading ? (
-                <>
+              {loading ? <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Signing in...
-                </>
-              ) : (
-                "Sign In"
-              )}
+                </> : "Sign In"}
             </button>
           </form>
 
@@ -171,8 +144,6 @@ const AdminLogin = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default AdminLogin;
