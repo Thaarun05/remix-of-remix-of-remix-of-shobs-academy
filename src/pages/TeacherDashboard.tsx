@@ -37,6 +37,7 @@ import {
   Calculator,
   Send,
   Eye,
+  ExternalLink,
   Trash2,
   Pencil
 } from "lucide-react";
@@ -1249,32 +1250,62 @@ const TeacherDashboard = () => {
               </CardContent>
             </Card>
             
-            {/* Recent Zoom Links */}
+            {/* Active Zoom Links */}
             <Card className="dashboard-list-card h-fit">
               <CardHeader>
-                <CardTitle className="text-base">Active Zoom Links</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Video className="h-4 w-4" />
+                  Active Zoom Links
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
-                {zoomLinks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No Zoom links set</p>
+              <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
+                {zoomLinks.filter(link => students.some(s => s.user_id === link.student_user_id)).length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No Zoom links set for your students</p>
                 ) : (
-                  zoomLinks.map((link) => (
-                    <div key={link.student_user_id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{link.student_name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{link.meeting_url}</p>
-                        {link.meeting_id && <p className="text-xs text-muted-foreground">ID: {link.meeting_id}</p>}
+                  zoomLinks
+                    .filter(link => students.some(s => s.user_id === link.student_user_id))
+                    .map((link) => (
+                      <div key={link.student_user_id} className="p-4 rounded-xl border border-border hover:border-teacher/30 transition-all hover:shadow-md bg-card">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground">{link.student_name}</p>
+                            <p className="text-xs text-muted-foreground mt-1 break-all">{link.meeting_url}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="dashboard-btn dashboard-btn-teacher shrink-0"
+                            onClick={() => window.open(link.meeting_url, '_blank', 'noopener,noreferrer')}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            Join
+                          </Button>
+                        </div>
+                        
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          {link.meeting_id && (
+                            <span className="flex items-center gap-1">
+                              <span className="font-medium">ID:</span> {link.meeting_id}
+                            </span>
+                          )}
+                          {link.passcode && (
+                            <span className="flex items-center gap-1">
+                              <span className="font-medium">Passcode:</span> {link.passcode}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-border/50">
+                          <Button size="sm" variant="outline" className="h-8" onClick={() => openEditZoom(link)}>
+                            <Pencil className="h-3.5 w-3.5 mr-1" />
+                            Edit
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-8 text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog("zoom_links", link.student_user_id, `${link.student_name}'s Zoom link`)}>
+                            <Trash2 className="h-3.5 w-3.5 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 ml-2">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditZoom(link)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => openDeleteDialog("zoom_links", link.student_user_id, `${link.student_name}'s Zoom link`)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))
+                    ))
                 )}
               </CardContent>
             </Card>
