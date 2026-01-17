@@ -139,6 +139,7 @@ const StudentDashboard = () => {
           .from("zoom_links")
           .select("meeting_url, meeting_id, passcode")
           .eq("student_user_id", user.id)
+          .is("deleted_at", null)
           .maybeSingle(),
         supabase
           .from("student_fees")
