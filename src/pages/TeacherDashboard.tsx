@@ -483,6 +483,8 @@ const TeacherDashboard = () => {
         meeting_url: zoomForm.meetingUrl,
         meeting_id: zoomForm.meetingId || null,
         passcode: zoomForm.passcode || null,
+        deleted_at: null,
+        updated_at: new Date().toISOString(),
       });
 
       if (error) throw error;
@@ -493,6 +495,7 @@ const TeacherDashboard = () => {
       });
 
       setZoomForm({ meetingUrl: "", meetingId: "", passcode: "" });
+      fetchData(); // Refresh to show the new zoom link
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to save Zoom link.";
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
