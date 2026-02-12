@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Calculator, IndianRupee, RotateCcw, Save } from "lucide-react";
-import { format, startOfMonth, endOfMonth, parse } from "date-fns";
+import { Loader2, Calculator, IndianRupee, RotateCcw, Save, Download } from "lucide-react";
+import { format, endOfMonth } from "date-fns";
 
 interface Student {
   user_id: string;
@@ -42,6 +42,7 @@ const formatINR = (amount: number): string => {
 export const AttendanceBasedFeeCalculator = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const invoiceRef = useRef<HTMLDivElement>(null);
 
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -141,11 +142,92 @@ export const AttendanceBasedFeeCalculator = () => {
       if (error) throw error;
 
       toast({ title: "Fee record saved!", description: `${formatINR(totalFee)} for ${selectedStudent.student_name}` });
-      handleClear();
     } catch (error: any) {
       toast({ title: "Error saving fee", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleExportPDF = () => {
+    const studentName = selectedStudent?.student_name || "Student";
+    const invoiceHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice - ${studentName}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1a1a2e; }
+          .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #6c63ff; padding-bottom: 20px; }
+          .header h1 { font-size: 28px; color: #6c63ff; margin-bottom: 4px; }
+          .header p { color: #666; font-size: 14px; }
+          .meta { display: flex; justify-content: space-between; margin-bottom: 24px; font-size: 14px; }
+          .meta div { line-height: 1.8; }
+          .meta strong { color: #333; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+          th { background: #6c63ff; color: white; padding: 10px 14px; text-align: left; font-size: 13px; }
+          td { padding: 9px 14px; border-bottom: 1px solid #e0e0e0; font-size: 13px; }
+          tr:nth-child(even) { background: #f8f8ff; }
+          .present { color: #16a34a; font-weight: 600; }
+          .absent { color: #dc2626; font-weight: 600; }
+          .summary { background: #f0efff; border-radius: 8px; padding: 20px; margin-top: 8px; }
+          .summary h3 { color: #6c63ff; margin-bottom: 12px; font-size: 16px; }
+          .summary .line { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
+          .summary .total { border-top: 2px solid #6c63ff; margin-top: 10px; padding-top: 10px; font-size: 20px; font-weight: 700; color: #6c63ff; }
+          .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #999; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Shobs Academy</h1>
+          <p>Student Fee Invoice</p>
+        </div>
+        <div class="meta">
+          <div>
+            <strong>Student:</strong> ${studentName}<br/>
+            <strong>Month:</strong> ${selectedMonth} ${currentYear}
+          </div>
+          <div style="text-align:right">
+            <strong>Date:</strong> ${format(new Date(), "MMM d, yyyy")}<br/>
+            <strong>Invoice #:</strong> INV-${Date.now().toString(36).toUpperCase()}
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>#</th><th>Date</th><th>Status</th><th>Hours</th><th>Topic</th></tr></thead>
+          <tbody>
+            ${attendance.map((r, i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td>${format(new Date(r.date), "MMM d, yyyy")}</td>
+                <td class="${r.status.toLowerCase()}">${r.status}</td>
+                <td>${r.hours ?? "-"}</td>
+                <td>${r.topic || "-"}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+        <div class="summary">
+          <h3>Fee Summary</h3>
+          <div class="line"><span>Total Present Days</span><span>${presentCount}</span></div>
+          <div class="line"><span>Total Absent Days</span><span>${absentCount}</span></div>
+          <div class="line"><span>Total Present Hours</span><span>${totalPresentHours} hrs</span></div>
+          <div class="line"><span>Hourly Rate</span><span>₹${new Intl.NumberFormat("en-IN").format(rate)}</span></div>
+          <div class="line total"><span>Total Fee</span><span>${formatINR(totalFee)}</span></div>
+        </div>
+        <div class="footer">
+          Generated on ${format(new Date(), "MMMM d, yyyy 'at' h:mm a")} • Shobs Academy
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(invoiceHTML);
+      printWindow.document.close();
+      setTimeout(() => printWindow.print(), 300);
     }
   };
 
@@ -286,7 +368,7 @@ export const AttendanceBasedFeeCalculator = () => {
 
                 {/* Result */}
                 {calculated && (
-                  <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-5 space-y-2">
+                  <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-5 space-y-3">
                     <p className="text-sm text-muted-foreground">
                       {totalPresentHours} hrs × {formatINR(rate)}/hr
                     </p>
@@ -294,10 +376,16 @@ export const AttendanceBasedFeeCalculator = () => {
                       <IndianRupee className="h-6 w-6" />
                       Total Fee: {formatINR(totalFee)}
                     </p>
-                    <Button onClick={handleSave} disabled={saving} className="mt-3">
-                      {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                      Save Fee Record
-                    </Button>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Button onClick={handleSave} disabled={saving}>
+                        {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        Save Fee Record
+                      </Button>
+                      <Button variant="outline" onClick={handleExportPDF}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Export Invoice PDF
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
