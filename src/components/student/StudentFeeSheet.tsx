@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/EmptyState";
 import { FileSpreadsheet, CheckCircle2, AlertTriangle, Loader2, DollarSign, IndianRupee } from "lucide-react";
-import { format } from "date-fns";
+import { format, endOfMonth } from "date-fns";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -28,6 +29,19 @@ interface FeeRecord {
   created_at: string | null;
   teacher_name: string | null;
 }
+
+interface AttendanceRecord {
+  id: string;
+  date: string;
+  status: string;
+  hours: number | null;
+  topic: string | null;
+}
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
 
 const formatINR = (amount: number): string => {
   return new Intl.NumberFormat("en-IN", {
@@ -49,6 +63,8 @@ export const StudentFeeSheet = () => {
   const [studentNotes, setStudentNotes] = useState("");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingResponse, setPendingResponse] = useState<"correct" | "correction_needed" | null>(null);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
 
   useEffect(() => {
     if (user) fetchFees();
@@ -69,10 +85,40 @@ export const StudentFeeSheet = () => {
 
     // Auto-select the first one without ack
     const pending = records.find(f => !f.student_ack_status);
-    if (pending) setSelectedFee(pending);
-    else if (records.length > 0) setSelectedFee(records[0]);
+    const autoSelect = pending || records[0];
+    if (autoSelect) {
+      setSelectedFee(autoSelect);
+      fetchAttendance(autoSelect);
+    }
 
     setLoading(false);
+  };
+
+  const fetchAttendance = async (fee: FeeRecord) => {
+    setLoadingAttendance(true);
+    try {
+      const parts = fee.month.split(" ");
+      const monthName = parts[0];
+      const year = parseInt(parts[1]) || new Date().getFullYear();
+      const monthIndex = MONTHS.indexOf(monthName);
+      if (monthIndex < 0) return;
+      const startDate = format(new Date(year, monthIndex, 1), "yyyy-MM-dd");
+      const endDate = format(endOfMonth(new Date(year, monthIndex, 1)), "yyyy-MM-dd");
+
+      const { data } = await supabase
+        .from("attendance_records")
+        .select("id, date, status, hours, topic")
+        .eq("student_user_id", fee.student_id)
+        .is("deleted_at", null)
+        .gte("date", startDate)
+        .lte("date", endDate)
+        .order("date");
+      setAttendanceRecords(data || []);
+    } catch {
+      setAttendanceRecords([]);
+    } finally {
+      setLoadingAttendance(false);
+    }
   };
 
   const handleResponse = (response: "correct" | "correction_needed") => {
@@ -177,7 +223,7 @@ export const StudentFeeSheet = () => {
                   key={fee.id}
                   variant={selectedFee?.id === fee.id ? "default" : "outline"}
                   size="sm"
-                  onClick={() => { setSelectedFee(fee); setStudentNotes(""); }}
+                  onClick={() => { setSelectedFee(fee); setStudentNotes(""); fetchAttendance(fee); }}
                 >
                   {fee.month}
                   <span className="ml-2">{getAckBadge(fee.student_ack_status)}</span>
@@ -226,6 +272,53 @@ export const StudentFeeSheet = () => {
                   {selectedFee.total_amount ? formatINR(selectedFee.total_amount) : "₹0"}
                 </p>
               </div>
+            </div>
+
+            {/* Attendance Breakdown */}
+            <div>
+              <h3 className="text-sm font-semibold mb-2">Attendance Breakdown</h3>
+              {loadingAttendance ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading attendance...</span>
+                </div>
+              ) : attendanceRecords.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No attendance records found for this month.</p>
+              ) : (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="text-xs">#</TableHead>
+                        <TableHead className="text-xs">Date</TableHead>
+                        <TableHead className="text-xs">Status</TableHead>
+                        <TableHead className="text-xs">Hours</TableHead>
+                        <TableHead className="text-xs">Topic</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {attendanceRecords.map((r, i) => (
+                        <TableRow key={r.id}>
+                          <TableCell className="text-xs">{i + 1}</TableCell>
+                          <TableCell className="text-xs">{format(new Date(r.date), "MMM d, yyyy")}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={r.status.toLowerCase() === "present" ? "bg-success/10 text-success border-success/20 text-xs" : "bg-destructive/10 text-destructive border-destructive/20 text-xs"}>
+                              {r.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs">{r.hours ?? "-"}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{r.topic || "-"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="px-4 py-2 bg-muted/30 text-xs text-muted-foreground flex justify-between">
+                    <span>Present: {attendanceRecords.filter(a => a.status.toLowerCase() === "present").length} days</span>
+                    <span>Absent: {attendanceRecords.filter(a => a.status.toLowerCase() === "absent").length} days</span>
+                    <span>Total Present Hours: {attendanceRecords.filter(a => a.status.toLowerCase() === "present").reduce((s, a) => s + (Number(a.hours) || 0), 0)} hrs</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Breakdown */}
