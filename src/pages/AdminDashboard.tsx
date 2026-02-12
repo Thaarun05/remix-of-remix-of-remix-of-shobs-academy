@@ -14,7 +14,6 @@ import { EmptyState } from "@/components/EmptyState";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { adminSidebarItems } from "@/components/dashboard/DashboardSidebar";
-import { FeeSheetCalculator } from "@/components/admin/FeeSheetCalculator";
 import { AttendanceBasedFeeCalculator } from "@/components/admin/AttendanceBasedFeeCalculator";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { 
@@ -1114,10 +1113,7 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === "fee-sheet" && (
-          <div className="space-y-6">
-            <AttendanceBasedFeeCalculator />
-            <FeeSheetCalculator />
-          </div>
+          <AttendanceBasedFeeCalculator />
         )}
 
         {activeTab === "fees" && (
