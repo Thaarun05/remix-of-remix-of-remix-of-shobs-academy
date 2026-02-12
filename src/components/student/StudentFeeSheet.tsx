@@ -4,51 +4,46 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/EmptyState";
-import { FileSpreadsheet, Calculator, CheckCircle2, AlertTriangle, Loader2, DollarSign } from "lucide-react";
+import { FileSpreadsheet, CheckCircle2, AlertTriangle, Loader2, DollarSign, IndianRupee } from "lucide-react";
 import { format } from "date-fns";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface FeeRow {
+interface FeeRecord {
   id: string;
-  class_date: string;
-  hours: number;
-  topic: string;
-  row_order: number;
+  student_id: string;
+  student_name: string | null;
+  month: string;
+  total_hours: number | null;
+  fee_per_hour: number | null;
+  total_amount: number | null;
+  status: string | null;
+  student_ack_status: string | null;
+  created_at: string | null;
+  teacher_name: string | null;
 }
 
-interface Invoice {
-  id: string;
-  student_name: string;
-  fee_per_hour: number;
-  status: string;
-  admin_notes: string | null;
-  student_notes: string | null;
-  sent_at: string | null;
-  reviewed_at: string | null;
-  created_at: string;
-}
+const formatINR = (amount: number): string => {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
 
 export const StudentFeeSheet = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [invoiceRows, setInvoiceRows] = useState<FeeRow[]>([]);
+
+  const [fees, setFees] = useState<FeeRecord[]>([]);
+  const [selectedFee, setSelectedFee] = useState<FeeRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [responding, setResponding] = useState(false);
   const [studentNotes, setStudentNotes] = useState("");
@@ -56,63 +51,37 @@ export const StudentFeeSheet = () => {
   const [pendingResponse, setPendingResponse] = useState<"correct" | "correction_needed" | null>(null);
 
   useEffect(() => {
-    if (user) {
-      fetchInvoices();
-    }
+    if (user) fetchFees();
   }, [user]);
 
-  const fetchInvoices = async () => {
+  const fetchFees = async () => {
     setLoading(true);
     const { data } = await supabase
-      .from("student_fee_invoices")
+      .from("student_fees")
       .select("*")
-      .eq("student_user_id", user!.id)
+      .eq("student_id", user!.id)
+      .eq("status", "sent_to_student")
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
-    
-    setInvoices((data as Invoice[]) || []);
-    
-    // Auto-select the most recent sent invoice
-    const sentInvoice = (data as Invoice[] || []).find(i => i.status === "sent");
-    if (sentInvoice) {
-      loadInvoiceDetails(sentInvoice);
-    }
-    
-    setLoading(false);
-  };
 
-  const loadInvoiceDetails = async (invoice: Invoice) => {
-    setSelectedInvoice(invoice);
-    setStudentNotes(invoice.student_notes || "");
-    
-    const { data: rows } = await supabase
-      .from("student_fee_invoice_rows")
-      .select("*")
-      .eq("invoice_id", invoice.id)
-      .order("row_order");
-    
-    setInvoiceRows((rows || []).map(r => ({
-      id: r.id,
-      class_date: r.class_date,
-      hours: Number(r.hours),
-      topic: r.topic,
-      row_order: r.row_order
-    })));
+    const records = (data as FeeRecord[]) || [];
+    setFees(records);
+
+    // Auto-select the first one without ack
+    const pending = records.find(f => !f.student_ack_status);
+    if (pending) setSelectedFee(pending);
+    else if (records.length > 0) setSelectedFee(records[0]);
+
+    setLoading(false);
   };
 
   const handleResponse = (response: "correct" | "correction_needed") => {
     if (response === "correct") {
-      // Show confirmation dialog
       setPendingResponse(response);
       setConfirmDialogOpen(true);
     } else {
-      // For correction, require notes
       if (!studentNotes.trim()) {
-        toast({ 
-          title: "Please provide details", 
-          description: "Explain what needs to be corrected.",
-          variant: "destructive" 
-        });
+        toast({ title: "Please provide details", description: "Explain what needs to be corrected.", variant: "destructive" });
         return;
       }
       submitResponse(response);
@@ -120,19 +89,13 @@ export const StudentFeeSheet = () => {
   };
 
   const submitResponse = async (response: "correct" | "correction_needed") => {
-    if (!selectedInvoice) return;
+    if (!selectedFee) return;
     setResponding(true);
-
     try {
       const { error } = await supabase
-        .from("student_fee_invoices")
-        .update({
-          status: response,
-          student_notes: studentNotes || null,
-          reviewed_at: new Date().toISOString()
-        })
-        .eq("id", selectedInvoice.id);
-
+        .from("student_fees")
+        .update({ student_ack_status: response })
+        .eq("id", selectedFee.id);
       if (error) throw error;
 
       // Notify admins
@@ -149,10 +112,10 @@ export const StudentFeeSheet = () => {
             type: "fee",
             title: response === "correct" ? "Fee Sheet Confirmed" : "Fee Sheet Needs Correction",
             body: response === "correct"
-              ? `${selectedInvoice.student_name} has confirmed their fee sheet.`
-              : `${selectedInvoice.student_name} has requested corrections to their fee sheet.`,
-            entity_table: "student_fee_invoices",
-            entity_id: selectedInvoice.id
+              ? `${selectedFee.student_name} confirmed the fee sheet for ${selectedFee.month}.`
+              : `${selectedFee.student_name} requested corrections for ${selectedFee.month}. Notes: ${studentNotes}`,
+            entity_table: "student_fees",
+            entity_id: selectedFee.id,
           });
         }
       }
@@ -161,11 +124,11 @@ export const StudentFeeSheet = () => {
         title: response === "correct" ? "Thank you!" : "Correction requested",
         description: response === "correct"
           ? "Your fee sheet has been confirmed."
-          : "The admin will review and send an updated fee sheet."
+          : "The admin will review and send an updated fee sheet.",
       });
-
       setConfirmDialogOpen(false);
-      fetchInvoices();
+      setStudentNotes("");
+      fetchFees();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -173,18 +136,11 @@ export const StudentFeeSheet = () => {
     }
   };
 
-  // Calculations
-  const totalHours = invoiceRows.reduce((sum, r) => sum + r.hours, 0);
-  const totalClasses = invoiceRows.length;
-  const feeRate = selectedInvoice?.fee_per_hour || 0;
-  const totalFee = totalHours * feeRate;
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "sent": return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Pending Review</Badge>;
-      case "correct": return <Badge className="bg-success/10 text-success border-success/20">Confirmed</Badge>;
-      case "correction_needed": return <Badge className="bg-warning/10 text-warning border-warning/20">Correction Requested</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
+  const getAckBadge = (ack: string | null) => {
+    switch (ack) {
+      case "correct": return <Badge className="bg-success/10 text-success border-success/20"><CheckCircle2 className="h-3 w-3 mr-1" />Confirmed</Badge>;
+      case "correction_needed": return <Badge className="bg-warning/10 text-warning border-warning/20"><AlertTriangle className="h-3 w-3 mr-1" />Correction Requested</Badge>;
+      default: return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Pending Review</Badge>;
     }
   };
 
@@ -196,7 +152,7 @@ export const StudentFeeSheet = () => {
     );
   }
 
-  if (invoices.length === 0) {
+  if (fees.length === 0) {
     return (
       <EmptyState
         icon={DollarSign}
@@ -208,23 +164,23 @@ export const StudentFeeSheet = () => {
 
   return (
     <div className="space-y-6">
-      {/* Invoice List (if multiple) */}
-      {invoices.length > 1 && (
+      {/* Fee List */}
+      {fees.length > 1 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Your Fee Sheets</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {invoices.map((invoice) => (
+              {fees.map((fee) => (
                 <Button
-                  key={invoice.id}
-                  variant={selectedInvoice?.id === invoice.id ? "default" : "outline"}
+                  key={fee.id}
+                  variant={selectedFee?.id === fee.id ? "default" : "outline"}
                   size="sm"
-                  onClick={() => loadInvoiceDetails(invoice)}
+                  onClick={() => { setSelectedFee(fee); setStudentNotes(""); }}
                 >
-                  {format(new Date(invoice.created_at), "MMM d, yyyy")}
-                  <span className="ml-2">{getStatusBadge(invoice.status)}</span>
+                  {fee.month}
+                  <span className="ml-2">{getAckBadge(fee.student_ack_status)}</span>
                 </Button>
               ))}
             </div>
@@ -232,85 +188,53 @@ export const StudentFeeSheet = () => {
         </Card>
       )}
 
-      {/* Selected Invoice Details */}
-      {selectedInvoice && (
+      {/* Selected Fee Details */}
+      {selectedFee && (
         <Card className="dashboard-list-card">
           <CardHeader>
             <div className="flex items-start justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <FileSpreadsheet className="h-5 w-5 text-student" />
-                  Fee Sheet
+                  Fee Sheet — {selectedFee.month}
                 </CardTitle>
                 <CardDescription>
-                  Created on {format(new Date(selectedInvoice.created_at), "MMMM d, yyyy")}
+                  {selectedFee.created_at && `Created on ${format(new Date(selectedFee.created_at), "MMMM d, yyyy")}`}
+                  {selectedFee.teacher_name && ` • Teacher: ${selectedFee.teacher_name}`}
                 </CardDescription>
               </div>
-              {getStatusBadge(selectedInvoice.status)}
+              {getAckBadge(selectedFee.student_ack_status)}
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Rate Info */}
-            <div className="p-3 bg-muted rounded-lg">
-              <span className="text-sm text-muted-foreground">Fee Rate:</span>
-              <span className="ml-2 font-medium">${feeRate} per hour</span>
-            </div>
-
-            {/* Admin Notes */}
-            {selectedInvoice.admin_notes && (
-              <div className="p-3 bg-primary/5 rounded-lg border-l-2 border-primary">
-                <span className="text-sm font-medium">Note from Admin:</span>
-                <p className="text-sm mt-1">{selectedInvoice.admin_notes}</p>
+            {/* Fee Summary */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 bg-muted rounded-lg text-center">
+                <p className="text-sm text-muted-foreground">Total Hours</p>
+                <p className="text-2xl font-bold">{selectedFee.total_hours ?? 0} hrs</p>
               </div>
-            )}
-
-            {/* Fee Sheet Table */}
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>Date</TableHead>
-                    <TableHead className="w-[80px]">Hours</TableHead>
-                    <TableHead>Topic</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invoiceRows.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>{format(new Date(row.class_date), "MMM d, yyyy")}</TableCell>
-                      <TableCell>{row.hours}</TableCell>
-                      <TableCell className="text-muted-foreground">{row.topic || "-"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-                <TableFooter>
-                  <TableRow className="bg-student/5 font-medium">
-                    <TableCell>Total</TableCell>
-                    <TableCell>{totalHours} hrs</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 text-lg">
-                        <Calculator className="h-4 w-4" />
-                        <span>{totalClasses} classes</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow className="bg-student/10">
-                    <TableCell colSpan={3} className="text-right">
-                      <div className="flex items-center justify-end gap-2 text-xl font-bold text-student">
-                        <DollarSign className="h-5 w-5" />
-                        <span>Total Fee: ${totalFee.toFixed(2)}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground font-normal mt-1">
-                        ({totalHours} hours × ${feeRate}/hr)
-                      </p>
-                    </TableCell>
-                  </TableRow>
-                </TableFooter>
-              </Table>
+              <div className="p-4 bg-muted rounded-lg text-center">
+                <p className="text-sm text-muted-foreground">Hourly Rate</p>
+                <p className="text-2xl font-bold flex items-center justify-center gap-1">
+                  <IndianRupee className="h-5 w-5" />
+                  {selectedFee.fee_per_hour ? new Intl.NumberFormat("en-IN").format(selectedFee.fee_per_hour) : "0"}
+                </p>
+              </div>
+              <div className="p-4 bg-primary/10 rounded-lg text-center border border-primary/20">
+                <p className="text-sm text-muted-foreground">Total Fee</p>
+                <p className="text-2xl font-bold text-primary">
+                  {selectedFee.total_amount ? formatINR(selectedFee.total_amount) : "₹0"}
+                </p>
+              </div>
             </div>
 
-            {/* Response Section */}
-            {selectedInvoice.status === "sent" && (
+            {/* Breakdown */}
+            <div className="p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground text-center">
+              {selectedFee.total_hours ?? 0} hours × {formatINR(selectedFee.fee_per_hour ?? 0)}/hr = <span className="font-semibold text-foreground">{formatINR(selectedFee.total_amount ?? 0)}</span>
+            </div>
+
+            {/* Response Section - only if not yet acknowledged */}
+            {!selectedFee.student_ack_status && (
               <div className="space-y-4 pt-4 border-t">
                 <div>
                   <Label>Notes (if requesting correction)</Label>
@@ -321,7 +245,6 @@ export const StudentFeeSheet = () => {
                     rows={3}
                   />
                 </div>
-                
                 <div className="flex gap-3">
                   <Button
                     onClick={() => handleResponse("correct")}
@@ -352,24 +275,21 @@ export const StudentFeeSheet = () => {
               </div>
             )}
 
-            {/* Already Responded */}
-            {selectedInvoice.status !== "sent" && (
-              <div className={`p-4 rounded-lg ${selectedInvoice.status === "correct" ? "bg-success/10" : "bg-warning/10"}`}>
+            {/* Already responded */}
+            {selectedFee.student_ack_status && (
+              <div className={`p-4 rounded-lg ${selectedFee.student_ack_status === "correct" ? "bg-success/10" : "bg-warning/10"}`}>
                 <div className="flex items-center gap-2">
-                  {selectedInvoice.status === "correct" ? (
+                  {selectedFee.student_ack_status === "correct" ? (
                     <CheckCircle2 className="h-5 w-5 text-success" />
                   ) : (
                     <AlertTriangle className="h-5 w-5 text-warning" />
                   )}
                   <span className="font-medium">
-                    {selectedInvoice.status === "correct" 
+                    {selectedFee.student_ack_status === "correct"
                       ? "You have confirmed this fee sheet"
                       : "You have requested corrections"}
                   </span>
                 </div>
-                {selectedInvoice.student_notes && (
-                  <p className="text-sm mt-2">Your notes: {selectedInvoice.student_notes}</p>
-                )}
               </div>
             )}
           </CardContent>
@@ -382,14 +302,12 @@ export const StudentFeeSheet = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Fee Sheet</AlertDialogTitle>
             <AlertDialogDescription>
-              <p className="mb-4">
-                Please confirm that the fee details are correct:
-              </p>
+              <p className="mb-4">Please confirm that the fee details are correct:</p>
               <div className="p-4 bg-muted rounded-lg space-y-2">
-                <p><strong>Total Classes:</strong> {totalClasses}</p>
-                <p><strong>Total Hours:</strong> {totalHours}</p>
-                <p><strong>Rate:</strong> ${feeRate}/hour</p>
-                <p className="text-lg font-bold text-primary"><strong>Total Fee:</strong> ${totalFee.toFixed(2)}</p>
+                <p><strong>Month:</strong> {selectedFee?.month}</p>
+                <p><strong>Total Hours:</strong> {selectedFee?.total_hours ?? 0}</p>
+                <p><strong>Rate:</strong> {formatINR(selectedFee?.fee_per_hour ?? 0)}/hour</p>
+                <p className="text-lg font-bold text-primary"><strong>Total Fee:</strong> {formatINR(selectedFee?.total_amount ?? 0)}</p>
               </div>
               <p className="mt-4 text-sm text-muted-foreground">
                 ⚠️ Please have a parent/guardian review before confirming.
