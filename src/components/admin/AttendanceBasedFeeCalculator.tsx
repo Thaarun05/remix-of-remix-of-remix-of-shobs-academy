@@ -1,0 +1,318 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Calculator, IndianRupee, RotateCcw, Save } from "lucide-react";
+import { format, startOfMonth, endOfMonth, parse } from "date-fns";
+
+interface Student {
+  user_id: string;
+  student_name: string;
+}
+
+interface AttendanceRecord {
+  id: string;
+  date: string;
+  status: string;
+  hours: number | null;
+  topic: string | null;
+}
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+const formatINR = (amount: number): string => {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
+
+export const AttendanceBasedFeeCalculator = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [hourlyRate, setHourlyRate] = useState("");
+  const [calculated, setCalculated] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const currentYear = new Date().getFullYear();
+
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  useEffect(() => {
+    if (selectedStudentId && selectedMonth) {
+      fetchAttendance();
+      setCalculated(false);
+    } else {
+      setAttendance([]);
+      setCalculated(false);
+    }
+  }, [selectedStudentId, selectedMonth]);
+
+  const fetchStudents = async () => {
+    const { data } = await supabase
+      .from("student_profiles")
+      .select("user_id, student_name")
+      .order("student_name");
+    setStudents(data || []);
+  };
+
+  const fetchAttendance = async () => {
+    setLoading(true);
+    try {
+      const monthIndex = MONTHS.indexOf(selectedMonth);
+      const startDate = format(new Date(currentYear, monthIndex, 1), "yyyy-MM-dd");
+      const endDate = format(endOfMonth(new Date(currentYear, monthIndex, 1)), "yyyy-MM-dd");
+
+      const { data, error } = await supabase
+        .from("attendance_records")
+        .select("id, date, status, hours, topic")
+        .eq("student_user_id", selectedStudentId)
+        .is("deleted_at", null)
+        .gte("date", startDate)
+        .lte("date", endDate)
+        .order("date");
+
+      if (error) throw error;
+      setAttendance(data || []);
+    } catch (error: any) {
+      toast({ title: "Error fetching attendance", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const totalPresentHours = attendance
+    .filter((a) => a.status.toLowerCase() === "present")
+    .reduce((sum, a) => sum + (Number(a.hours) || 0), 0);
+
+  const presentCount = attendance.filter((a) => a.status.toLowerCase() === "present").length;
+  const absentCount = attendance.filter((a) => a.status.toLowerCase() === "absent").length;
+  const rate = parseFloat(hourlyRate) || 0;
+  const totalFee = totalPresentHours * rate;
+
+  const selectedStudent = students.find((s) => s.user_id === selectedStudentId);
+
+  const handleCalculate = () => {
+    if (!selectedStudentId || !selectedMonth) {
+      toast({ title: "Select both month and student", variant: "destructive" });
+      return;
+    }
+    if (rate <= 0) {
+      toast({ title: "Enter a valid hourly rate greater than 0", variant: "destructive" });
+      return;
+    }
+    setCalculated(true);
+  };
+
+  const handleSave = async () => {
+    if (!calculated || !selectedStudent) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("student_fees").insert({
+        student_id: selectedStudentId,
+        teacher_id: user!.id,
+        month: `${selectedMonth} ${currentYear}`,
+        total_hours: totalPresentHours,
+        fee_per_hour: rate,
+        total_amount: totalFee,
+        student_name: selectedStudent.student_name,
+        status: "sent_to_admin",
+      });
+      if (error) throw error;
+
+      toast({ title: "Fee record saved!", description: `${formatINR(totalFee)} for ${selectedStudent.student_name}` });
+      handleClear();
+    } catch (error: any) {
+      toast({ title: "Error saving fee", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClear = () => {
+    setSelectedStudentId("");
+    setSelectedMonth("");
+    setAttendance([]);
+    setHourlyRate("");
+    setCalculated(false);
+  };
+
+  return (
+    <Card className="dashboard-list-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <IndianRupee className="h-5 w-5 text-primary" />
+          Attendance-Based Fee Calculator
+        </CardTitle>
+        <CardDescription>
+          Select a month and student to view attendance and calculate fees in INR
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {/* Dropdowns */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <Label>Select Month <span className="text-destructive">*</span></Label>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select month" />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((m) => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Select Student <span className="text-destructive">*</span></Label>
+            <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select student" />
+              </SelectTrigger>
+              <SelectContent>
+                {students.map((s) => (
+                  <SelectItem key={s.user_id} value={s.user_id}>{s.student_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Loading */}
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="ml-2 text-muted-foreground">Loading attendance...</span>
+          </div>
+        )}
+
+        {/* Attendance Table */}
+        {!loading && selectedStudentId && selectedMonth && (
+          <>
+            {attendance.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8 border rounded-lg bg-muted/20">
+                No attendance records found for {selectedMonth}
+              </div>
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Hours</TableHead>
+                      <TableHead>Topic</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {attendance.map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell>{format(new Date(record.date), "MMM d, yyyy")}</TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              record.status.toLowerCase() === "present"
+                                ? "bg-success/10 text-success border-success/20"
+                                : "bg-destructive/10 text-destructive border-destructive/20"
+                            }
+                          >
+                            {record.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{record.hours ?? "-"}</TableCell>
+                        <TableCell className="truncate max-w-[200px]">{record.topic || "-"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter>
+                    <TableRow className="bg-primary/5 font-medium">
+                      <TableCell>Summary</TableCell>
+                      <TableCell>
+                        <span className="text-success">{presentCount} Present</span>
+                        {absentCount > 0 && <span className="text-destructive ml-2">· {absentCount} Absent</span>}
+                      </TableCell>
+                      <TableCell className="font-bold text-primary">{totalPresentHours} hrs</TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              </div>
+            )}
+
+            {/* Hourly Rate + Calculate */}
+            {attendance.length > 0 && (
+              <div className="space-y-4 pt-2">
+                <div className="max-w-xs">
+                  <Label>Hourly Rate (₹) <span className="text-destructive">*</span></Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">₹</span>
+                    <Input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={hourlyRate}
+                      onChange={(e) => { setHourlyRate(e.target.value); setCalculated(false); }}
+                      placeholder="e.g. 500"
+                      className="pl-8"
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={handleCalculate} disabled={!hourlyRate || rate <= 0}>
+                  <Calculator className="h-4 w-4 mr-2" />
+                  Calculate Total Fee
+                </Button>
+
+                {/* Result */}
+                {calculated && (
+                  <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-5 space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      {totalPresentHours} hrs × {formatINR(rate)}/hr
+                    </p>
+                    <p className="text-2xl font-bold text-primary flex items-center gap-2">
+                      <IndianRupee className="h-6 w-6" />
+                      Total Fee: {formatINR(totalFee)}
+                    </p>
+                    <Button onClick={handleSave} disabled={saving} className="mt-3">
+                      {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                      Save Fee Record
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Clear Button */}
+        {(selectedStudentId || selectedMonth || hourlyRate) && (
+          <Button variant="outline" onClick={handleClear} className="w-full">
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Clear All
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
