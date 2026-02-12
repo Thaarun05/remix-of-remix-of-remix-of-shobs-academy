@@ -181,6 +181,12 @@ const TeacherDashboard = () => {
 
   const [submitting, setSubmitting] = useState(false);
   
+  // Attendance filter states
+  const [filterMonth, setFilterMonth] = useState("");
+  const [filterStudent, setFilterStudent] = useState("");
+  const [filteredAttendance, setFilteredAttendance] = useState<AttendanceRecord[]>([]);
+  const [filterLoading, setFilterLoading] = useState(false);
+  
   // Edit/Delete dialogs state
   const [editAttendanceDialog, setEditAttendanceDialog] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<AttendanceRecord | null>(null);
@@ -311,6 +317,51 @@ const TeacherDashboard = () => {
   const filteredStudents = students.filter(s =>
     s.student_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const MONTHS = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const fetchFilteredAttendance = async () => {
+    if (!user || !filterMonth || !filterStudent) return;
+    setFilterLoading(true);
+    try {
+      const year = new Date().getFullYear();
+      const monthIndex = MONTHS.indexOf(filterMonth);
+      const startDate = `${year}-${String(monthIndex + 1).padStart(2, "0")}-01`;
+      const endDate = monthIndex === 11
+        ? `${year + 1}-01-01`
+        : `${year}-${String(monthIndex + 2).padStart(2, "0")}-01`;
+
+      const { data, error } = await supabase
+        .from("attendance_records")
+        .select("id, date, status, hours, topic, student_user_id, deleted_at")
+        .eq("teacher_user_id", user.id)
+        .eq("student_user_id", filterStudent)
+        .gte("date", startDate)
+        .lt("date", endDate)
+        .is("deleted_at", null)
+        .order("date", { ascending: true });
+
+      if (error) throw error;
+
+      const studentName = students.find(s => s.user_id === filterStudent)?.student_name || "Unknown";
+      setFilteredAttendance((data || []).map(a => ({ ...a, student_name: studentName })));
+    } catch (error) {
+      console.error("Error fetching filtered attendance:", error);
+    } finally {
+      setFilterLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (filterMonth && filterStudent) {
+      fetchFilteredAttendance();
+    } else {
+      setFilteredAttendance([]);
+    }
+  }, [filterMonth, filterStudent]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -930,7 +981,109 @@ const TeacherDashboard = () => {
         )}
 
         {activeTab === "attendance" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            {/* Attendance Filter Section */}
+            <Card className="dashboard-list-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  View Attendance Records
+                </CardTitle>
+                <CardDescription>Select a month and student to view their attendance history</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-4 items-end">
+                  <div className="space-y-2 min-w-[200px] flex-1">
+                    <Label>Select Month *</Label>
+                    <Select value={filterMonth} onValueChange={setFilterMonth}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MONTHS.map((m) => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2 min-w-[200px] flex-1">
+                    <Label>Select Student *</Label>
+                    <Select value={filterStudent} onValueChange={setFilterStudent}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Student" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {students.map((s) => (
+                          <SelectItem key={s.user_id} value={s.user_id}>
+                            {s.student_name} {s.grade && `(${s.grade})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => { setFilterMonth(""); setFilterStudent(""); setFilteredAttendance([]); }}
+                    disabled={!filterMonth && !filterStudent}
+                  >
+                    <X className="h-4 w-4 mr-1" /> Clear Filters
+                  </Button>
+                </div>
+
+                {/* Validation message */}
+                {(!filterMonth || !filterStudent) && (filterMonth || filterStudent) && (
+                  <p className="text-sm text-destructive">Please select both a month and a student to view records.</p>
+                )}
+
+                {/* Loading */}
+                {filterLoading && (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-teacher" />
+                  </div>
+                )}
+
+                {/* Results Table */}
+                {filterMonth && filterStudent && !filterLoading && (
+                  filteredAttendance.length === 0 ? (
+                    <EmptyState
+                      icon={Calendar}
+                      title="No attendance records found"
+                      description={`No records for ${students.find(s => s.user_id === filterStudent)?.student_name || "this student"} in ${filterMonth}.`}
+                    />
+                  ) : (
+                    <div className="rounded-lg border overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/50">
+                          <tr>
+                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
+                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Hours</th>
+                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredAttendance.map((record) => (
+                            <tr key={record.id} className="border-t border-border hover:bg-muted/30">
+                              <td className="px-4 py-3">{new Date(record.date).toLocaleDateString()}</td>
+                              <td className="px-4 py-3">
+                                <Badge className={record.status === "present" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}>
+                                  {record.status === "present" ? "Present" : "Absent"}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3">{record.hours ? `${record.hours}h` : "—"}</td>
+                              <td className="px-4 py-3 text-muted-foreground">{record.topic || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Existing Record Attendance Form + Recent Records */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="dashboard-list-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1027,6 +1180,7 @@ const TeacherDashboard = () => {
                 )}
               </CardContent>
             </Card>
+            </div>
           </div>
         )}
 
