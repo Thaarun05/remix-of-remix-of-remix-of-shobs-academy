@@ -283,13 +283,62 @@ export const AttendanceBasedFeeCalculator = () => {
     toast({ title: "Loaded for editing", description: fee.student_name || "" });
   };
 
-  const handleExportPDF = (fee?: FeeRecord) => {
+  const handleExportPDF = async (fee?: FeeRecord) => {
     const studentName = fee?.student_name || selectedStudent?.student_name || "Student";
     const month = fee ? fee.month : `${selectedMonth} ${currentYear}`;
     const hours = fee?.total_hours ?? totalPresentHours;
     const feeRate = fee?.fee_per_hour ?? rate;
     const total = fee?.total_amount ?? totalFee;
     const dueDate = format(endOfMonth(new Date()), "MMM d, yyyy");
+
+    // Fetch attendance for this fee record if not already loaded
+    let attendanceData = attendance;
+    if (fee) {
+      try {
+        // Parse month from "January 2026" format
+        const parts = fee.month.split(" ");
+        const monthName = parts[0];
+        const year = parseInt(parts[1]) || currentYear;
+        const monthIndex = MONTHS.indexOf(monthName);
+        if (monthIndex >= 0) {
+          const startDate = format(new Date(year, monthIndex, 1), "yyyy-MM-dd");
+          const endDate = format(endOfMonth(new Date(year, monthIndex, 1)), "yyyy-MM-dd");
+          const { data } = await supabase
+            .from("attendance_records")
+            .select("id, date, status, hours, topic")
+            .eq("student_user_id", fee.student_id)
+            .is("deleted_at", null)
+            .gte("date", startDate)
+            .lte("date", endDate)
+            .order("date");
+          attendanceData = data || [];
+        }
+      } catch (e) {
+        console.error("Failed to fetch attendance for PDF", e);
+      }
+    }
+
+    const attendanceTableHTML = attendanceData.length > 0 ? `
+        <table>
+          <thead><tr><th>#</th><th>Date</th><th>Status</th><th>Hours</th><th>Topic</th></tr></thead>
+          <tbody>
+            ${attendanceData.map((r, i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td>${format(new Date(r.date), "MMM d, yyyy")}</td>
+                <td class="${r.status.toLowerCase()}">${r.status}</td>
+                <td>${r.hours ?? "-"}</td>
+                <td>${r.topic || "-"}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+        <div style="margin-bottom:8px; font-size:13px; color:#555;">
+          <strong>Present:</strong> ${attendanceData.filter(a => a.status.toLowerCase() === "present").length} days &nbsp;|&nbsp;
+          <strong>Absent:</strong> ${attendanceData.filter(a => a.status.toLowerCase() === "absent").length} days &nbsp;|&nbsp;
+          <strong>Total Present Hours:</strong> ${attendanceData.filter(a => a.status.toLowerCase() === "present").reduce((s, a) => s + (Number(a.hours) || 0), 0)} hrs
+        </div>
+    ` : `<p style="color:#999; text-align:center; padding:16px;">No attendance records available.</p>`;
 
     const invoiceHTML = `
       <!DOCTYPE html>
@@ -338,22 +387,8 @@ export const AttendanceBasedFeeCalculator = () => {
             <strong>Invoice #:</strong> INV-${Date.now().toString(36).toUpperCase()}
           </div>
         </div>
-        ${attendance.length > 0 ? `
-        <table>
-          <thead><tr><th>#</th><th>Date</th><th>Status</th><th>Hours</th><th>Topic</th></tr></thead>
-          <tbody>
-            ${attendance.map((r, i) => `
-              <tr>
-                <td>${i + 1}</td>
-                <td>${format(new Date(r.date), "MMM d, yyyy")}</td>
-                <td class="${r.status.toLowerCase()}">${r.status}</td>
-                <td>${r.hours ?? "-"}</td>
-                <td>${r.topic || "-"}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-        ` : ""}
+        <h3 style="font-size:15px; color:#333; margin-bottom:12px;">Attendance Record</h3>
+        ${attendanceTableHTML}
         <div class="summary">
           <h3>Fee Summary</h3>
           <div class="line"><span>Total Present Hours</span><span>${hours} hrs</span></div>
