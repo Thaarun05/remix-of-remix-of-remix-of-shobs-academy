@@ -14,6 +14,7 @@ import { MessagingPanel } from "@/components/messaging/MessagingPanel";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { studentSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { StudentFeeSheet } from "@/components/student/StudentFeeSheet";
+import { StudentAttendanceHistory } from "@/components/student/StudentAttendanceHistory";
 import { 
   Calendar, 
   Video, 
@@ -357,54 +358,7 @@ const StudentDashboard = () => {
         )}
 
         {activeTab === "attendance" && (
-          <Card className="dashboard-list-card">
-            <CardHeader>
-              <CardTitle>Attendance History</CardTitle>
-              <CardDescription>Your complete attendance record</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {attendance.length === 0 ? (
-                <EmptyState 
-                  icon={Calendar}
-                  title="No attendance records yet"
-                  description="Once your teacher marks your attendance, your records will appear here."
-                />
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="dashboard-table dashboard-table-student">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Hours</th>
-                        <th>Topic</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {attendance.map((record) => (
-                        <tr key={record.id}>
-                          <td>{new Date(record.date).toLocaleDateString()}</td>
-                          <td>
-                            {record.status === "present" ? (
-                              <Badge className="bg-success/10 text-success hover:bg-success/20 border-success/20">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />Present
-                              </Badge>
-                            ) : (
-                              <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20">
-                                <XCircle className="h-3 w-3 mr-1" />Absent
-                              </Badge>
-                            )}
-                          </td>
-                          <td>{record.hours || "-"}</td>
-                          <td className="text-muted-foreground">{record.topic || "-"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <StudentAttendanceHistory attendance={attendance} />
         )}
 
         {activeTab === "zoom" && (
