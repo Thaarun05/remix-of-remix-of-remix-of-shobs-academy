@@ -51,7 +51,6 @@ export function StudentNotes() {
   const [loading, setLoading] = useState(true);
   const [teacherName, setTeacherName] = useState<string>("");
   const [filterSubject, setFilterSubject] = useState("all");
-  const [filterGrade, setFilterGrade] = useState("all");
 
   useEffect(() => {
     fetchNotes();
@@ -130,7 +129,6 @@ export function StudentNotes() {
 
   const filteredNotes = notes.filter(n => {
     if (filterSubject !== "all" && n.subject !== filterSubject) return false;
-    if (filterGrade !== "all" && n.grade !== filterGrade) return false;
     return true;
   });
 
@@ -148,13 +146,6 @@ export function StudentNotes() {
               <SelectContent>
                 <SelectItem value="all">All Subjects</SelectItem>
                 {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={filterGrade} onValueChange={setFilterGrade}>
-              <SelectTrigger className="w-[120px] h-8"><SelectValue placeholder="Grade" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Grades</SelectItem>
-                {GRADES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
