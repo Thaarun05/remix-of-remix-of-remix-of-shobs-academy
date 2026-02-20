@@ -188,6 +188,10 @@ const TeacherDashboard = () => {
   const [filteredAttendance, setFilteredAttendance] = useState<AttendanceRecord[]>([]);
   const [filterLoading, setFilterLoading] = useState(false);
   
+  // Manage tab filter states
+  const [manageFilterStudent, setManageFilterStudent] = useState("all");
+  const [manageFilterSubject, setManageFilterSubject] = useState("all");
+
   // Edit/Delete dialogs state
   const [editAttendanceDialog, setEditAttendanceDialog] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<AttendanceRecord | null>(null);
@@ -1302,14 +1306,39 @@ const TeacherDashboard = () => {
                 <ClipboardList className="h-5 w-5" />
                 All Assignments
               </CardTitle>
-              <CardDescription>View and manage assignments you've created</CardDescription>
+              <CardDescription>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Select value={manageFilterStudent} onValueChange={setManageFilterStudent}>
+                    <SelectTrigger className="w-[180px] h-8 bg-background"><SelectValue placeholder="All Students" /></SelectTrigger>
+                    <SelectContent className="bg-popover z-50">
+                      <SelectItem value="all">All Students</SelectItem>
+                      {students.map(s => <SelectItem key={s.user_id} value={s.user_id}>{s.student_name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={manageFilterSubject} onValueChange={setManageFilterSubject}>
+                    <SelectTrigger className="w-[180px] h-8 bg-background"><SelectValue placeholder="All Subjects" /></SelectTrigger>
+                    <SelectContent className="bg-popover z-50">
+                      <SelectItem value="all">All Subjects</SelectItem>
+                      {[...new Set(assignments.map(a => a.subject).filter(Boolean))].map(s => (
+                        <SelectItem key={s!} value={s!}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {assignments.length === 0 ? (
-                <EmptyState icon={FileText} title="No assignments created yet" description="Create your first assignment to get started." />
+              {(() => {
+                const filtered = assignments.filter(a => {
+                  if (manageFilterStudent !== "all" && a.student_user_id !== manageFilterStudent) return false;
+                  if (manageFilterSubject !== "all" && a.subject !== manageFilterSubject) return false;
+                  return true;
+                });
+                return filtered.length === 0 ? (
+                <EmptyState icon={FileText} title="No assignments found" description="No assignments match the selected filters." />
               ) : (
                 <div className="space-y-4">
-                  {assignments.map((assignment) => (
+                  {filtered.map((assignment) => (
                     <div key={assignment.id} className="p-4 rounded-xl border border-border hover:border-teacher/30 transition-all hover:shadow-md bg-card">
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex-1">
@@ -1370,7 +1399,8 @@ const TeacherDashboard = () => {
                     </div>
                   ))}
                 </div>
-              )}
+              );
+              })()}
             </CardContent>
           </Card>
         )}
