@@ -1314,8 +1314,17 @@ const TeacherDashboard = () => {
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex-1">
                           <h4 className="font-semibold text-foreground">{assignment.title}</h4>
-                          <p className="text-sm text-teacher">{assignment.student_name}</p>
-                          {assignment.subject && <p className="text-xs text-muted-foreground">{assignment.subject}</p>}
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <Badge variant="secondary" className="text-xs">
+                              <GraduationCap className="h-3 w-3 mr-1" />
+                              {assignment.student_name}
+                            </Badge>
+                            {assignment.subject && (
+                              <Badge variant="outline" className="text-xs">
+                                {assignment.subject}
+                              </Badge>
+                            )}
+                          </div>
                           {assignment.description && <p className="text-sm text-muted-foreground mt-1">{assignment.description}</p>}
                           {assignment.due_date && (
                             <span className={`text-xs flex items-center gap-1 mt-2 ${isOverdue(assignment.due_date) && assignment.status !== "submitted" ? "text-destructive" : "text-muted-foreground"}`}>
