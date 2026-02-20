@@ -33,7 +33,8 @@ import {
   GraduationCap,
   BookOpen,
   DollarSign,
-  AlertTriangle
+  AlertTriangle,
+  Eye
 } from "lucide-react";
 import {
   AlertDialog,
@@ -447,6 +448,10 @@ const StudentDashboard = () => {
                           {assignment.status === "submitted" ? (
                             <Badge className="bg-success/10 text-success border-success/20">
                               <CheckCircle2 className="h-3 w-3 mr-1" />Submitted
+                            </Badge>
+                          ) : assignment.status === "viewed" ? (
+                            <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                              <Eye className="h-3 w-3 mr-1" />Viewed
                             </Badge>
                           ) : (
                             <>

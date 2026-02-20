@@ -1334,6 +1334,10 @@ const TeacherDashboard = () => {
                                 <Eye className="h-4 w-4 mr-1" />Mark Viewed
                               </Button>
                             </>
+                          ) : assignment.status === "viewed" ? (
+                            <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                              <Eye className="h-3 w-3 mr-1" />Viewed
+                            </Badge>
                           ) : (
                             <Badge variant="outline" className="text-warning border-warning/30 bg-warning/5">Pending</Badge>
                           )}
