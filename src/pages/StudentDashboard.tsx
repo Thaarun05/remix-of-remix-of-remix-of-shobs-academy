@@ -134,7 +134,7 @@ const StudentDashboard = () => {
           .from("assignments")
           .select("id, title, subject, description, due_date, status, created_at, has_attachments, attachments, submission_attachments")
           .eq("student_user_id", user.id)
-          .neq("status", "viewed")
+          
           .is("deleted_at", null)
           .order("due_date", { ascending: true }),
         supabase

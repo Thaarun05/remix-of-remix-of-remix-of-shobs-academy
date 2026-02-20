@@ -1309,7 +1309,7 @@ const TeacherDashboard = () => {
                 <EmptyState icon={FileText} title="No assignments created yet" description="Create your first assignment to get started." />
               ) : (
                 <div className="space-y-4">
-                  {assignments.filter(a => a.status !== "viewed").map((assignment) => (
+                  {assignments.map((assignment) => (
                     <div key={assignment.id} className="p-4 rounded-xl border border-border hover:border-teacher/30 transition-all hover:shadow-md bg-card">
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div className="flex-1">
