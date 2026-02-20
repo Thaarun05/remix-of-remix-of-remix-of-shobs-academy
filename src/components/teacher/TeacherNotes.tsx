@@ -401,6 +401,7 @@ export function TeacherNotes() {
                   <TableRow>
                     <TableHead>Title</TableHead>
                     <TableHead>Subject</TableHead>
+                    <TableHead>Students</TableHead>
                     <TableHead>Grade</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -419,6 +420,13 @@ export function TeacherNotes() {
                         </div>
                       </TableCell>
                       <TableCell>{note.subject ? <Badge variant="outline">{note.subject}</Badge> : "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {assignedStudents.length > 0 ? assignedStudents.map(s => (
+                            <Badge key={s.user_id} variant="secondary" className="text-xs">{s.student_name}</Badge>
+                          )) : <span className="text-xs text-muted-foreground">No students</span>}
+                        </div>
+                      </TableCell>
                       <TableCell>{note.grade || "—"}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{new Date(note.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
