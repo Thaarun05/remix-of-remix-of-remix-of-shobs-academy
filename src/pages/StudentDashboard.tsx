@@ -15,6 +15,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { studentSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { StudentFeeSheet } from "@/components/student/StudentFeeSheet";
 import { StudentAttendanceHistory } from "@/components/student/StudentAttendanceHistory";
+import { StudentNotes } from "@/components/student/StudentNotes";
 import { 
   Calendar, 
   Video, 
@@ -404,6 +405,10 @@ const StudentDashboard = () => {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {activeTab === "notes" && (
+          <StudentNotes />
         )}
 
         {activeTab === "assignments" && (
