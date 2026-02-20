@@ -270,6 +270,51 @@ export type Database = {
           },
         ]
       }
+      notes: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          grade: string | null
+          id: string
+          storage_path: string
+          subject: string | null
+          teacher_user_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          grade?: string | null
+          id?: string
+          storage_path: string
+          subject?: string | null
+          teacher_user_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          grade?: string | null
+          id?: string
+          storage_path?: string
+          subject?: string | null
+          teacher_user_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
