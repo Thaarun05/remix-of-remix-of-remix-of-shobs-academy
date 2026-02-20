@@ -66,6 +66,11 @@ interface Note {
   created_at: string;
 }
 
+interface AssignedStudent {
+  user_id: string;
+  student_name: string;
+}
+
 export function TeacherNotes() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -87,11 +92,22 @@ export function TeacherNotes() {
   const [editForm, setEditForm] = useState({ title: "", subject: "", grade: "" });
 
   const [filterSubject, setFilterSubject] = useState("all");
-  const [filterGrade, setFilterGrade] = useState("all");
+  const [filterStudent, setFilterStudent] = useState("all");
+  const [assignedStudents, setAssignedStudents] = useState<AssignedStudent[]>([]);
 
   useEffect(() => {
     fetchNotes();
+    fetchAssignedStudents();
   }, [user]);
+
+  const fetchAssignedStudents = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("student_profiles")
+      .select("user_id, student_name")
+      .eq("assigned_teacher_id", user.id);
+    setAssignedStudents(data || []);
+  };
 
   const fetchNotes = async () => {
     if (!user) return;
@@ -162,6 +178,21 @@ export function TeacherNotes() {
       if (insertError) throw insertError;
 
       setUploadProgress(100);
+
+      // Send notifications to all assigned students
+      if (assignedStudents.length > 0) {
+        const notifications = assignedStudents.map((student) => ({
+          recipient_id: student.user_id,
+          sender_id: user.id,
+          type: "note_uploaded",
+          title: "📚 New Note Uploaded",
+          body: `Your teacher uploaded "${form.title.trim()}"${form.subject ? ` for ${form.subject}` : ""}.`,
+          role_target: "student",
+          entity_table: "notes",
+        }));
+        await supabase.from("notifications").insert(notifications);
+      }
+
       toast({ title: "Note uploaded", description: `"${form.title}" uploaded successfully.` });
       setForm({ title: "", subject: "", grade: "" });
       setSelectedFile(null);
@@ -248,7 +279,6 @@ export function TeacherNotes() {
 
   const filteredNotes = notes.filter(n => {
     if (filterSubject !== "all" && n.subject !== filterSubject) return false;
-    if (filterGrade !== "all" && n.grade !== filterGrade) return false;
     return true;
   });
 
@@ -349,11 +379,11 @@ export function TeacherNotes() {
                   {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={filterGrade} onValueChange={setFilterGrade}>
-                <SelectTrigger className="w-[120px] h-8"><SelectValue placeholder="Grade" /></SelectTrigger>
+              <Select value={filterStudent} onValueChange={setFilterStudent}>
+                <SelectTrigger className="w-[160px] h-8"><SelectValue placeholder="Student" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Grades</SelectItem>
-                  {GRADES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                  <SelectItem value="all">All Students</SelectItem>
+                  {assignedStudents.map(s => <SelectItem key={s.user_id} value={s.student_name}>{s.student_name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
