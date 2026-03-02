@@ -134,15 +134,20 @@ serve(async (req) => {
       );
     }
 
-    // Delete the auth user
+    // Delete the auth user (may already be deleted if profiles had CASCADE)
     const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(body.userId);
 
     if (authDeleteError) {
-      console.log("Error deleting auth user:", authDeleteError);
-      return new Response(
-        JSON.stringify({ error: authDeleteError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // If user is already gone from auth, treat as success
+      if (authDeleteError.message?.includes("not found") || (authDeleteError as any)?.status === 404) {
+        console.log("Auth user already deleted, continuing:", body.userId);
+      } else {
+        console.log("Error deleting auth user:", authDeleteError);
+        return new Response(
+          JSON.stringify({ error: authDeleteError.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     console.log("User deleted successfully:", body.userId);
