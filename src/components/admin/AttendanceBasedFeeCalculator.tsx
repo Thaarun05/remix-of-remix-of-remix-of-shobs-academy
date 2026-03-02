@@ -407,42 +407,97 @@ export const AttendanceBasedFeeCalculator = () => {
       </html>
     `;
 
-    // Create a temporary container for html2pdf
-    const container = document.createElement("div");
-    container.innerHTML = invoiceHTML;
-    // Extract just the body content for rendering
-    const bodyContent = container.querySelector("body");
-    const wrapper = document.createElement("div");
-    if (bodyContent) {
-      wrapper.innerHTML = bodyContent.innerHTML;
-      // Apply body styles
-      wrapper.style.fontFamily = "'Segoe UI', Arial, sans-serif";
-      wrapper.style.padding = "40px";
-      wrapper.style.color = "#1a1a2e";
-    } else {
-      wrapper.innerHTML = invoiceHTML;
-    }
-    // Copy style tag
-    const styleTag = container.querySelector("style");
-    if (styleTag) {
-      wrapper.prepend(styleTag.cloneNode(true));
-    }
-    document.body.appendChild(wrapper);
+    try {
+      const { default: html2pdf } = await import("html2pdf.js");
+      
+      // Create a temporary hidden container
+      const wrapper = document.createElement("div");
+      wrapper.style.position = "fixed";
+      wrapper.style.left = "-9999px";
+      wrapper.style.top = "0";
+      wrapper.innerHTML = `
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body, div { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; }
+          .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #6c63ff; padding-bottom: 20px; }
+          .header h1 { font-size: 28px; color: #6c63ff; margin-bottom: 4px; }
+          .header p { color: #666; font-size: 14px; }
+          .meta { display: flex; justify-content: space-between; margin-bottom: 24px; font-size: 14px; }
+          .meta div { line-height: 1.8; }
+          .meta strong { color: #333; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+          th { background: #6c63ff; color: white; padding: 10px 14px; text-align: left; font-size: 13px; }
+          td { padding: 9px 14px; border-bottom: 1px solid #e0e0e0; font-size: 13px; }
+          tr:nth-child(even) { background: #f8f8ff; }
+          .present { color: #16a34a; font-weight: 600; }
+          .absent { color: #dc2626; font-weight: 600; }
+          .summary { background: #f0efff; border-radius: 8px; padding: 20px; margin-top: 8px; }
+          .summary h3 { color: #6c63ff; margin-bottom: 12px; font-size: 16px; }
+          .summary .line { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
+          .summary .total { border-top: 2px solid #6c63ff; margin-top: 10px; padding-top: 10px; font-size: 20px; font-weight: 700; color: #6c63ff; }
+          .payment { background: #fffbeb; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin-top: 16px; }
+          .payment h4 { color: #b45309; margin-bottom: 8px; }
+          .payment p { font-size: 13px; color: #92400e; line-height: 1.6; }
+          .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #999; }
+        </style>
+        <div style="padding:40px;">
+          <div class="header">
+            <h1>Shobs Academy</h1>
+            <p>Student Fee Invoice</p>
+          </div>
+          <div class="meta">
+            <div>
+              <strong>Student:</strong> ${studentName}<br/>
+              <strong>Month:</strong> ${month}
+            </div>
+            <div style="text-align:right">
+              <strong>Date:</strong> ${format(new Date(), "MMM d, yyyy")}<br/>
+              <strong>Due Date:</strong> ${dueDate}<br/>
+              <strong>Invoice #:</strong> INV-${Date.now().toString(36).toUpperCase()}
+            </div>
+          </div>
+          <h3 style="font-size:15px; color:#333; margin-bottom:12px;">Attendance Record</h3>
+          ${attendanceTableHTML}
+          <div class="summary">
+            <h3>Fee Summary</h3>
+            <div class="line"><span>Total Present Hours</span><span>${hours} hrs</span></div>
+            <div class="line"><span>Hourly Rate</span><span>₹${new Intl.NumberFormat("en-IN").format(feeRate)}</span></div>
+            <div class="line total"><span>Total Fee</span><span>${formatINR(total)}</span></div>
+          </div>
+          <div class="payment">
+            <h4>Payment Instructions</h4>
+            <p>Please ensure payment is made by <strong>${dueDate}</strong>.<br/>
+            For queries, contact Shobs Academy administration.</p>
+          </div>
+          <div class="footer">
+            Generated on ${format(new Date(), "MMMM d, yyyy 'at' h:mm a")} • Shobs Academy
+          </div>
+        </div>
+      `;
+      document.body.appendChild(wrapper);
 
-    const { default: html2pdf } = await import("html2pdf.js");
-    
-    await html2pdf()
-      .set({
-        margin: 0.3,
-        filename: `Invoice_${studentName}_${month.replace(/\s/g, "_")}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
-      })
-      .from(wrapper)
-      .save();
+      await html2pdf()
+        .set({
+          margin: 0.3,
+          filename: `Invoice_${studentName}_${month.replace(/\s/g, "_")}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
+        })
+        .from(wrapper)
+        .save();
 
-    document.body.removeChild(wrapper);
+      document.body.removeChild(wrapper);
+    } catch (err) {
+      console.error("html2pdf failed, falling back to print:", err);
+      // Fallback: open in new window for printing
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(invoiceHTML);
+        printWindow.document.close();
+        setTimeout(() => printWindow.print(), 300);
+      }
+    }
   };
 
   const handleClear = () => {
