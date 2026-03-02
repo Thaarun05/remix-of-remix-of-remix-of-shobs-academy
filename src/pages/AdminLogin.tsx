@@ -44,6 +44,10 @@ const AdminLogin = () => {
         email,
         password
       });
+
+      // Clear any existing session to prevent conflicts
+      await supabase.auth.signOut({ scope: 'local' });
+
       const {
         user
       } = await signIn(validated.email, validated.password);
