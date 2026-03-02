@@ -44,6 +44,10 @@ const TeacherLogin = () => {
         email,
         password
       });
+
+      // Clear any existing session to prevent conflicts (e.g., admin was logged in)
+      await supabase.auth.signOut({ scope: 'local' });
+
       const {
         user
       } = await signIn(validated.email, validated.password);
