@@ -407,12 +407,42 @@ export const AttendanceBasedFeeCalculator = () => {
       </html>
     `;
 
-    const printWindow = window.open("", "_blank");
-    if (printWindow) {
-      printWindow.document.write(invoiceHTML);
-      printWindow.document.close();
-      setTimeout(() => printWindow.print(), 300);
+    // Create a temporary container for html2pdf
+    const container = document.createElement("div");
+    container.innerHTML = invoiceHTML;
+    // Extract just the body content for rendering
+    const bodyContent = container.querySelector("body");
+    const wrapper = document.createElement("div");
+    if (bodyContent) {
+      wrapper.innerHTML = bodyContent.innerHTML;
+      // Apply body styles
+      wrapper.style.fontFamily = "'Segoe UI', Arial, sans-serif";
+      wrapper.style.padding = "40px";
+      wrapper.style.color = "#1a1a2e";
+    } else {
+      wrapper.innerHTML = invoiceHTML;
     }
+    // Copy style tag
+    const styleTag = container.querySelector("style");
+    if (styleTag) {
+      wrapper.prepend(styleTag.cloneNode(true));
+    }
+    document.body.appendChild(wrapper);
+
+    const { default: html2pdf } = await import("html2pdf.js");
+    
+    await html2pdf()
+      .set({
+        margin: 0.3,
+        filename: `Invoice_${studentName}_${month.replace(/\s/g, "_")}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
+      })
+      .from(wrapper)
+      .save();
+
+    document.body.removeChild(wrapper);
   };
 
   const handleClear = () => {
