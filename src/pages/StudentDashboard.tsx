@@ -267,7 +267,7 @@ const StudentDashboard = () => {
   const absentClasses = attendance.filter(a => a.status === "absent").length;
   const attendancePercent = totalClasses > 0 ? Math.round((attendedClasses / totalClasses) * 100) : 0;
   const totalHours = attendance.reduce((sum, a) => sum + (a.hours || 0), 0);
-  const pendingAssignments = assignments.filter(a => a.status !== "submitted").length;
+  const pendingAssignments = assignments.filter(a => a.status === "pending").length;
 
   const isOverdue = (dueDate: string | null) => {
     if (!dueDate) return false;
