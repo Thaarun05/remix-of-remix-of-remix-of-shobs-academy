@@ -280,6 +280,7 @@ export type Database = {
           grade: string | null
           id: string
           storage_path: string
+          student_user_id: string | null
           subject: string | null
           teacher_user_id: string
           title: string
@@ -294,6 +295,7 @@ export type Database = {
           grade?: string | null
           id?: string
           storage_path: string
+          student_user_id?: string | null
           subject?: string | null
           teacher_user_id: string
           title: string
@@ -308,6 +310,7 @@ export type Database = {
           grade?: string | null
           id?: string
           storage_path?: string
+          student_user_id?: string | null
           subject?: string | null
           teacher_user_id?: string
           title?: string
