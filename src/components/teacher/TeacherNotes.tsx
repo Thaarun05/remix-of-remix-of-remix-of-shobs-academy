@@ -83,7 +83,7 @@ export function TeacherNotes() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const [form, setForm] = useState({ title: "", subject: "", grade: "" });
+  const [form, setForm] = useState({ title: "", subject: "", grade: "", studentId: "" });
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingNote, setDeletingNote] = useState<Note | null>(null);
@@ -173,28 +173,28 @@ export function TeacherNotes() {
         file_type: selectedFile.type || null,
         storage_path: storagePath,
         file_size: selectedFile.size,
+        student_user_id: form.studentId || null,
       });
 
       if (insertError) throw insertError;
 
       setUploadProgress(100);
 
-      // Send notifications to all assigned students
-      if (assignedStudents.length > 0) {
-        const notifications = assignedStudents.map((student) => ({
-          recipient_id: student.user_id,
+      // Send notification only to the selected student
+      if (form.studentId) {
+        await supabase.from("notifications").insert({
+          recipient_id: form.studentId,
           sender_id: user.id,
           type: "note_uploaded",
           title: "📚 New Note Uploaded",
           body: `Your teacher uploaded "${form.title.trim()}"${form.subject ? ` for ${form.subject}` : ""}.`,
           role_target: "student",
           entity_table: "notes",
-        }));
-        await supabase.from("notifications").insert(notifications);
+        });
       }
 
       toast({ title: "Note uploaded", description: `"${form.title}" uploaded successfully.` });
-      setForm({ title: "", subject: "", grade: "" });
+      setForm({ title: "", subject: "", grade: "", studentId: "" });
       setSelectedFile(null);
       fetchNotes();
     } catch (error: unknown) {
@@ -323,6 +323,15 @@ export function TeacherNotes() {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Student *</Label>
+              <Select value={form.studentId} onValueChange={(v) => setForm({ ...form, studentId: v })}>
+                <SelectTrigger><SelectValue placeholder="Select student" /></SelectTrigger>
+                <SelectContent>
+                  {assignedStudents.map(s => <SelectItem key={s.user_id} value={s.user_id}>{s.student_name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>File *</Label>
               <div className="flex items-center gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
@@ -354,7 +363,7 @@ export function TeacherNotes() {
                 <p className="text-xs text-muted-foreground">{uploadProgress}% complete</p>
               </div>
             )}
-            <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={submitting || !form.title.trim() || !selectedFile}>
+            <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={submitting || !form.title.trim() || !selectedFile || !form.studentId}>
               {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading...</> : <>
                 <Upload className="h-4 w-4 mr-2" />Upload Note
               </>}
@@ -421,11 +430,10 @@ export function TeacherNotes() {
                       </TableCell>
                       <TableCell>{note.subject ? <Badge variant="outline">{note.subject}</Badge> : "—"}</TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {assignedStudents.length > 0 ? assignedStudents.map(s => (
-                            <Badge key={s.user_id} variant="secondary" className="text-xs">{s.student_name}</Badge>
-                          )) : <span className="text-xs text-muted-foreground">No students</span>}
-                        </div>
+                        {(() => {
+                          const student = assignedStudents.find(s => s.user_id === (note as any).student_user_id);
+                          return student ? <Badge variant="secondary" className="text-xs">{student.student_name}</Badge> : <span className="text-xs text-muted-foreground">—</span>;
+                        })()}
                       </TableCell>
                       <TableCell>{note.grade || "—"}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{new Date(note.created_at).toLocaleDateString()}</TableCell>
