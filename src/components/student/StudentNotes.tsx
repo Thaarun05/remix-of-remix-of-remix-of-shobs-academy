@@ -81,11 +81,11 @@ export function StudentNotes() {
 
       setTeacherName(teacherProfile?.full_name || "Your Teacher");
 
-      // Get notes from assigned teacher
+      // Get notes assigned to this student
       const { data, error } = await supabase
         .from("notes")
         .select("*")
-        .eq("teacher_user_id", studentProfile.assigned_teacher_id)
+        .eq("student_user_id", user.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
 

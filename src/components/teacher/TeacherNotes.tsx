@@ -64,6 +64,7 @@ interface Note {
   storage_path: string;
   file_size: number | null;
   created_at: string;
+  student_user_id: string | null;
 }
 
 interface AssignedStudent {
@@ -279,6 +280,10 @@ export function TeacherNotes() {
 
   const filteredNotes = notes.filter(n => {
     if (filterSubject !== "all" && n.subject !== filterSubject) return false;
+    if (filterStudent !== "all") {
+      const student = assignedStudents.find(s => s.student_name === filterStudent);
+      if (student && n.student_user_id !== student.user_id) return false;
+    }
     return true;
   });
 
