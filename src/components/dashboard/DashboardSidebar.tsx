@@ -19,7 +19,8 @@ import {
   ChevronRight,
   DollarSign,
   Receipt,
-  FileSpreadsheet
+  FileSpreadsheet,
+  PenTool
 } from "lucide-react";
 
 type RoleColor = "student" | "teacher" | "admin";
