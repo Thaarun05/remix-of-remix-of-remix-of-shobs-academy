@@ -14,6 +14,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import SharedWhiteboard from "./pages/SharedWhiteboard";
 
 const queryClient = new QueryClient();
 
