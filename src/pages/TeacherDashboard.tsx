@@ -1193,6 +1193,10 @@ const TeacherDashboard = () => {
           <TeacherNotes />
         )}
 
+        {activeTab === "whiteboard" && (
+          <WhiteboardComponent />
+        )}
+
         {activeTab === "assignments" && (
           <Card className="max-w-lg dashboard-list-card">
             <CardHeader>
