@@ -59,6 +59,9 @@ const App = () => (
               }
             />
             
+            {/* Shared whiteboard view */}
+            <Route path="/whiteboard" element={<SharedWhiteboard />} />
+            
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
