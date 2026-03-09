@@ -617,6 +617,39 @@ export type Database = {
         }
         Relationships: []
       }
+      whiteboards: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          image_data: string
+          share_token: string | null
+          teacher_user_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          image_data: string
+          share_token?: string | null
+          teacher_user_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          image_data?: string
+          share_token?: string | null
+          teacher_user_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       zoom_links: {
         Row: {
           deleted_at: string | null

@@ -17,6 +17,7 @@ import { TeacherCalendar } from "@/components/TeacherCalendar";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
 import { StartConversationButton } from "@/components/messaging/StartConversationButton";
 import { TeacherNotes } from "@/components/teacher/TeacherNotes";
+import { Whiteboard as WhiteboardComponent } from "@/components/teacher/Whiteboard";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { teacherSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { 
@@ -1191,6 +1192,10 @@ const TeacherDashboard = () => {
 
         {activeTab === "notes" && (
           <TeacherNotes />
+        )}
+
+        {activeTab === "whiteboard" && (
+          <WhiteboardComponent />
         )}
 
         {activeTab === "assignments" && (
