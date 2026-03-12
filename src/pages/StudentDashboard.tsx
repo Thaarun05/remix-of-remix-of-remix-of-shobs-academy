@@ -16,6 +16,7 @@ import { studentSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { StudentFeeSheet } from "@/components/student/StudentFeeSheet";
 import { StudentAttendanceHistory } from "@/components/student/StudentAttendanceHistory";
 import { StudentNotes } from "@/components/student/StudentNotes";
+import { StudentWhiteboards } from "@/components/student/StudentWhiteboards";
 import { 
   Calendar, 
   Video, 
