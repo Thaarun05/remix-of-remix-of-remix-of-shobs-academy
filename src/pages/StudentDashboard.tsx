@@ -413,6 +413,10 @@ const StudentDashboard = () => {
           <StudentNotes />
         )}
 
+        {activeTab === "whiteboards" && (
+          <StudentWhiteboards />
+        )}
+
         {activeTab === "assignments" && (
           <Card className="dashboard-list-card">
             <CardHeader>
