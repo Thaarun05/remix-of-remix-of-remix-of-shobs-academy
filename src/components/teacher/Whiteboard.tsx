@@ -352,7 +352,7 @@ export function Whiteboard() {
       return;
     }
 
-    if (tool === "line" || tool === "rect" || tool === "circle") {
+    if (tool === "line" || tool === "rect" || tool === "circle" || tool === "arrow") {
       e.preventDefault();
       shapeStart.current = pos;
       shapePreview.current = pos;
