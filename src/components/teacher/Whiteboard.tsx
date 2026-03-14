@@ -376,7 +376,7 @@ export function Whiteboard() {
     e.preventDefault();
     const pos = getCanvasPos(e);
 
-    if ((tool === "line" || tool === "rect" || tool === "circle") && shapeStart.current) {
+    if ((tool === "line" || tool === "rect" || tool === "circle" || tool === "arrow") && shapeStart.current) {
       shapePreview.current = pos;
       render();
       return;
