@@ -22,7 +22,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-type Tool = "pen" | "eraser" | "line" | "rect" | "circle" | "text";
+type Tool = "pointer" | "pen" | "eraser" | "line" | "rect" | "circle" | "arrow" | "connector" | "text" | "equation" | "sticky" | "comment" | "frame" | "table" | "image";
 
 interface Point { x: number; y: number; }
 
