@@ -800,8 +800,6 @@ export function Whiteboard() {
             </Tooltip>
           ))}
         </div>
-          ))}
-        </div>
 
         {/* Canvas */}
         <div
