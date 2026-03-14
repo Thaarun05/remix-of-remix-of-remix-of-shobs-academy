@@ -34,7 +34,7 @@ interface Stroke {
 }
 
 interface ShapeItem {
-  type: "line" | "rect" | "circle";
+  type: "line" | "rect" | "circle" | "arrow";
   start: Point;
   end: Point;
   color: string;
