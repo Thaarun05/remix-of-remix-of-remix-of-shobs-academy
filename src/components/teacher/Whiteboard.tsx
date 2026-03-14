@@ -943,5 +943,6 @@ export function Whiteboard() {
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   );
 }
