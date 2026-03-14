@@ -34,11 +34,12 @@ interface Stroke {
 }
 
 interface ShapeItem {
-  type: "line" | "rect" | "circle" | "arrow";
+  type: "line" | "rect" | "circle" | "arrow" | "connector" | "frame";
   start: Point;
   end: Point;
   color: string;
   size: number;
+  label?: string;
 }
 
 interface TextItem {
@@ -46,12 +47,47 @@ interface TextItem {
   text: string;
   color: string;
   size: number;
+  font?: string;
+}
+
+interface StickyNoteItem {
+  x: number; y: number;
+  text: string;
+  bgColor: string;
+  width: number;
+  height: number;
+}
+
+interface CommentItem {
+  x: number; y: number;
+  text: string;
+  color: string;
+}
+
+interface TableItem {
+  x: number; y: number;
+  rows: number;
+  cols: number;
+  cellWidth: number;
+  cellHeight: number;
+  color: string;
+}
+
+interface ImageItemData {
+  x: number; y: number;
+  width: number;
+  height: number;
+  dataUrl: string;
 }
 
 interface WhiteboardState {
   strokes: Stroke[];
   shapes: ShapeItem[];
   texts: TextItem[];
+  stickyNotes: StickyNoteItem[];
+  comments: CommentItem[];
+  tables: TableItem[];
+  images: ImageItemData[];
 }
 
 interface WhiteboardRecord {
@@ -74,12 +110,18 @@ const COLORS = [
   "#ff5722", "#795548", "#607d8b", "#9c27b0",
 ];
 
+const STICKY_COLORS = ["#fff9c4", "#c8e6c9", "#bbdefb", "#f8bbd0", "#ffe0b2", "#e1bee7"];
+
 const STROKE_SIZES = [2, 4, 6, 10, 16];
 
 const MAX_HISTORY = 40;
 const CANVAS_W = 2400;
 const CANVAS_H = 1600;
 const GRID_SIZE = 25;
+
+const emptyState = (): WhiteboardState => ({
+  strokes: [], shapes: [], texts: [], stickyNotes: [], comments: [], tables: [], images: [],
+});
 
 const wb = () => supabase.from("whiteboards" as any);
 
@@ -89,6 +131,8 @@ export function Whiteboard() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const loadedImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
   const [tool, setTool] = useState<Tool>("pen");
   const [color, setColor] = useState(COLORS[0]);
@@ -104,9 +148,13 @@ export function Whiteboard() {
   const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Text tool
-  const [textInput, setTextInput] = useState<{ x: number; y: number; visible: boolean }>({ x: 0, y: 0, visible: false });
+  // Text/equation tool input
+  const [textInput, setTextInput] = useState<{ x: number; y: number; visible: boolean; mode: "text" | "equation" | "sticky" | "comment" | "frame" }>({ x: 0, y: 0, visible: false, mode: "text" });
   const [textValue, setTextValue] = useState("");
+  // For sticky note placement
+  const [stickyCanvasPos, setStickyCanvasPos] = useState<Point>({ x: 0, y: 0 });
+  // For frame placement
+  const [frameEndPos, setFrameEndPos] = useState<Point>({ x: 0, y: 0 });
 
   // Send to students modal
   const [sendModalOpen, setSendModalOpen] = useState(false);
@@ -115,7 +163,7 @@ export function Whiteboard() {
   const [sending, setSending] = useState(false);
 
   // State
-  const stateRef = useRef<WhiteboardState>({ strokes: [], shapes: [], texts: [] });
+  const stateRef = useRef<WhiteboardState>(emptyState());
   const currentStroke = useRef<Stroke | null>(null);
   const shapeStart = useRef<Point | null>(null);
   const shapePreview = useRef<Point | null>(null);
@@ -170,21 +218,30 @@ export function Whiteboard() {
     };
   };
 
+  const getScreenPos = (e: React.MouseEvent | React.TouchEvent): Point => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    let clientX: number, clientY: number;
+    if ("touches" in e && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
+    }
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  };
+
   const drawGrid = (ctx: CanvasRenderingContext2D) => {
     ctx.save();
     ctx.strokeStyle = "#e8edf2";
     ctx.lineWidth = 0.5;
     for (let x = 0; x <= CANVAS_W; x += GRID_SIZE) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, CANVAS_H);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_H); ctx.stroke();
     }
     for (let y = 0; y <= CANVAS_H; y += GRID_SIZE) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(CANVAS_W, y);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_W, y); ctx.stroke();
     }
     ctx.restore();
   };
@@ -196,6 +253,7 @@ export function Whiteboard() {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.beginPath();
+
     if (shape.type === "line" || shape.type === "arrow") {
       ctx.moveTo(shape.start.x, shape.start.y);
       ctx.lineTo(shape.end.x, shape.end.y);
@@ -219,10 +277,158 @@ export function Whiteboard() {
       const ry = Math.abs(shape.end.y - shape.start.y) / 2;
       const cx = (shape.start.x + shape.end.x) / 2;
       const cy = (shape.start.y + shape.end.y) / 2;
-      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy, Math.max(rx, 1), Math.max(ry, 1), 0, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (shape.type === "connector") {
+      // Bezier curve connector
+      const midX = (shape.start.x + shape.end.x) / 2;
+      ctx.moveTo(shape.start.x, shape.start.y);
+      ctx.bezierCurveTo(midX, shape.start.y, midX, shape.end.y, shape.end.x, shape.end.y);
+      ctx.stroke();
+      // Draw small circles at endpoints
+      ctx.fillStyle = shape.color;
+      ctx.beginPath();
+      ctx.arc(shape.start.x, shape.start.y, shape.size + 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(shape.end.x, shape.end.y, shape.size + 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (shape.type === "frame") {
+      // Dashed frame rectangle
+      ctx.setLineDash([10, 6]);
+      ctx.strokeStyle = shape.color;
+      ctx.lineWidth = 2;
+      const x = Math.min(shape.start.x, shape.end.x);
+      const y = Math.min(shape.start.y, shape.end.y);
+      const w = Math.abs(shape.end.x - shape.start.x);
+      const h = Math.abs(shape.end.y - shape.start.y);
+      ctx.strokeRect(x, y, w, h);
+      ctx.setLineDash([]);
+      // Label
+      if (shape.label) {
+        ctx.font = "bold 18px 'Inter', sans-serif";
+        ctx.fillStyle = shape.color;
+        ctx.fillText(shape.label, x + 8, y - 8);
+      }
+    }
+    ctx.restore();
+  };
+
+  const drawStickyNote = (ctx: CanvasRenderingContext2D, note: StickyNoteItem) => {
+    ctx.save();
+    // Shadow
+    ctx.shadowColor = "rgba(0,0,0,0.15)";
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 4;
+    // Background
+    ctx.fillStyle = note.bgColor;
+    ctx.fillRect(note.x, note.y, note.width, note.height);
+    ctx.shadowColor = "transparent";
+    // Border
+    ctx.strokeStyle = "rgba(0,0,0,0.1)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(note.x, note.y, note.width, note.height);
+    // Text
+    ctx.fillStyle = "#333333";
+    ctx.font = "16px 'Inter', sans-serif";
+    const lines = wrapText(ctx, note.text, note.width - 20);
+    lines.forEach((line, i) => {
+      ctx.fillText(line, note.x + 10, note.y + 28 + i * 22);
+    });
+    ctx.restore();
+  };
+
+  const drawComment = (ctx: CanvasRenderingContext2D, comment: CommentItem) => {
+    ctx.save();
+    const w = Math.max(ctx.measureText(comment.text).width + 24, 60);
+    const h = 36;
+    const r = 12;
+    const tailH = 10;
+    // Bubble
+    ctx.fillStyle = comment.color;
+    ctx.shadowColor = "rgba(0,0,0,0.12)";
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 2;
+    ctx.beginPath();
+    ctx.moveTo(comment.x + r, comment.y);
+    ctx.lineTo(comment.x + w - r, comment.y);
+    ctx.quadraticCurveTo(comment.x + w, comment.y, comment.x + w, comment.y + r);
+    ctx.lineTo(comment.x + w, comment.y + h - r);
+    ctx.quadraticCurveTo(comment.x + w, comment.y + h, comment.x + w - r, comment.y + h);
+    // Tail
+    ctx.lineTo(comment.x + 24, comment.y + h);
+    ctx.lineTo(comment.x + 12, comment.y + h + tailH);
+    ctx.lineTo(comment.x + 18, comment.y + h);
+    ctx.lineTo(comment.x + r, comment.y + h);
+    ctx.quadraticCurveTo(comment.x, comment.y + h, comment.x, comment.y + h - r);
+    ctx.lineTo(comment.x, comment.y + r);
+    ctx.quadraticCurveTo(comment.x, comment.y, comment.x + r, comment.y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowColor = "transparent";
+    // Text
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "14px 'Inter', sans-serif";
+    ctx.fillText(comment.text, comment.x + 12, comment.y + 23);
+    ctx.restore();
+  };
+
+  const drawTable = (ctx: CanvasRenderingContext2D, table: TableItem) => {
+    ctx.save();
+    ctx.strokeStyle = table.color;
+    ctx.lineWidth = 1.5;
+    const totalW = table.cols * table.cellWidth;
+    const totalH = table.rows * table.cellHeight;
+    // Fill header row
+    ctx.fillStyle = table.color + "18";
+    ctx.fillRect(table.x, table.y, totalW, table.cellHeight);
+    // Draw grid
+    for (let r = 0; r <= table.rows; r++) {
+      ctx.beginPath();
+      ctx.moveTo(table.x, table.y + r * table.cellHeight);
+      ctx.lineTo(table.x + totalW, table.y + r * table.cellHeight);
+      ctx.stroke();
+    }
+    for (let c = 0; c <= table.cols; c++) {
+      ctx.beginPath();
+      ctx.moveTo(table.x + c * table.cellWidth, table.y);
+      ctx.lineTo(table.x + c * table.cellWidth, table.y + totalH);
       ctx.stroke();
     }
     ctx.restore();
+  };
+
+  const drawImageItem = (ctx: CanvasRenderingContext2D, item: ImageItemData) => {
+    const cached = loadedImagesRef.current.get(item.dataUrl);
+    if (cached) {
+      ctx.drawImage(cached, item.x, item.y, item.width, item.height);
+    } else {
+      // Load async
+      const img = new Image();
+      img.onload = () => {
+        loadedImagesRef.current.set(item.dataUrl, img);
+        render();
+      };
+      img.src = item.dataUrl;
+    }
+  };
+
+  const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
+    const words = text.split(" ");
+    const lines: string[] = [];
+    let currentLine = "";
+    for (const word of words) {
+      const testLine = currentLine ? currentLine + " " + word : word;
+      if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+    return lines.length ? lines : [""];
   };
 
   const render = useCallback(() => {
@@ -235,16 +441,17 @@ export function Whiteboard() {
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
     drawGrid(ctx);
 
-    const { strokes, shapes, texts } = stateRef.current;
+    const { strokes, shapes, texts, stickyNotes, comments, tables, images } = stateRef.current;
+
+    // Draw images first (background layer)
+    for (const img of images) drawImageItem(ctx, img);
 
     // Draw strokes
     for (const s of strokes) {
       if (s.points.length < 2) continue;
       ctx.beginPath();
       ctx.moveTo(s.points[0].x, s.points[0].y);
-      for (let i = 1; i < s.points.length; i++) {
-        ctx.lineTo(s.points[i].x, s.points[i].y);
-      }
+      for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
       ctx.strokeStyle = s.tool === "eraser" ? "#ffffff" : s.color;
       ctx.lineWidth = s.tool === "eraser" ? s.size * 4 : s.size;
       ctx.lineCap = "round";
@@ -253,18 +460,14 @@ export function Whiteboard() {
     }
 
     // Draw shapes
-    for (const shape of shapes) {
-      drawShape(ctx, shape);
-    }
+    for (const shape of shapes) drawShape(ctx, shape);
 
     // Draw current stroke in progress
     if (currentStroke.current && currentStroke.current.points.length >= 2) {
       const s = currentStroke.current;
       ctx.beginPath();
       ctx.moveTo(s.points[0].x, s.points[0].y);
-      for (let i = 1; i < s.points.length; i++) {
-        ctx.lineTo(s.points[i].x, s.points[i].y);
-      }
+      for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
       ctx.strokeStyle = s.tool === "eraser" ? "#ffffff" : s.color;
       ctx.lineWidth = s.tool === "eraser" ? s.size * 4 : s.size;
       ctx.lineCap = "round";
@@ -273,19 +476,32 @@ export function Whiteboard() {
     }
 
     // Draw shape preview
-    if (shapeStart.current && shapePreview.current && (tool === "line" || tool === "rect" || tool === "circle" || tool === "arrow")) {
-      drawShape(ctx, {
-        type: tool as "line" | "rect" | "circle" | "arrow",
-        start: shapeStart.current,
-        end: shapePreview.current,
-        color,
-        size: strokeSize,
-      });
+    if (shapeStart.current && shapePreview.current) {
+      const shapeTool = tool as string;
+      if (["line", "rect", "circle", "arrow", "connector", "frame"].includes(shapeTool)) {
+        drawShape(ctx, {
+          type: shapeTool as ShapeItem["type"],
+          start: shapeStart.current,
+          end: shapePreview.current,
+          color,
+          size: strokeSize,
+          label: shapeTool === "frame" ? "Frame" : undefined,
+        });
+      }
     }
+
+    // Draw tables
+    for (const t of tables) drawTable(ctx, t);
+
+    // Draw sticky notes
+    for (const note of stickyNotes) drawStickyNote(ctx, note);
+
+    // Draw comments
+    for (const c of comments) drawComment(ctx, c);
 
     // Draw texts
     for (const t of texts) {
-      ctx.font = `${t.size * 4 + 14}px 'Inter', sans-serif`;
+      ctx.font = t.font || `${t.size * 4 + 14}px 'Inter', sans-serif`;
       ctx.fillStyle = t.color;
       ctx.fillText(t.text, t.x, t.y);
     }
@@ -321,38 +537,70 @@ export function Whiteboard() {
   };
 
   const clearCanvas = () => {
-    stateRef.current = { strokes: [], shapes: [], texts: [] };
+    stateRef.current = emptyState();
+    loadedImagesRef.current.clear();
     pushHistory();
     render();
   };
 
+  const isShapeTool = (t: Tool) => ["line", "rect", "circle", "arrow", "connector", "frame"].includes(t);
+  const isClickPlaceTool = (t: Tool) => ["text", "equation", "sticky", "comment", "table"].includes(t);
+
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     const pos = getCanvasPos(e);
+    const screenPos = getScreenPos(e);
 
-    if (tool === "text") {
-      // Place text input at click position
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      let clientX: number, clientY: number;
-      if ("touches" in e && e.touches.length > 0) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-      } else {
-        clientX = (e as React.MouseEvent).clientX;
-        clientY = (e as React.MouseEvent).clientY;
-      }
-      setTextInput({
-        x: clientX - rect.left,
-        y: clientY - rect.top,
-        visible: true,
+    if (tool === "pointer") return;
+
+    if (tool === "image") {
+      fileInputRef.current?.click();
+      return;
+    }
+
+    if (tool === "table") {
+      // Place a 3×3 table at click position
+      stateRef.current.tables.push({
+        x: pos.x,
+        y: pos.y,
+        rows: 3,
+        cols: 3,
+        cellWidth: 120,
+        cellHeight: 40,
+        color,
       });
+      pushHistory();
+      render();
+      return;
+    }
+
+    if (tool === "text" || tool === "equation") {
+      e.preventDefault();
+      setStickyCanvasPos(pos);
+      setTextInput({ x: screenPos.x, y: screenPos.y, visible: true, mode: tool });
       setTextValue("");
       setTimeout(() => textInputRef.current?.focus(), 50);
       return;
     }
 
-    if (tool === "line" || tool === "rect" || tool === "circle" || tool === "arrow") {
+    if (tool === "sticky") {
+      e.preventDefault();
+      setStickyCanvasPos(pos);
+      setTextInput({ x: screenPos.x, y: screenPos.y, visible: true, mode: "sticky" });
+      setTextValue("");
+      setTimeout(() => textInputRef.current?.focus(), 50);
+      return;
+    }
+
+    if (tool === "comment") {
+      e.preventDefault();
+      setStickyCanvasPos(pos);
+      setTextInput({ x: screenPos.x, y: screenPos.y, visible: true, mode: "comment" });
+      setTextValue("");
+      setTimeout(() => textInputRef.current?.focus(), 50);
+      return;
+    }
+
+    if (isShapeTool(tool)) {
       e.preventDefault();
       shapeStart.current = pos;
       shapePreview.current = pos;
@@ -376,7 +624,7 @@ export function Whiteboard() {
     e.preventDefault();
     const pos = getCanvasPos(e);
 
-    if ((tool === "line" || tool === "rect" || tool === "circle" || tool === "arrow") && shapeStart.current) {
+    if (isShapeTool(tool) && shapeStart.current) {
       shapePreview.current = pos;
       render();
       return;
@@ -391,14 +639,27 @@ export function Whiteboard() {
   const stopDrawing = () => {
     if (!isDrawing) return;
 
-    if ((tool === "line" || tool === "rect" || tool === "circle" || tool === "arrow") && shapeStart.current && shapePreview.current) {
-      stateRef.current.shapes.push({
-        type: tool as "line" | "rect" | "circle" | "arrow",
-        start: shapeStart.current,
-        end: shapePreview.current,
-        color,
-        size: strokeSize,
-      });
+    if (isShapeTool(tool) && shapeStart.current && shapePreview.current) {
+      if (tool === "frame") {
+        // For frame, prompt for label
+        const label = "Frame";
+        stateRef.current.shapes.push({
+          type: "frame",
+          start: shapeStart.current,
+          end: shapePreview.current,
+          color,
+          size: strokeSize,
+          label,
+        });
+      } else {
+        stateRef.current.shapes.push({
+          type: tool as ShapeItem["type"],
+          start: shapeStart.current,
+          end: shapePreview.current,
+          color,
+          size: strokeSize,
+        });
+      }
       shapeStart.current = null;
       shapePreview.current = null;
       setIsDrawing(false);
@@ -421,22 +682,81 @@ export function Whiteboard() {
       setTextInput({ ...textInput, visible: false });
       return;
     }
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_W / rect.width;
-    const scaleY = CANVAS_H / rect.height;
-    stateRef.current.texts.push({
-      x: textInput.x * scaleX,
-      y: textInput.y * scaleY,
-      text: textValue,
-      color,
-      size: strokeSize,
-    });
+
+    const pos = stickyCanvasPos;
+
+    if (textInput.mode === "text") {
+      stateRef.current.texts.push({
+        x: pos.x, y: pos.y,
+        text: textValue,
+        color,
+        size: strokeSize,
+      });
+    } else if (textInput.mode === "equation") {
+      stateRef.current.texts.push({
+        x: pos.x, y: pos.y,
+        text: textValue,
+        color,
+        size: strokeSize,
+        font: `italic ${strokeSize * 4 + 16}px 'Times New Roman', serif`,
+      });
+    } else if (textInput.mode === "sticky") {
+      const bgColor = STICKY_COLORS[stateRef.current.stickyNotes.length % STICKY_COLORS.length];
+      stateRef.current.stickyNotes.push({
+        x: pos.x, y: pos.y,
+        text: textValue,
+        bgColor,
+        width: 200,
+        height: 150,
+      });
+    } else if (textInput.mode === "comment") {
+      stateRef.current.comments.push({
+        x: pos.x, y: pos.y,
+        text: textValue,
+        color: color,
+      });
+    }
+
     setTextInput({ ...textInput, visible: false });
     setTextValue("");
     pushHistory();
     render();
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        // Scale to fit reasonably on canvas
+        let w = img.width;
+        let h = img.height;
+        const maxDim = 600;
+        if (w > maxDim || h > maxDim) {
+          const scale = maxDim / Math.max(w, h);
+          w = w * scale;
+          h = h * scale;
+        }
+        loadedImagesRef.current.set(dataUrl, img);
+        stateRef.current.images.push({
+          x: CANVAS_W / 2 - w / 2,
+          y: CANVAS_H / 2 - h / 2,
+          width: w,
+          height: h,
+          dataUrl,
+        });
+        pushHistory();
+        render();
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+    // Reset input so same file can be uploaded again
+    e.target.value = "";
   };
 
   const handleDoubleClick = () => {
@@ -496,15 +816,20 @@ export function Whiteboard() {
           strokes: parsed.strokes || [],
           shapes: parsed.shapes || [],
           texts: parsed.texts || [],
+          stickyNotes: parsed.stickyNotes || [],
+          comments: parsed.comments || [],
+          tables: parsed.tables || [],
+          images: parsed.images || [],
         };
       } catch {
-        stateRef.current = { strokes: [], shapes: [], texts: [] };
+        stateRef.current = emptyState();
         toast({ title: "Legacy board", description: "Old format loaded as empty." });
       }
 
       setTitle(board.title);
       setCurrentBoardId(board.id);
       setShareLink(board.share_token ? `${window.location.origin}/whiteboard?token=${board.share_token}` : null);
+      loadedImagesRef.current.clear();
       pushHistory();
       render();
     } catch (error: any) {
@@ -533,7 +858,8 @@ export function Whiteboard() {
     setCurrentBoardId(null);
     setTitle("Untitled Whiteboard");
     setShareLink(null);
-    stateRef.current = { strokes: [], shapes: [], texts: [] };
+    stateRef.current = emptyState();
+    loadedImagesRef.current.clear();
     historyRef.current = [];
     historyIdxRef.current = -1;
     forceUpdate(n => n + 1);
@@ -550,8 +876,7 @@ export function Whiteboard() {
   const toggleStudent = (id: string) => {
     setSelectedStudents(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
@@ -568,10 +893,7 @@ export function Whiteboard() {
     if (!user || selectedStudents.size === 0) return;
     setSending(true);
     try {
-      // Save the board first if needed
       if (!currentBoardId) await saveToDatabase();
-
-      // Create notifications for each selected student
       const notifications = Array.from(selectedStudents).map(studentId => ({
         recipient_id: studentId,
         sender_id: user.id,
@@ -582,10 +904,8 @@ export function Whiteboard() {
         entity_table: "whiteboards",
         role_target: "student",
       }));
-
       const { error } = await supabase.from("notifications").insert(notifications);
       if (error) throw error;
-
       toast({ title: "✅ Whiteboard shared!", description: "Students will see it in their dashboard." });
       setTimeout(() => setSendModalOpen(false), 2000);
     } catch (error: any) {
@@ -595,7 +915,6 @@ export function Whiteboard() {
     }
   };
 
-  // Generate thumbnail for send modal
   const getThumbnail = (): string => {
     const canvas = canvasRef.current;
     if (!canvas) return "";
@@ -619,6 +938,25 @@ export function Whiteboard() {
     ? "fixed inset-0 z-[9999] bg-background flex flex-col"
     : "space-y-3 h-full flex flex-col";
 
+  const getCursor = () => {
+    if (tool === "pointer") return "default";
+    if (tool === "text" || tool === "equation") return "text";
+    if (tool === "eraser") return "cell";
+    if (tool === "sticky" || tool === "comment" || tool === "table") return "copy";
+    if (tool === "image") return "pointer";
+    return "crosshair";
+  };
+
+  const getInputPlaceholder = () => {
+    switch (textInput.mode) {
+      case "equation": return "e.g. x² + y² = r²";
+      case "sticky": return "Sticky note text...";
+      case "comment": return "Add comment...";
+      case "frame": return "Frame label...";
+      default: return "Type and press Enter";
+    }
+  };
+
   const ToolBtn = ({ id, icon: Icon, label }: { id: Tool; icon: React.ElementType; label: string }) => (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -641,6 +979,15 @@ export function Whiteboard() {
   return (
     <TooltipProvider delayDuration={200}>
     <div className={containerClasses}>
+      {/* Hidden file input for image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageUpload}
+      />
+
       {/* Top Action Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-3 pt-3">
         <div className="flex items-center gap-2 flex-1 w-full sm:w-auto">
@@ -715,7 +1062,7 @@ export function Whiteboard() {
 
       {/* Main area: left tools | canvas | right colors */}
       <div className="flex flex-1 gap-3 px-3 pb-3 min-h-0">
-        {/* Left Toolbar — white card with shadow */}
+        {/* Left Toolbar */}
         <div className="flex flex-col items-center gap-0.5 py-3 px-1.5 bg-card rounded-2xl shadow-lg border border-border/50 self-start">
           <ToolBtn id="pointer" icon={MousePointer2} label="Pointer" />
           <ToolBtn id="pen" icon={Pencil} label="Pen" />
@@ -752,19 +1099,17 @@ export function Whiteboard() {
 
           <ToolBtn id="connector" icon={Spline} label="Connector" />
           <ToolBtn id="text" icon={Type} label="Text" />
-          <ToolBtn id="equation" icon={Sigma} label="Equation" />
+          <ToolBtn id="equation" icon={Sigma} label="Equation (Σ)" />
           <ToolBtn id="sticky" icon={StickyNote} label="Sticky Note" />
           <ToolBtn id="comment" icon={MessageCircle} label="Comment" />
           <ToolBtn id="frame" icon={Hash} label="Frame" />
-          <ToolBtn id="table" icon={Table2} label="Table" />
+          <ToolBtn id="table" icon={Table2} label="Table (3×3)" />
           <ToolBtn id="image" icon={ImagePlus} label="Image Upload" />
 
-          {/* Divider */}
           <div className="w-7 h-px bg-border my-1.5" />
 
           <ToolBtn id="eraser" icon={Eraser} label="Eraser" />
 
-          {/* More */}
           <Tooltip>
             <TooltipTrigger asChild>
               <button className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
@@ -774,10 +1119,8 @@ export function Whiteboard() {
             <TooltipContent side="right" className="text-xs">More tools</TooltipContent>
           </Tooltip>
 
-          {/* Divider */}
           <div className="w-7 h-px bg-border my-1.5" />
 
-          {/* 5 stroke sizes */}
           {STROKE_SIZES.map((s) => (
             <Tooltip key={s}>
               <TooltipTrigger asChild>
@@ -816,10 +1159,7 @@ export function Whiteboard() {
             width={CANVAS_W}
             height={CANVAS_H}
             className="block max-w-full h-auto"
-            style={{
-              cursor: tool === "text" ? "text" : tool === "eraser" ? "cell" : "crosshair",
-              touchAction: "none",
-            }}
+            style={{ cursor: getCursor(), touchAction: "none" }}
             onMouseDown={startDrawing}
             onMouseMove={draw}
             onMouseUp={stopDrawing}
@@ -834,13 +1174,22 @@ export function Whiteboard() {
           {textInput.visible && (
             <input
               ref={textInputRef}
-              className="absolute bg-transparent border-b-2 border-teacher text-foreground outline-none px-1 py-0.5 text-sm"
-              style={{ left: textInput.x, top: textInput.y - 10, minWidth: 120 }}
+              className={cn(
+                "absolute border-b-2 outline-none px-2 py-1 text-sm shadow-sm rounded",
+                textInput.mode === "equation"
+                  ? "bg-card border-primary text-foreground italic font-serif"
+                  : textInput.mode === "sticky"
+                  ? "bg-yellow-100 border-yellow-400 text-yellow-900"
+                  : textInput.mode === "comment"
+                  ? "bg-card border-teacher text-foreground"
+                  : "bg-transparent border-teacher text-foreground"
+              )}
+              style={{ left: textInput.x, top: textInput.y - 10, minWidth: 160 }}
               value={textValue}
               onChange={(e) => setTextValue(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") commitText(); if (e.key === "Escape") setTextInput({ ...textInput, visible: false }); }}
               onBlur={commitText}
-              placeholder="Type and press Enter"
+              placeholder={getInputPlaceholder()}
             />
           )}
         </div>
@@ -868,9 +1217,7 @@ export function Whiteboard() {
             />
             <span
               className="block w-full h-full rounded-full"
-              style={{
-                background: `conic-gradient(red, yellow, lime, aqua, blue, magenta, red)`,
-              }}
+              style={{ background: `conic-gradient(red, yellow, lime, aqua, blue, magenta, red)` }}
             />
           </label>
         </div>
@@ -882,41 +1229,23 @@ export function Whiteboard() {
           <DialogHeader>
             <DialogTitle>📤 Send Whiteboard to Students</DialogTitle>
           </DialogHeader>
-
-          {/* Thumbnail preview */}
           <div className="rounded-lg border border-border overflow-hidden bg-muted">
-            <img
-              src={getThumbnail()}
-              alt="Whiteboard preview"
-              className="w-full h-32 object-contain bg-white"
-            />
+            <img src={getThumbnail()} alt="Whiteboard preview" className="w-full h-32 object-contain bg-white" />
           </div>
-
-          {/* Student list */}
           <div className="flex items-center justify-between py-1">
             <span className="text-sm font-medium">Select students</span>
-            <button
-              onClick={toggleAll}
-              className="text-xs text-teacher font-semibold hover:underline"
-            >
+            <button onClick={toggleAll} className="text-xs text-teacher font-semibold hover:underline">
               {selectedStudents.size === students.length ? "Deselect All" : "Select All"}
             </button>
           </div>
-
           <ScrollArea className="max-h-48 border border-border rounded-lg">
             {students.length === 0 ? (
               <p className="p-4 text-sm text-muted-foreground text-center">No students assigned</p>
             ) : (
               <div className="divide-y divide-border">
                 {students.map((s) => (
-                  <label
-                    key={s.user_id}
-                    className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={selectedStudents.has(s.user_id)}
-                      onCheckedChange={() => toggleStudent(s.user_id)}
-                    />
+                  <label key={s.user_id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/50 cursor-pointer">
+                    <Checkbox checked={selectedStudents.has(s.user_id)} onCheckedChange={() => toggleStudent(s.user_id)} />
                     <div className="flex items-center gap-2 flex-1">
                       <span className="w-2 h-2 rounded-full bg-muted-foreground/40" />
                       <span className="text-sm">{s.student_name}</span>
@@ -926,14 +1255,9 @@ export function Whiteboard() {
               </div>
             )}
           </ScrollArea>
-
           <DialogFooter>
             <Button variant="outline" onClick={() => setSendModalOpen(false)}>Cancel</Button>
-            <Button
-              variant="teacher"
-              onClick={sendToStudents}
-              disabled={selectedStudents.size === 0 || sending}
-            >
+            <Button variant="teacher" onClick={sendToStudents} disabled={selectedStudents.size === 0 || sending}>
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               Send ({selectedStudents.size})
             </Button>
