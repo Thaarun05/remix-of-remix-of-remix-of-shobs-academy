@@ -393,7 +393,7 @@ export function Whiteboard() {
 
     if ((tool === "line" || tool === "rect" || tool === "circle" || tool === "arrow") && shapeStart.current && shapePreview.current) {
       stateRef.current.shapes.push({
-        type: tool,
+        type: tool as "line" | "rect" | "circle" | "arrow",
         start: shapeStart.current,
         end: shapePreview.current,
         color,
