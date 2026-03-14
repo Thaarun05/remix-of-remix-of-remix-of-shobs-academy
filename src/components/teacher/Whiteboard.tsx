@@ -391,7 +391,7 @@ export function Whiteboard() {
   const stopDrawing = () => {
     if (!isDrawing) return;
 
-    if ((tool === "line" || tool === "rect" || tool === "circle") && shapeStart.current && shapePreview.current) {
+    if ((tool === "line" || tool === "rect" || tool === "circle" || tool === "arrow") && shapeStart.current && shapePreview.current) {
       stateRef.current.shapes.push({
         type: tool,
         start: shapeStart.current,
