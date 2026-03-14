@@ -605,20 +605,41 @@ export function Whiteboard() {
   const canUndo = historyIdxRef.current > 0;
   const canRedo = historyIdxRef.current < historyRef.current.length - 1;
 
-  const tools: { id: Tool; icon: React.ElementType; label: string }[] = [
-    { id: "pen", icon: Pencil, label: "Pen" },
-    { id: "eraser", icon: Eraser, label: "Eraser" },
-    { id: "line", icon: Minus, label: "Line" },
+  const shapeTools: { id: Tool; icon: React.ElementType; label: string }[] = [
     { id: "rect", icon: Square, label: "Rectangle" },
     { id: "circle", icon: CircleIcon, label: "Circle" },
-    { id: "text", icon: Type, label: "Text" },
+    { id: "line", icon: Minus, label: "Line" },
+    { id: "arrow", icon: ArrowUpRight, label: "Arrow" },
   ];
+
+  const activeShapeTool = shapeTools.find(s => s.id === tool);
+  const ShapeIcon = activeShapeTool?.icon || Square;
 
   const containerClasses = isFullscreen
     ? "fixed inset-0 z-[9999] bg-background flex flex-col"
     : "space-y-3 h-full flex flex-col";
 
+  const ToolBtn = ({ id, icon: Icon, label }: { id: Tool; icon: React.ElementType; label: string }) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={() => setTool(id)}
+          className={cn(
+            "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+            tool === id
+              ? "bg-teacher/10 border-2 border-teacher text-teacher shadow-sm"
+              : "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
+        >
+          <Icon className="h-[18px] w-[18px]" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="text-xs">{label}</TooltipContent>
+    </Tooltip>
+  );
+
   return (
+    <TooltipProvider delayDuration={200}>
     <div className={containerClasses}>
       {/* Top Action Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-3 pt-3">
@@ -649,7 +670,6 @@ export function Whiteboard() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Undo/Redo/Clear/Download */}
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} title="Undo">
               <Undo2 className="h-4 w-4" />
@@ -694,45 +714,92 @@ export function Whiteboard() {
       <p className="text-xs text-muted-foreground text-center">Double-click canvas to enter/exit fullscreen</p>
 
       {/* Main area: left tools | canvas | right colors */}
-      <div className="flex flex-1 gap-2 px-3 pb-3 min-h-0">
-        {/* Left Toolbar */}
-        <div className="flex flex-col gap-2 py-2">
-          {tools.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTool(t.id)}
-              className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-                tool === t.id
-                  ? "bg-teacher/10 border-2 border-teacher text-teacher shadow-sm"
-                  : "bg-card border border-border text-muted-foreground hover:bg-muted"
-              )}
-              title={t.label}
-            >
-              <t.icon className="h-5 w-5" />
-            </button>
-          ))}
+      <div className="flex flex-1 gap-3 px-3 pb-3 min-h-0">
+        {/* Left Toolbar — white card with shadow */}
+        <div className="flex flex-col items-center gap-0.5 py-3 px-1.5 bg-card rounded-2xl shadow-lg border border-border/50 self-start">
+          <ToolBtn id="pointer" icon={MousePointer2} label="Pointer" />
+          <ToolBtn id="pen" icon={Pencil} label="Pen" />
 
-          <div className="border-t border-border my-1" />
+          {/* Shapes dropdown */}
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-all relative",
+                      activeShapeTool
+                        ? "bg-teacher/10 border-2 border-teacher text-teacher shadow-sm"
+                        : "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    <ShapeIcon className="h-[18px] w-[18px]" />
+                    <ChevronDown className="h-2.5 w-2.5 absolute bottom-1 right-1 opacity-60" />
+                  </button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-xs">Shapes</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent side="right" align="start" className="min-w-[140px]">
+              {shapeTools.map((s) => (
+                <DropdownMenuItem key={s.id} onClick={() => setTool(s.id)} className="gap-2">
+                  <s.icon className="h-4 w-4" />
+                  {s.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <ToolBtn id="connector" icon={Spline} label="Connector" />
+          <ToolBtn id="text" icon={Type} label="Text" />
+          <ToolBtn id="equation" icon={Sigma} label="Equation" />
+          <ToolBtn id="sticky" icon={StickyNote} label="Sticky Note" />
+          <ToolBtn id="comment" icon={MessageCircle} label="Comment" />
+          <ToolBtn id="frame" icon={Hash} label="Frame" />
+          <ToolBtn id="table" icon={Table2} label="Table" />
+          <ToolBtn id="image" icon={ImagePlus} label="Image Upload" />
+
+          {/* Divider */}
+          <div className="w-7 h-px bg-border my-1.5" />
+
+          <ToolBtn id="eraser" icon={Eraser} label="Eraser" />
+
+          {/* More */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
+                <MoreHorizontal className="h-[18px] w-[18px]" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">More tools</TooltipContent>
+          </Tooltip>
+
+          {/* Divider */}
+          <div className="w-7 h-px bg-border my-1.5" />
 
           {/* 5 stroke sizes */}
           {STROKE_SIZES.map((s) => (
-            <button
-              key={s}
-              onClick={() => setStrokeSize(s)}
-              className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-                strokeSize === s
-                  ? "bg-teacher/10 border-2 border-teacher"
-                  : "bg-card border border-border hover:bg-muted"
-              )}
-              title={`Size ${s}`}
-            >
-              <span
-                className="rounded-full bg-foreground"
-                style={{ width: Math.min(s * 1.5, 20), height: Math.min(s * 1.5, 20) }}
-              />
-            </button>
+            <Tooltip key={s}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setStrokeSize(s)}
+                  className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                    strokeSize === s
+                      ? "bg-teacher/10 border-2 border-teacher"
+                      : "bg-transparent hover:bg-muted"
+                  )}
+                >
+                  <span
+                    className="rounded-full bg-foreground"
+                    style={{ width: Math.min(s * 1.5, 20), height: Math.min(s * 1.5, 20) }}
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-xs">Size {s}px</TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
           ))}
         </div>
 
