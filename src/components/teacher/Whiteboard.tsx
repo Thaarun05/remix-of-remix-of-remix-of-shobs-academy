@@ -273,9 +273,9 @@ export function Whiteboard() {
     }
 
     // Draw shape preview
-    if (shapeStart.current && shapePreview.current && (tool === "line" || tool === "rect" || tool === "circle")) {
+    if (shapeStart.current && shapePreview.current && (tool === "line" || tool === "rect" || tool === "circle" || tool === "arrow")) {
       drawShape(ctx, {
-        type: tool,
+        type: tool as "line" | "rect" | "circle" | "arrow",
         start: shapeStart.current,
         end: shapePreview.current,
         color,
