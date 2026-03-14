@@ -12,8 +12,14 @@ import {
   Pencil, Eraser, Undo2, Redo2, Trash2, Download, Save,
   Type, Share2, Loader2, FolderOpen, Copy, Check,
   RotateCcw, Minus, Square, Circle as CircleIcon, Send,
-  Maximize, Minimize,
+  Maximize, Minimize, MousePointer2, ArrowUpRight, Spline,
+  StickyNote, MessageCircle, Hash, Table2, ImagePlus, MoreHorizontal,
+  Sigma, ChevronDown,
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 type Tool = "pen" | "eraser" | "line" | "rect" | "circle" | "text";
