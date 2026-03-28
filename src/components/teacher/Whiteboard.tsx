@@ -1513,7 +1513,7 @@ export function Whiteboard() {
         {/* Canvas */}
         <div
           ref={containerRef}
-          className="relative flex-1 rounded-xl border border-border bg-muted/30 shadow-inner overflow-hidden"
+          className="relative flex-1 min-h-0 rounded-xl border border-border bg-muted/30 shadow-inner overflow-hidden"
         >
           {loading && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10">
