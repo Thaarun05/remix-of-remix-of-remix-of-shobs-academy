@@ -152,9 +152,13 @@ export function Whiteboard() {
   const [loading, setLoading] = useState(false);
   const [savedBoards, setSavedBoards] = useState<WhiteboardRecord[]>([]);
   const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
-  const [shareLink, setShareLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Student dropdown + sent history
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [sentWhiteboards, setSentWhiteboards] = useState<WhiteboardShare[]>([]);
+  const [loadingSent, setLoadingSent] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Infinite canvas: pan offset and zoom
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
