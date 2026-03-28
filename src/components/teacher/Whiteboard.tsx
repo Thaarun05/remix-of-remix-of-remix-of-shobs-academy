@@ -639,7 +639,6 @@ export function Whiteboard() {
       fetchStudents();
     }
   }, [user]);
-  }, [user]);
 
   const fetchSavedBoards = async () => {
     if (!user) return;
