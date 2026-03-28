@@ -657,6 +657,51 @@ export function Whiteboard() {
     setStudents(data || []);
   };
 
+  const fetchSentWhiteboards = async (studentId: string) => {
+    if (!user) return;
+    setLoadingSent(true);
+    try {
+      const { data } = await supabase
+        .from("whiteboard_shares" as any)
+        .select("*")
+        .eq("teacher_user_id", user.id)
+        .eq("student_user_id", studentId)
+        .is("deleted_at", null)
+        .order("sent_at", { ascending: false });
+      setSentWhiteboards((data as unknown as WhiteboardShare[]) || []);
+    } catch (err) {
+      console.error("Error fetching sent whiteboards:", err);
+    } finally {
+      setLoadingSent(false);
+    }
+  };
+
+  const handleSelectStudent = (studentId: string) => {
+    setSelectedStudentId(studentId);
+    fetchSentWhiteboards(studentId);
+  };
+
+  const deleteSentWhiteboard = async (shareId: string) => {
+    try {
+      const { error } = await supabase
+        .from("whiteboard_shares" as any)
+        .update({ deleted_at: new Date().toISOString() } as any)
+        .eq("id", shareId);
+      if (error) throw error;
+      toast({ title: "Deleted", description: "Whiteboard removed." });
+      if (selectedStudentId) fetchSentWhiteboards(selectedStudentId);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setDeleteConfirmId(null);
+    }
+  };
+
+  const editSentWhiteboard = async (share: WhiteboardShare) => {
+    // Load the whiteboard from the whiteboards table
+    await loadBoard(share.whiteboard_id);
+  };
+
   const clearCanvas = () => {
     stateRef.current = emptyState();
     loadedImagesRef.current.clear();
