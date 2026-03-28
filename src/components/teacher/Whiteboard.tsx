@@ -12,9 +12,9 @@ import {
   Pencil, Eraser, Undo2, Redo2, Trash2, Download, Save,
   Type, Share2, Loader2, FolderOpen, Copy, Check,
   RotateCcw, Minus, Square, Circle as CircleIcon, Send,
-  Maximize, Minimize, MousePointer2, ArrowUpRight, Spline,
-  StickyNote, MessageCircle, Hash, Table2, ImagePlus, MoreHorizontal,
-  Sigma, ChevronDown,
+  Maximize, Minimize, ArrowUpRight, Spline,
+  StickyNote, Hash, Table2, ImagePlus,
+  ChevronDown, Hand, Crosshair, ZoomIn, ZoomOut,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -22,7 +22,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-type Tool = "pointer" | "pen" | "eraser" | "line" | "rect" | "circle" | "arrow" | "connector" | "text" | "equation" | "sticky" | "comment" | "frame" | "table" | "image";
+type Tool = "move" | "pen" | "eraser" | "line" | "rect" | "circle" | "arrow" | "connector" | "text" | "sticky" | "frame" | "table" | "image" | "laser";
 
 interface Point { x: number; y: number; }
 
@@ -58,12 +58,6 @@ interface StickyNoteItem {
   height: number;
 }
 
-interface CommentItem {
-  x: number; y: number;
-  text: string;
-  color: string;
-}
-
 interface TableItem {
   x: number; y: number;
   rows: number;
@@ -80,12 +74,16 @@ interface ImageItemData {
   dataUrl: string;
 }
 
+interface LaserPoint {
+  x: number; y: number;
+  time: number;
+}
+
 interface WhiteboardState {
   strokes: Stroke[];
   shapes: ShapeItem[];
   texts: TextItem[];
   stickyNotes: StickyNoteItem[];
-  comments: CommentItem[];
   tables: TableItem[];
   images: ImageItemData[];
 }
@@ -115,12 +113,11 @@ const STICKY_COLORS = ["#fff9c4", "#c8e6c9", "#bbdefb", "#f8bbd0", "#ffe0b2", "#
 const STROKE_SIZES = [2, 4, 6, 10, 16];
 
 const MAX_HISTORY = 40;
-const CANVAS_W = 2400;
-const CANVAS_H = 1600;
 const GRID_SIZE = 25;
+const LASER_FADE_MS = 1000;
 
 const emptyState = (): WhiteboardState => ({
-  strokes: [], shapes: [], texts: [], stickyNotes: [], comments: [], tables: [], images: [],
+  strokes: [], shapes: [], texts: [], stickyNotes: [], tables: [], images: [],
 });
 
 const wb = () => supabase.from("whiteboards" as any);
@@ -148,13 +145,26 @@ export function Whiteboard() {
   const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Text/equation tool input
-  const [textInput, setTextInput] = useState<{ x: number; y: number; visible: boolean; mode: "text" | "equation" | "sticky" | "comment" | "frame" }>({ x: 0, y: 0, visible: false, mode: "text" });
+  // Infinite canvas: pan offset and zoom
+  const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const isPanningRef = useRef(false);
+  const panStartRef = useRef<Point>({ x: 0, y: 0 });
+  const panOffsetStartRef = useRef<Point>({ x: 0, y: 0 });
+  const spaceHeldRef = useRef(false);
+
+  // Image drag/resize
+  const [selectedImageIdx, setSelectedImageIdx] = useState<number | null>(null);
+  const imageDragRef = useRef<{ idx: number; offsetX: number; offsetY: number; mode: "move" | "resize"; corner?: string } | null>(null);
+
+  // Text/sticky tool input
+  const [textInput, setTextInput] = useState<{ x: number; y: number; visible: boolean; mode: "text" | "sticky" | "frame" }>({ x: 0, y: 0, visible: false, mode: "text" });
   const [textValue, setTextValue] = useState("");
-  // For sticky note placement
   const [stickyCanvasPos, setStickyCanvasPos] = useState<Point>({ x: 0, y: 0 });
-  // For frame placement
-  const [frameEndPos, setFrameEndPos] = useState<Point>({ x: 0, y: 0 });
+
+  // Laser pointer
+  const laserTrailRef = useRef<LaserPoint[]>([]);
+  const laserAnimRef = useRef<number>(0);
 
   // Send to students modal
   const [sendModalOpen, setSendModalOpen] = useState(false);
@@ -172,6 +182,67 @@ export function Whiteboard() {
   const historyRef = useRef<WhiteboardState[]>([]);
   const historyIdxRef = useRef(-1);
   const [, forceUpdate] = useState(0);
+
+  // Canvas dimensions (match container)
+  const getCanvasDims = () => {
+    const container = containerRef.current;
+    if (!container) return { w: 1920, h: 1080 };
+    return { w: container.clientWidth, h: container.clientHeight };
+  };
+
+  // Resize canvas to fill container
+  useEffect(() => {
+    const resize = () => {
+      const canvas = canvasRef.current;
+      const container = containerRef.current;
+      if (!canvas || !container) return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      render();
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
+
+  // Space key for panning
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.code === "Space" && !e.repeat && !textInput.visible) {
+        e.preventDefault();
+        spaceHeldRef.current = true;
+      }
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        spaceHeldRef.current = false;
+      }
+    };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
+  }, [textInput.visible]);
+
+  // Laser animation loop
+  useEffect(() => {
+    if (tool !== "laser") {
+      laserTrailRef.current = [];
+      return;
+    }
+    const animate = () => {
+      const now = Date.now();
+      laserTrailRef.current = laserTrailRef.current.filter(p => now - p.time < LASER_FADE_MS);
+      render();
+      laserAnimRef.current = requestAnimationFrame(animate);
+    };
+    laserAnimRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(laserAnimRef.current);
+  }, [tool]);
 
   const pushHistory = useCallback(() => {
     const snapshot = JSON.parse(JSON.stringify(stateRef.current));
@@ -198,12 +269,17 @@ export function Whiteboard() {
     render();
   }, []);
 
-  const getCanvasPos = (e: React.MouseEvent | React.TouchEvent): Point => {
+  // Convert screen coordinates to world coordinates
+  const screenToWorld = (screenX: number, screenY: number): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_W / rect.width;
-    const scaleY = CANVAS_H / rect.height;
+    const x = (screenX - rect.left - panOffset.x) / zoom;
+    const y = (screenY - rect.top - panOffset.y) / zoom;
+    return { x, y };
+  };
+
+  const getCanvasPos = (e: React.MouseEvent | React.TouchEvent): Point => {
     let clientX: number, clientY: number;
     if ("touches" in e && e.touches.length > 0) {
       clientX = e.touches[0].clientX;
@@ -212,10 +288,7 @@ export function Whiteboard() {
       clientX = (e as React.MouseEvent).clientX;
       clientY = (e as React.MouseEvent).clientY;
     }
-    return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY,
-    };
+    return screenToWorld(clientX, clientY);
   };
 
   const getScreenPos = (e: React.MouseEvent | React.TouchEvent): Point => {
@@ -236,12 +309,27 @@ export function Whiteboard() {
   const drawGrid = (ctx: CanvasRenderingContext2D) => {
     ctx.save();
     ctx.strokeStyle = "#e8edf2";
-    ctx.lineWidth = 0.5;
-    for (let x = 0; x <= CANVAS_W; x += GRID_SIZE) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_H); ctx.stroke();
+    ctx.lineWidth = 0.5 / zoom;
+
+    const canvas = canvasRef.current!;
+    const w = canvas.width / (window.devicePixelRatio || 1);
+    const h = canvas.height / (window.devicePixelRatio || 1);
+
+    // Calculate visible world bounds
+    const worldLeft = -panOffset.x / zoom;
+    const worldTop = -panOffset.y / zoom;
+    const worldRight = worldLeft + w / zoom;
+    const worldBottom = worldTop + h / zoom;
+
+    const gridStep = GRID_SIZE;
+    const startX = Math.floor(worldLeft / gridStep) * gridStep;
+    const startY = Math.floor(worldTop / gridStep) * gridStep;
+
+    for (let x = startX; x <= worldRight; x += gridStep) {
+      ctx.beginPath(); ctx.moveTo(x, worldTop); ctx.lineTo(x, worldBottom); ctx.stroke();
     }
-    for (let y = 0; y <= CANVAS_H; y += GRID_SIZE) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_W, y); ctx.stroke();
+    for (let y = startY; y <= worldBottom; y += gridStep) {
+      ctx.beginPath(); ctx.moveTo(worldLeft, y); ctx.lineTo(worldRight, y); ctx.stroke();
     }
     ctx.restore();
   };
@@ -280,12 +368,10 @@ export function Whiteboard() {
       ctx.ellipse(cx, cy, Math.max(rx, 1), Math.max(ry, 1), 0, 0, Math.PI * 2);
       ctx.stroke();
     } else if (shape.type === "connector") {
-      // Bezier curve connector
       const midX = (shape.start.x + shape.end.x) / 2;
       ctx.moveTo(shape.start.x, shape.start.y);
       ctx.bezierCurveTo(midX, shape.start.y, midX, shape.end.y, shape.end.x, shape.end.y);
       ctx.stroke();
-      // Draw small circles at endpoints
       ctx.fillStyle = shape.color;
       ctx.beginPath();
       ctx.arc(shape.start.x, shape.start.y, shape.size + 2, 0, Math.PI * 2);
@@ -294,7 +380,6 @@ export function Whiteboard() {
       ctx.arc(shape.end.x, shape.end.y, shape.size + 2, 0, Math.PI * 2);
       ctx.fill();
     } else if (shape.type === "frame") {
-      // Dashed frame rectangle
       ctx.setLineDash([10, 6]);
       ctx.strokeStyle = shape.color;
       ctx.lineWidth = 2;
@@ -304,7 +389,6 @@ export function Whiteboard() {
       const h = Math.abs(shape.end.y - shape.start.y);
       ctx.strokeRect(x, y, w, h);
       ctx.setLineDash([]);
-      // Label
       if (shape.label) {
         ctx.font = "bold 18px 'Inter', sans-serif";
         ctx.fillStyle = shape.color;
@@ -316,20 +400,16 @@ export function Whiteboard() {
 
   const drawStickyNote = (ctx: CanvasRenderingContext2D, note: StickyNoteItem) => {
     ctx.save();
-    // Shadow
     ctx.shadowColor = "rgba(0,0,0,0.15)";
     ctx.shadowBlur = 8;
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 4;
-    // Background
     ctx.fillStyle = note.bgColor;
     ctx.fillRect(note.x, note.y, note.width, note.height);
     ctx.shadowColor = "transparent";
-    // Border
     ctx.strokeStyle = "rgba(0,0,0,0.1)";
     ctx.lineWidth = 1;
     ctx.strokeRect(note.x, note.y, note.width, note.height);
-    // Text
     ctx.fillStyle = "#333333";
     ctx.font = "16px 'Inter', sans-serif";
     const lines = wrapText(ctx, note.text, note.width - 20);
@@ -339,51 +419,14 @@ export function Whiteboard() {
     ctx.restore();
   };
 
-  const drawComment = (ctx: CanvasRenderingContext2D, comment: CommentItem) => {
-    ctx.save();
-    const w = Math.max(ctx.measureText(comment.text).width + 24, 60);
-    const h = 36;
-    const r = 12;
-    const tailH = 10;
-    // Bubble
-    ctx.fillStyle = comment.color;
-    ctx.shadowColor = "rgba(0,0,0,0.12)";
-    ctx.shadowBlur = 6;
-    ctx.shadowOffsetY = 2;
-    ctx.beginPath();
-    ctx.moveTo(comment.x + r, comment.y);
-    ctx.lineTo(comment.x + w - r, comment.y);
-    ctx.quadraticCurveTo(comment.x + w, comment.y, comment.x + w, comment.y + r);
-    ctx.lineTo(comment.x + w, comment.y + h - r);
-    ctx.quadraticCurveTo(comment.x + w, comment.y + h, comment.x + w - r, comment.y + h);
-    // Tail
-    ctx.lineTo(comment.x + 24, comment.y + h);
-    ctx.lineTo(comment.x + 12, comment.y + h + tailH);
-    ctx.lineTo(comment.x + 18, comment.y + h);
-    ctx.lineTo(comment.x + r, comment.y + h);
-    ctx.quadraticCurveTo(comment.x, comment.y + h, comment.x, comment.y + h - r);
-    ctx.lineTo(comment.x, comment.y + r);
-    ctx.quadraticCurveTo(comment.x, comment.y, comment.x + r, comment.y);
-    ctx.closePath();
-    ctx.fill();
-    ctx.shadowColor = "transparent";
-    // Text
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "14px 'Inter', sans-serif";
-    ctx.fillText(comment.text, comment.x + 12, comment.y + 23);
-    ctx.restore();
-  };
-
   const drawTable = (ctx: CanvasRenderingContext2D, table: TableItem) => {
     ctx.save();
     ctx.strokeStyle = table.color;
     ctx.lineWidth = 1.5;
     const totalW = table.cols * table.cellWidth;
     const totalH = table.rows * table.cellHeight;
-    // Fill header row
     ctx.fillStyle = table.color + "18";
     ctx.fillRect(table.x, table.y, totalW, table.cellHeight);
-    // Draw grid
     for (let r = 0; r <= table.rows; r++) {
       ctx.beginPath();
       ctx.moveTo(table.x, table.y + r * table.cellHeight);
@@ -399,12 +442,33 @@ export function Whiteboard() {
     ctx.restore();
   };
 
-  const drawImageItem = (ctx: CanvasRenderingContext2D, item: ImageItemData) => {
+  const drawImageItem = (ctx: CanvasRenderingContext2D, item: ImageItemData, idx: number) => {
     const cached = loadedImagesRef.current.get(item.dataUrl);
     if (cached) {
       ctx.drawImage(cached, item.x, item.y, item.width, item.height);
+      // Draw selection handles
+      if (selectedImageIdx === idx) {
+        ctx.save();
+        ctx.strokeStyle = "#2980b9";
+        ctx.lineWidth = 2 / zoom;
+        ctx.setLineDash([6 / zoom, 4 / zoom]);
+        ctx.strokeRect(item.x, item.y, item.width, item.height);
+        ctx.setLineDash([]);
+        // Corner handles
+        const hs = 8 / zoom;
+        ctx.fillStyle = "#2980b9";
+        const corners = [
+          { x: item.x, y: item.y },
+          { x: item.x + item.width, y: item.y },
+          { x: item.x, y: item.y + item.height },
+          { x: item.x + item.width, y: item.y + item.height },
+        ];
+        for (const c of corners) {
+          ctx.fillRect(c.x - hs / 2, c.y - hs / 2, hs, hs);
+        }
+        ctx.restore();
+      }
     } else {
-      // Load async
       const img = new Image();
       img.onload = () => {
         loadedImagesRef.current.set(item.dataUrl, img);
@@ -436,15 +500,29 @@ export function Whiteboard() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
 
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.scale(dpr, dpr);
+
+    // White background
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.fillRect(0, 0, w, h);
+
+    // Apply pan and zoom
+    ctx.save();
+    ctx.translate(panOffset.x, panOffset.y);
+    ctx.scale(zoom, zoom);
+
     drawGrid(ctx);
 
-    const { strokes, shapes, texts, stickyNotes, comments, tables, images } = stateRef.current;
+    const { strokes, shapes, texts, stickyNotes, tables, images } = stateRef.current;
 
-    // Draw images first (background layer)
-    for (const img of images) drawImageItem(ctx, img);
+    // Draw images (background layer)
+    images.forEach((img, idx) => drawImageItem(ctx, img, idx));
 
     // Draw strokes
     for (const s of strokes) {
@@ -462,7 +540,7 @@ export function Whiteboard() {
     // Draw shapes
     for (const shape of shapes) drawShape(ctx, shape);
 
-    // Draw current stroke in progress
+    // Current stroke in progress
     if (currentStroke.current && currentStroke.current.points.length >= 2) {
       const s = currentStroke.current;
       ctx.beginPath();
@@ -475,7 +553,7 @@ export function Whiteboard() {
       ctx.stroke();
     }
 
-    // Draw shape preview
+    // Shape preview
     if (shapeStart.current && shapePreview.current) {
       const shapeTool = tool as string;
       if (["line", "rect", "circle", "arrow", "connector", "frame"].includes(shapeTool)) {
@@ -490,27 +568,51 @@ export function Whiteboard() {
       }
     }
 
-    // Draw tables
+    // Tables
     for (const t of tables) drawTable(ctx, t);
 
-    // Draw sticky notes
+    // Sticky notes
     for (const note of stickyNotes) drawStickyNote(ctx, note);
 
-    // Draw comments
-    for (const c of comments) drawComment(ctx, c);
-
-    // Draw texts
+    // Texts
     for (const t of texts) {
       ctx.font = t.font || `${t.size * 4 + 14}px 'Inter', sans-serif`;
       ctx.fillStyle = t.color;
       ctx.fillText(t.text, t.x, t.y);
     }
-  }, [tool, color, strokeSize]);
+
+    ctx.restore(); // end pan/zoom transform
+
+    // Draw laser trail (in screen space, on top of everything)
+    if (tool === "laser" && laserTrailRef.current.length > 0) {
+      const now = Date.now();
+      const trail = laserTrailRef.current;
+      for (let i = 0; i < trail.length; i++) {
+        const age = now - trail[i].time;
+        const alpha = Math.max(0, 1 - age / LASER_FADE_MS);
+        const r = 6 * alpha + 2;
+        // Convert world to screen
+        const sx = trail[i].x * zoom + panOffset.x;
+        const sy = trail[i].y * zoom + panOffset.y;
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 30, 30, ${alpha * 0.9})`;
+        ctx.fill();
+        // Glow
+        ctx.beginPath();
+        ctx.arc(sx, sy, r * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 30, 30, ${alpha * 0.2})`;
+        ctx.fill();
+      }
+    }
+  }, [tool, color, strokeSize, panOffset, zoom, selectedImageIdx]);
 
   useEffect(() => {
     render();
     pushHistory();
   }, []);
+
+  useEffect(() => { render(); }, [panOffset, zoom, selectedImageIdx]);
 
   useEffect(() => {
     if (user) fetchSavedBoards();
@@ -539,33 +641,107 @@ export function Whiteboard() {
   const clearCanvas = () => {
     stateRef.current = emptyState();
     loadedImagesRef.current.clear();
+    setSelectedImageIdx(null);
     pushHistory();
     render();
   };
 
   const isShapeTool = (t: Tool) => ["line", "rect", "circle", "arrow", "connector", "frame"].includes(t);
-  const isClickPlaceTool = (t: Tool) => ["text", "equation", "sticky", "comment", "table"].includes(t);
+  const isClickPlaceTool = (t: Tool) => ["text", "sticky", "table"].includes(t);
+
+  // Check if click is on an image (for selection)
+  const hitTestImage = (worldPos: Point): number | null => {
+    const images = stateRef.current.images;
+    for (let i = images.length - 1; i >= 0; i--) {
+      const img = images[i];
+      if (worldPos.x >= img.x && worldPos.x <= img.x + img.width &&
+          worldPos.y >= img.y && worldPos.y <= img.y + img.height) {
+        return i;
+      }
+    }
+    return null;
+  };
+
+  // Check if click is on a resize corner of selected image
+  const hitTestImageCorner = (worldPos: Point): string | null => {
+    if (selectedImageIdx === null) return null;
+    const img = stateRef.current.images[selectedImageIdx];
+    if (!img) return null;
+    const hs = 12 / zoom;
+    const corners: { name: string; x: number; y: number }[] = [
+      { name: "tl", x: img.x, y: img.y },
+      { name: "tr", x: img.x + img.width, y: img.y },
+      { name: "bl", x: img.x, y: img.y + img.height },
+      { name: "br", x: img.x + img.width, y: img.y + img.height },
+    ];
+    for (const c of corners) {
+      if (Math.abs(worldPos.x - c.x) < hs && Math.abs(worldPos.y - c.y) < hs) {
+        return c.name;
+      }
+    }
+    return null;
+  };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     const pos = getCanvasPos(e);
     const screenPos = getScreenPos(e);
+    const isMiddleButton = "button" in e && (e as React.MouseEvent).button === 1;
 
-    if (tool === "pointer") return;
+    // Pan: Space held, Move tool, or middle mouse button
+    if (spaceHeldRef.current || tool === "move" || isMiddleButton) {
+      e.preventDefault();
+      isPanningRef.current = true;
+      let clientX: number, clientY: number;
+      if ("touches" in e && e.touches.length > 0) {
+        clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
+      } else {
+        clientX = (e as React.MouseEvent).clientX; clientY = (e as React.MouseEvent).clientY;
+      }
+      panStartRef.current = { x: clientX, y: clientY };
+      panOffsetStartRef.current = { ...panOffset };
+      return;
+    }
+
+    if (tool === "laser") {
+      e.preventDefault();
+      setIsDrawing(true);
+      laserTrailRef.current.push({ x: pos.x, y: pos.y, time: Date.now() });
+      return;
+    }
 
     if (tool === "image") {
+      // Check if clicking on selected image corner for resize
+      const corner = hitTestImageCorner(pos);
+      if (corner && selectedImageIdx !== null) {
+        imageDragRef.current = { idx: selectedImageIdx, offsetX: pos.x, offsetY: pos.y, mode: "resize", corner };
+        setIsDrawing(true);
+        e.preventDefault();
+        return;
+      }
+      // Check if clicking on an image to select/move
+      const imgIdx = hitTestImage(pos);
+      if (imgIdx !== null) {
+        const img = stateRef.current.images[imgIdx];
+        setSelectedImageIdx(imgIdx);
+        imageDragRef.current = { idx: imgIdx, offsetX: pos.x - img.x, offsetY: pos.y - img.y, mode: "move" };
+        setIsDrawing(true);
+        e.preventDefault();
+        return;
+      }
+      // No image clicked: deselect and open file picker
+      setSelectedImageIdx(null);
       fileInputRef.current?.click();
       return;
     }
 
+    // Deselect image when using other tools
+    setSelectedImageIdx(null);
+
     if (tool === "table") {
-      // Place a 3×3 table at click position
       stateRef.current.tables.push({
-        x: pos.x,
-        y: pos.y,
-        rows: 3,
-        cols: 3,
-        cellWidth: 120,
-        cellHeight: 40,
+        x: pos.x, y: pos.y,
+        rows: 3, cols: 3,
+        cellWidth: 120, cellHeight: 40,
         color,
       });
       pushHistory();
@@ -573,10 +749,10 @@ export function Whiteboard() {
       return;
     }
 
-    if (tool === "text" || tool === "equation") {
+    if (tool === "text") {
       e.preventDefault();
       setStickyCanvasPos(pos);
-      setTextInput({ x: screenPos.x, y: screenPos.y, visible: true, mode: tool });
+      setTextInput({ x: screenPos.x, y: screenPos.y, visible: true, mode: "text" });
       setTextValue("");
       setTimeout(() => textInputRef.current?.focus(), 50);
       return;
@@ -586,15 +762,6 @@ export function Whiteboard() {
       e.preventDefault();
       setStickyCanvasPos(pos);
       setTextInput({ x: screenPos.x, y: screenPos.y, visible: true, mode: "sticky" });
-      setTextValue("");
-      setTimeout(() => textInputRef.current?.focus(), 50);
-      return;
-    }
-
-    if (tool === "comment") {
-      e.preventDefault();
-      setStickyCanvasPos(pos);
-      setTextInput({ x: screenPos.x, y: screenPos.y, visible: true, mode: "comment" });
       setTextValue("");
       setTimeout(() => textInputRef.current?.focus(), 50);
       return;
@@ -620,9 +787,65 @@ export function Whiteboard() {
   };
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
+    // Panning
+    if (isPanningRef.current) {
+      let clientX: number, clientY: number;
+      if ("touches" in e && e.touches.length > 0) {
+        clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
+      } else {
+        clientX = (e as React.MouseEvent).clientX; clientY = (e as React.MouseEvent).clientY;
+      }
+      setPanOffset({
+        x: panOffsetStartRef.current.x + (clientX - panStartRef.current.x),
+        y: panOffsetStartRef.current.y + (clientY - panStartRef.current.y),
+      });
+      return;
+    }
+
     if (!isDrawing) return;
     e.preventDefault();
     const pos = getCanvasPos(e);
+
+    if (tool === "laser") {
+      laserTrailRef.current.push({ x: pos.x, y: pos.y, time: Date.now() });
+      return;
+    }
+
+    // Image drag/resize
+    if (imageDragRef.current) {
+      const ref = imageDragRef.current;
+      const img = stateRef.current.images[ref.idx];
+      if (!img) return;
+      if (ref.mode === "move") {
+        img.x = pos.x - ref.offsetX;
+        img.y = pos.y - ref.offsetY;
+      } else if (ref.mode === "resize" && ref.corner) {
+        const corner = ref.corner;
+        if (corner === "br") {
+          img.width = Math.max(30, pos.x - img.x);
+          img.height = Math.max(30, pos.y - img.y);
+        } else if (corner === "bl") {
+          const newW = Math.max(30, (img.x + img.width) - pos.x);
+          img.x = img.x + img.width - newW;
+          img.width = newW;
+          img.height = Math.max(30, pos.y - img.y);
+        } else if (corner === "tr") {
+          img.width = Math.max(30, pos.x - img.x);
+          const newH = Math.max(30, (img.y + img.height) - pos.y);
+          img.y = img.y + img.height - newH;
+          img.height = newH;
+        } else if (corner === "tl") {
+          const newW = Math.max(30, (img.x + img.width) - pos.x);
+          const newH = Math.max(30, (img.y + img.height) - pos.y);
+          img.x = img.x + img.width - newW;
+          img.y = img.y + img.height - newH;
+          img.width = newW;
+          img.height = newH;
+        }
+      }
+      render();
+      return;
+    }
 
     if (isShapeTool(tool) && shapeStart.current) {
       shapePreview.current = pos;
@@ -637,19 +860,35 @@ export function Whiteboard() {
   };
 
   const stopDrawing = () => {
+    if (isPanningRef.current) {
+      isPanningRef.current = false;
+      return;
+    }
+
+    if (tool === "laser") {
+      setIsDrawing(false);
+      return;
+    }
+
+    if (imageDragRef.current) {
+      imageDragRef.current = null;
+      setIsDrawing(false);
+      pushHistory();
+      render();
+      return;
+    }
+
     if (!isDrawing) return;
 
     if (isShapeTool(tool) && shapeStart.current && shapePreview.current) {
       if (tool === "frame") {
-        // For frame, prompt for label
-        const label = "Frame";
         stateRef.current.shapes.push({
           type: "frame",
           start: shapeStart.current,
           end: shapePreview.current,
           color,
           size: strokeSize,
-          label,
+          label: "Frame",
         });
       } else {
         stateRef.current.shapes.push({
@@ -692,14 +931,6 @@ export function Whiteboard() {
         color,
         size: strokeSize,
       });
-    } else if (textInput.mode === "equation") {
-      stateRef.current.texts.push({
-        x: pos.x, y: pos.y,
-        text: textValue,
-        color,
-        size: strokeSize,
-        font: `italic ${strokeSize * 4 + 16}px 'Times New Roman', serif`,
-      });
     } else if (textInput.mode === "sticky") {
       const bgColor = STICKY_COLORS[stateRef.current.stickyNotes.length % STICKY_COLORS.length];
       stateRef.current.stickyNotes.push({
@@ -708,12 +939,6 @@ export function Whiteboard() {
         bgColor,
         width: 200,
         height: 150,
-      });
-    } else if (textInput.mode === "comment") {
-      stateRef.current.comments.push({
-        x: pos.x, y: pos.y,
-        text: textValue,
-        color: color,
       });
     }
 
@@ -732,7 +957,6 @@ export function Whiteboard() {
       const dataUrl = ev.target?.result as string;
       const img = new Image();
       img.onload = () => {
-        // Scale to fit reasonably on canvas
         let w = img.width;
         let h = img.height;
         const maxDim = 600;
@@ -742,34 +966,154 @@ export function Whiteboard() {
           h = h * scale;
         }
         loadedImagesRef.current.set(dataUrl, img);
+        // Place image at center of current view
+        const canvas = canvasRef.current;
+        const dpr = window.devicePixelRatio || 1;
+        const viewW = (canvas?.width || 1920) / dpr;
+        const viewH = (canvas?.height || 1080) / dpr;
+        const centerWorldX = (-panOffset.x + viewW / 2) / zoom - w / 2;
+        const centerWorldY = (-panOffset.y + viewH / 2) / zoom - h / 2;
+        const newIdx = stateRef.current.images.length;
         stateRef.current.images.push({
-          x: CANVAS_W / 2 - w / 2,
-          y: CANVAS_H / 2 - h / 2,
+          x: centerWorldX,
+          y: centerWorldY,
           width: w,
           height: h,
           dataUrl,
         });
+        setSelectedImageIdx(newIdx);
         pushHistory();
         render();
       };
       img.src = dataUrl;
     };
     reader.readAsDataURL(file);
-    // Reset input so same file can be uploaded again
     e.target.value = "";
+  };
+
+  // Zoom with scroll wheel
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+    const newZoom = Math.min(10, Math.max(0.1, zoom * zoomFactor));
+
+    // Zoom toward cursor
+    const newPanX = mouseX - (mouseX - panOffset.x) * (newZoom / zoom);
+    const newPanY = mouseY - (mouseY - panOffset.y) * (newZoom / zoom);
+
+    setZoom(newZoom);
+    setPanOffset({ x: newPanX, y: newPanY });
   };
 
   const handleDoubleClick = () => {
     setIsFullscreen(prev => !prev);
   };
 
-  const saveToPNG = () => {
+  const zoomIn = () => {
+    const newZoom = Math.min(10, zoom * 1.25);
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    render();
+    const dpr = window.devicePixelRatio || 1;
+    const w = (canvas?.width || 1920) / dpr;
+    const h = (canvas?.height || 1080) / dpr;
+    const cx = w / 2;
+    const cy = h / 2;
+    setPanOffset({ x: cx - (cx - panOffset.x) * (newZoom / zoom), y: cy - (cy - panOffset.y) * (newZoom / zoom) });
+    setZoom(newZoom);
+  };
+
+  const zoomOut = () => {
+    const newZoom = Math.max(0.1, zoom / 1.25);
+    const canvas = canvasRef.current;
+    const dpr = window.devicePixelRatio || 1;
+    const w = (canvas?.width || 1920) / dpr;
+    const h = (canvas?.height || 1080) / dpr;
+    const cx = w / 2;
+    const cy = h / 2;
+    setPanOffset({ x: cx - (cx - panOffset.x) * (newZoom / zoom), y: cy - (cy - panOffset.y) * (newZoom / zoom) });
+    setZoom(newZoom);
+  };
+
+  const resetView = () => {
+    setPanOffset({ x: 0, y: 0 });
+    setZoom(1);
+  };
+
+  const saveToPNG = () => {
+    // Render to an offscreen canvas with all content
+    const offscreen = document.createElement("canvas");
+    // Find bounding box of all content
+    const state = stateRef.current;
+    let minX = 0, minY = 0, maxX = 1920, maxY = 1080;
+    for (const s of state.strokes) {
+      for (const p of s.points) {
+        minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
+        maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y);
+      }
+    }
+    for (const s of state.shapes) {
+      minX = Math.min(minX, s.start.x, s.end.x); minY = Math.min(minY, s.start.y, s.end.y);
+      maxX = Math.max(maxX, s.start.x, s.end.x); maxY = Math.max(maxY, s.start.y, s.end.y);
+    }
+    for (const img of state.images) {
+      minX = Math.min(minX, img.x); minY = Math.min(minY, img.y);
+      maxX = Math.max(maxX, img.x + img.width); maxY = Math.max(maxY, img.y + img.height);
+    }
+    const pad = 50;
+    minX -= pad; minY -= pad; maxX += pad; maxY += pad;
+    const w = maxX - minX;
+    const h = maxY - minY;
+    offscreen.width = w;
+    offscreen.height = h;
+    const ctx = offscreen.getContext("2d")!;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.translate(-minX, -minY);
+
+    // Draw grid
+    ctx.strokeStyle = "#e8edf2";
+    ctx.lineWidth = 0.5;
+    const startGX = Math.floor(minX / GRID_SIZE) * GRID_SIZE;
+    const startGY = Math.floor(minY / GRID_SIZE) * GRID_SIZE;
+    for (let x = startGX; x <= maxX; x += GRID_SIZE) {
+      ctx.beginPath(); ctx.moveTo(x, minY); ctx.lineTo(x, maxY); ctx.stroke();
+    }
+    for (let y = startGY; y <= maxY; y += GRID_SIZE) {
+      ctx.beginPath(); ctx.moveTo(minX, y); ctx.lineTo(maxX, y); ctx.stroke();
+    }
+
+    for (const img of state.images) {
+      const cached = loadedImagesRef.current.get(img.dataUrl);
+      if (cached) ctx.drawImage(cached, img.x, img.y, img.width, img.height);
+    }
+    for (const s of state.strokes) {
+      if (s.points.length < 2) continue;
+      ctx.beginPath();
+      ctx.moveTo(s.points[0].x, s.points[0].y);
+      for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
+      ctx.strokeStyle = s.tool === "eraser" ? "#ffffff" : s.color;
+      ctx.lineWidth = s.tool === "eraser" ? s.size * 4 : s.size;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.stroke();
+    }
+    for (const shape of state.shapes) drawShape(ctx, shape);
+    for (const t of state.tables) drawTable(ctx, t);
+    for (const note of state.stickyNotes) drawStickyNote(ctx, note);
+    for (const t of state.texts) {
+      ctx.font = t.font || `${t.size * 4 + 14}px 'Inter', sans-serif`;
+      ctx.fillStyle = t.color;
+      ctx.fillText(t.text, t.x, t.y);
+    }
+
     const link = document.createElement("a");
     link.download = `${title}.png`;
-    link.href = canvas.toDataURL("image/png");
+    link.href = offscreen.toDataURL("image/png");
     link.click();
   };
 
@@ -817,7 +1161,6 @@ export function Whiteboard() {
           shapes: parsed.shapes || [],
           texts: parsed.texts || [],
           stickyNotes: parsed.stickyNotes || [],
-          comments: parsed.comments || [],
           tables: parsed.tables || [],
           images: parsed.images || [],
         };
@@ -830,6 +1173,9 @@ export function Whiteboard() {
       setCurrentBoardId(board.id);
       setShareLink(board.share_token ? `${window.location.origin}/whiteboard?token=${board.share_token}` : null);
       loadedImagesRef.current.clear();
+      setSelectedImageIdx(null);
+      setPanOffset({ x: 0, y: 0 });
+      setZoom(1);
       pushHistory();
       render();
     } catch (error: any) {
@@ -860,8 +1206,11 @@ export function Whiteboard() {
     setShareLink(null);
     stateRef.current = emptyState();
     loadedImagesRef.current.clear();
+    setSelectedImageIdx(null);
     historyRef.current = [];
     historyIdxRef.current = -1;
+    setPanOffset({ x: 0, y: 0 });
+    setZoom(1);
     forceUpdate(n => n + 1);
     pushHistory();
     render();
@@ -939,21 +1288,31 @@ export function Whiteboard() {
     : "space-y-3 h-full flex flex-col";
 
   const getCursor = () => {
-    if (tool === "pointer") return "default";
-    if (tool === "text" || tool === "equation") return "text";
+    if (spaceHeldRef.current || tool === "move") return isPanningRef.current ? "grabbing" : "grab";
+    if (tool === "text") return "text";
     if (tool === "eraser") return "cell";
-    if (tool === "sticky" || tool === "comment" || tool === "table") return "copy";
+    if (tool === "sticky" || tool === "table") return "copy";
     if (tool === "image") return "pointer";
+    if (tool === "laser") return "none";
     return "crosshair";
   };
 
   const getInputPlaceholder = () => {
     switch (textInput.mode) {
-      case "equation": return "e.g. x² + y² = r²";
       case "sticky": return "Sticky note text...";
-      case "comment": return "Add comment...";
       case "frame": return "Frame label...";
       default: return "Type and press Enter";
+    }
+  };
+
+  const handleToolSelect = (id: Tool) => {
+    setTool(id);
+    // Immediately open file picker for image tool
+    if (id === "image") {
+      // Only open picker if no image is selected
+      if (selectedImageIdx === null) {
+        setTimeout(() => fileInputRef.current?.click(), 50);
+      }
     }
   };
 
@@ -961,7 +1320,7 @@ export function Whiteboard() {
     <Tooltip>
       <TooltipTrigger asChild>
         <button
-          onClick={() => setTool(id)}
+          onClick={() => handleToolSelect(id)}
           className={cn(
             "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
             tool === id
@@ -1033,6 +1392,19 @@ export function Whiteboard() {
             </Button>
           </div>
 
+          {/* Zoom controls */}
+          <div className="flex items-center gap-1 bg-muted rounded-lg px-1">
+            <Button variant="ghost" size="icon" onClick={zoomOut} title="Zoom Out" className="h-8 w-8">
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+            <button onClick={resetView} className="text-xs font-mono min-w-[40px] text-center hover:underline">
+              {Math.round(zoom * 100)}%
+            </button>
+            <Button variant="ghost" size="icon" onClick={zoomIn} title="Zoom In" className="h-8 w-8">
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
           <Button variant="outline" size="sm" onClick={generateShareLink}>
             {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
             Share Link
@@ -1058,13 +1430,13 @@ export function Whiteboard() {
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground text-center">Double-click canvas to enter/exit fullscreen</p>
+      <p className="text-xs text-muted-foreground text-center">Double-click canvas to enter/exit fullscreen · Hold Space to pan · Scroll to zoom</p>
 
       {/* Main area: left tools | canvas | right colors */}
       <div className="flex flex-1 gap-3 px-3 pb-3 min-h-0">
         {/* Left Toolbar */}
         <div className="flex flex-col items-center gap-0.5 py-3 px-1.5 bg-card rounded-2xl shadow-lg border border-border/50 self-start">
-          <ToolBtn id="pointer" icon={MousePointer2} label="Pointer" />
+          <ToolBtn id="move" icon={Hand} label="Move / Pan" />
           <ToolBtn id="pen" icon={Pencil} label="Pen" />
 
           {/* Shapes dropdown */}
@@ -1099,25 +1471,15 @@ export function Whiteboard() {
 
           <ToolBtn id="connector" icon={Spline} label="Connector" />
           <ToolBtn id="text" icon={Type} label="Text" />
-          <ToolBtn id="equation" icon={Sigma} label="Equation (Σ)" />
           <ToolBtn id="sticky" icon={StickyNote} label="Sticky Note" />
-          <ToolBtn id="comment" icon={MessageCircle} label="Comment" />
           <ToolBtn id="frame" icon={Hash} label="Frame" />
           <ToolBtn id="table" icon={Table2} label="Table (3×3)" />
           <ToolBtn id="image" icon={ImagePlus} label="Image Upload" />
 
           <div className="w-7 h-px bg-border my-1.5" />
 
+          <ToolBtn id="laser" icon={Crosshair} label="Laser Pointer" />
           <ToolBtn id="eraser" icon={Eraser} label="Eraser" />
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-all">
-                <MoreHorizontal className="h-[18px] w-[18px]" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="text-xs">More tools</TooltipContent>
-          </Tooltip>
 
           <div className="w-7 h-px bg-border my-1.5" />
 
@@ -1147,27 +1509,39 @@ export function Whiteboard() {
         {/* Canvas */}
         <div
           ref={containerRef}
-          className="relative flex-1 rounded-xl border border-border bg-muted/30 shadow-inner overflow-auto"
+          className="relative flex-1 rounded-xl border border-border bg-muted/30 shadow-inner overflow-hidden"
         >
           {loading && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10">
               <Loader2 className="h-8 w-8 animate-spin text-teacher" />
             </div>
           )}
+
+          {/* Laser dot cursor */}
+          {tool === "laser" && (
+            <div className="pointer-events-none absolute inset-0 z-20" id="laser-cursor-layer" />
+          )}
+
           <canvas
             ref={canvasRef}
-            width={CANVAS_W}
-            height={CANVAS_H}
-            className="block max-w-full h-auto"
+            className="block w-full h-full"
             style={{ cursor: getCursor(), touchAction: "none" }}
             onMouseDown={startDrawing}
-            onMouseMove={draw}
+            onMouseMove={(e) => {
+              draw(e);
+              // Update laser trail on move even without clicking
+              if (tool === "laser" && !isDrawing) {
+                const pos = getCanvasPos(e);
+                laserTrailRef.current.push({ x: pos.x, y: pos.y, time: Date.now() });
+              }
+            }}
             onMouseUp={stopDrawing}
             onMouseLeave={stopDrawing}
             onTouchStart={startDrawing}
             onTouchMove={draw}
             onTouchEnd={stopDrawing}
             onDoubleClick={handleDoubleClick}
+            onWheel={handleWheel}
           />
 
           {/* Floating text input */}
@@ -1176,12 +1550,8 @@ export function Whiteboard() {
               ref={textInputRef}
               className={cn(
                 "absolute border-b-2 outline-none px-2 py-1 text-sm shadow-sm rounded",
-                textInput.mode === "equation"
-                  ? "bg-card border-primary text-foreground italic font-serif"
-                  : textInput.mode === "sticky"
+                textInput.mode === "sticky"
                   ? "bg-yellow-100 border-yellow-400 text-yellow-900"
-                  : textInput.mode === "comment"
-                  ? "bg-card border-teacher text-foreground"
                   : "bg-transparent border-teacher text-foreground"
               )}
               style={{ left: textInput.x, top: textInput.y - 10, minWidth: 160 }}
