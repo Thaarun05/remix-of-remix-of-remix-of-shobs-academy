@@ -199,16 +199,20 @@ export function Whiteboard() {
       const dpr = window.devicePixelRatio || 1;
       const w = container.clientWidth;
       const h = container.clientHeight;
+      if (w === 0 || h === 0) return;
       canvas.width = w * dpr;
       canvas.height = h * dpr;
       canvas.style.width = w + "px";
       canvas.style.height = h + "px";
       render();
     };
-    resize();
+    // Small delay to let layout settle after fullscreen toggle
+    const timer = setTimeout(resize, 50);
     window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, []);
+    const observer = new ResizeObserver(resize);
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => { clearTimeout(timer); window.removeEventListener("resize", resize); observer.disconnect(); };
+  }, [isFullscreen]);
 
   // Space key for panning
   useEffect(() => {
@@ -1284,8 +1288,8 @@ export function Whiteboard() {
   const ShapeIcon = activeShapeTool?.icon || Square;
 
   const containerClasses = isFullscreen
-    ? "fixed inset-0 z-[9999] bg-background flex flex-col"
-    : "space-y-3 h-full flex flex-col";
+    ? "fixed inset-0 z-[9999] bg-background flex flex-col overflow-hidden"
+    : "h-full flex flex-col gap-3 overflow-hidden";
 
   const getCursor = () => {
     if (spaceHeldRef.current || tool === "move") return isPanningRef.current ? "grabbing" : "grab";
@@ -1430,7 +1434,7 @@ export function Whiteboard() {
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground text-center">Double-click canvas to enter/exit fullscreen · Hold Space to pan · Scroll to zoom</p>
+      <p className="text-xs text-muted-foreground text-center shrink-0">Double-click canvas to enter/exit fullscreen · Hold Space to pan · Scroll to zoom</p>
 
       {/* Main area: left tools | canvas | right colors */}
       <div className="flex flex-1 gap-3 px-3 pb-3 min-h-0">
@@ -1509,7 +1513,7 @@ export function Whiteboard() {
         {/* Canvas */}
         <div
           ref={containerRef}
-          className="relative flex-1 rounded-xl border border-border bg-muted/30 shadow-inner overflow-hidden"
+          className="relative flex-1 min-h-0 rounded-xl border border-border bg-muted/30 shadow-inner overflow-hidden"
         >
           {loading && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10">
