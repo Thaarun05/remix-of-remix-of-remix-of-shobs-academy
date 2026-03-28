@@ -1425,60 +1425,22 @@ export function Whiteboard() {
           )}
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} title="Undo">
-              <Undo2 className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={redo} disabled={!canRedo} title="Redo">
-              <Redo2 className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={clearCanvas} title="Clear Board">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={saveToPNG}>
-              <Download className="h-4 w-4" />
-              PNG
-            </Button>
-          </div>
+             <Button variant="outline" size="sm" onClick={saveToPNG}>
+               <Download className="h-4 w-4" />
+               PNG
+             </Button>
+           </div>
+         </div>
+       </div>
 
-          {/* Zoom controls */}
-          <div className="flex items-center gap-1 bg-muted rounded-lg px-1">
-            <Button variant="ghost" size="icon" onClick={zoomOut} title="Zoom Out" className="h-8 w-8">
-              <ZoomOut className="h-3.5 w-3.5" />
-            </Button>
-            <button onClick={resetView} className="text-xs font-mono min-w-[40px] text-center hover:underline">
-              {Math.round(zoom * 100)}%
-            </button>
-            <Button variant="ghost" size="icon" onClick={zoomIn} title="Zoom In" className="h-8 w-8">
-              <ZoomIn className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-
-          <Button variant="outline" size="sm" onClick={generateShareLink}>
-            {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-            Share Link
-          </Button>
-
-          <Button variant="teacher" size="sm" onClick={openSendModal}>
-            <Send className="h-4 w-4" />
-            📤 Send to Students
-          </Button>
-
-          {isFullscreen && (
-            <span className="px-2 py-1 rounded-full bg-teacher/10 text-teacher text-xs font-bold">FULLSCREEN</span>
-          )}
-        </div>
-      </div>
-
-      {shareLink && (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-sm mx-3">
-          <span className="truncate flex-1 font-mono text-xs">{shareLink}</span>
-          <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(shareLink); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
-            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-          </Button>
-        </div>
-      )}
+       {shareLink && (
+         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-sm mx-3">
+           <span className="truncate flex-1 font-mono text-xs">{shareLink}</span>
+           <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(shareLink); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
+             {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+           </Button>
+         </div>
+       )}
 
       <p className="text-xs text-muted-foreground text-center">Double-click canvas to enter/exit fullscreen · Hold Space to pan · Scroll to zoom</p>
 
