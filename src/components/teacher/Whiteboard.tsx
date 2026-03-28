@@ -1434,7 +1434,7 @@ export function Whiteboard() {
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground text-center">Double-click canvas to enter/exit fullscreen · Hold Space to pan · Scroll to zoom</p>
+      <p className="text-xs text-muted-foreground text-center shrink-0">Double-click canvas to enter/exit fullscreen · Hold Space to pan · Scroll to zoom</p>
 
       {/* Main area: left tools | canvas | right colors */}
       <div className="flex flex-1 gap-3 px-3 pb-3 min-h-0">
