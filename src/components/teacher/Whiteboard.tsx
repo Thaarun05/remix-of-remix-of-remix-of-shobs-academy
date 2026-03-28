@@ -1284,8 +1284,8 @@ export function Whiteboard() {
   const ShapeIcon = activeShapeTool?.icon || Square;
 
   const containerClasses = isFullscreen
-    ? "fixed inset-0 z-[9999] bg-background flex flex-col"
-    : "space-y-3 h-full flex flex-col";
+    ? "fixed inset-0 z-[9999] bg-background flex flex-col overflow-hidden"
+    : "h-full flex flex-col gap-3 overflow-hidden";
 
   const getCursor = () => {
     if (spaceHeldRef.current || tool === "move") return isPanningRef.current ? "grabbing" : "grab";
