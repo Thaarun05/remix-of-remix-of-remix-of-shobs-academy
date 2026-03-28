@@ -102,6 +102,17 @@ interface StudentItem {
   student_name: string;
 }
 
+interface WhiteboardShare {
+  id: string;
+  whiteboard_id: string;
+  student_user_id: string;
+  teacher_user_id: string;
+  title: string;
+  thumbnail_data: string | null;
+  sent_at: string;
+  deleted_at: string | null;
+}
+
 const COLORS = [
   "#1a1a2e", "#e74c3c", "#2980b9", "#27ae60",
   "#f39c12", "#8e44ad", "#e91e63", "#00bcd4",
