@@ -1292,7 +1292,27 @@ export function Whiteboard() {
     if (!user || selectedStudents.size === 0) return;
     setSending(true);
     try {
+      // Save the board first if not saved
       if (!currentBoardId) await saveToDatabase();
+      
+      // Generate thumbnail from canvas
+      const thumbnail = getThumbnail();
+      
+      // Insert whiteboard_shares records
+      const shares = Array.from(selectedStudents).map(studentId => ({
+        whiteboard_id: currentBoardId,
+        student_user_id: studentId,
+        teacher_user_id: user.id,
+        title,
+        thumbnail_data: thumbnail,
+      }));
+      
+      const { error: shareError } = await supabase
+        .from("whiteboard_shares" as any)
+        .insert(shares as any);
+      if (shareError) throw shareError;
+
+      // Also send notifications
       const notifications = Array.from(selectedStudents).map(studentId => ({
         recipient_id: studentId,
         sender_id: user.id,
@@ -1303,10 +1323,12 @@ export function Whiteboard() {
         entity_table: "whiteboards",
         role_target: "student",
       }));
-      const { error } = await supabase.from("notifications").insert(notifications);
-      if (error) throw error;
+      await supabase.from("notifications").insert(notifications);
+      
       toast({ title: "✅ Whiteboard shared!", description: "Students will see it in their dashboard." });
-      setTimeout(() => setSendModalOpen(false), 2000);
+      // Refresh sent list if a student is selected
+      if (selectedStudentId) fetchSentWhiteboards(selectedStudentId);
+      setTimeout(() => setSendModalOpen(false), 1500);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
