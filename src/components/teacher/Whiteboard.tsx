@@ -199,16 +199,20 @@ export function Whiteboard() {
       const dpr = window.devicePixelRatio || 1;
       const w = container.clientWidth;
       const h = container.clientHeight;
+      if (w === 0 || h === 0) return;
       canvas.width = w * dpr;
       canvas.height = h * dpr;
       canvas.style.width = w + "px";
       canvas.style.height = h + "px";
       render();
     };
-    resize();
+    // Small delay to let layout settle after fullscreen toggle
+    const timer = setTimeout(resize, 50);
     window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, []);
+    const observer = new ResizeObserver(resize);
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => { clearTimeout(timer); window.removeEventListener("resize", resize); observer.disconnect(); };
+  }, [isFullscreen]);
 
   // Space key for panning
   useEffect(() => {
