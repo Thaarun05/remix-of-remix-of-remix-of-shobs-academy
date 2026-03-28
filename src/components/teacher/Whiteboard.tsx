@@ -1425,22 +1425,96 @@ export function Whiteboard() {
           )}
         </div>
 
-             <Button variant="outline" size="sm" onClick={saveToPNG}>
-               <Download className="h-4 w-4" />
-               PNG
-             </Button>
-           </div>
-         </div>
-       </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} title="Undo">
+              <Undo2 className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={redo} disabled={!canRedo} title="Redo">
+              <Redo2 className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={clearCanvas} title="Clear Board">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
 
-       {shareLink && (
-         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-sm mx-3">
-           <span className="truncate flex-1 font-mono text-xs">{shareLink}</span>
-           <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(shareLink); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
-             {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-           </Button>
-         </div>
-       )}
+          {/* Zoom controls */}
+          <div className="flex items-center gap-1 bg-muted rounded-lg px-1">
+            <Button variant="ghost" size="icon" onClick={zoomOut} title="Zoom Out" className="h-8 w-8">
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+            <button onClick={resetView} className="text-xs font-mono min-w-[40px] text-center hover:underline">
+              {Math.round(zoom * 100)}%
+            </button>
+            <Button variant="ghost" size="icon" onClick={zoomIn} title="Zoom In" className="h-8 w-8">
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          <Button variant="teacher" size="sm" onClick={openSendModal}>
+            <Send className="h-4 w-4" />
+            📤 Send to Students
+          </Button>
+
+          {isFullscreen && (
+            <span className="px-2 py-1 rounded-full bg-teacher/10 text-teacher text-xs font-bold">FULLSCREEN</span>
+          )}
+        </div>
+      </div>
+
+      {/* Select Student dropdown + sent history */}
+      <div className="flex items-center gap-3 px-3">
+        <select
+          className="h-9 rounded-xl border border-border bg-card px-3 text-sm min-w-[180px]"
+          value={selectedStudentId || ""}
+          onChange={(e) => e.target.value && handleSelectStudent(e.target.value)}
+        >
+          <option value="" disabled>Select Student...</option>
+          {students.map((s) => (
+            <option key={s.user_id} value={s.user_id}>{s.student_name}</option>
+          ))}
+        </select>
+        {selectedStudentId && (
+          <span className="text-xs text-muted-foreground">
+            {sentWhiteboards.length} whiteboard(s) sent
+          </span>
+        )}
+      </div>
+
+      {/* Sent whiteboards list for selected student */}
+      {selectedStudentId && (
+        <div className="px-3 max-h-36 overflow-y-auto">
+          {loadingSent ? (
+            <div className="flex items-center justify-center py-3">
+              <Loader2 className="h-5 w-5 animate-spin text-teacher" />
+            </div>
+          ) : sentWhiteboards.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2 text-center">No whiteboards sent to this student yet</p>
+          ) : (
+            <div className="flex gap-2 flex-wrap">
+              {sentWhiteboards.map((sw) => (
+                <div key={sw.id} className="flex items-center gap-2 p-2 rounded-lg border border-border bg-card text-sm">
+                  {sw.thumbnail_data && (
+                    <img src={sw.thumbnail_data} alt="" className="w-12 h-8 object-contain rounded border border-border bg-white" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-medium text-xs truncate max-w-[120px]">{sw.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(sw.sent_at).toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => editSentWhiteboard(sw)} title="Edit">
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteConfirmId(sw.id)} title="Delete">
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <p className="text-xs text-muted-foreground text-center">Double-click canvas to enter/exit fullscreen · Hold Space to pan · Scroll to zoom</p>
 
