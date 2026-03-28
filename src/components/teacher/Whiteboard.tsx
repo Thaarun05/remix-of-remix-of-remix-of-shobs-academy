@@ -1253,7 +1253,7 @@ export function Whiteboard() {
   const newBoard = () => {
     setCurrentBoardId(null);
     setTitle("Untitled Whiteboard");
-    setShareLink(null);
+    // New board created
     stateRef.current = emptyState();
     loadedImagesRef.current.clear();
     setSelectedImageIdx(null);
