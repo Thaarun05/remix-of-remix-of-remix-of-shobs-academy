@@ -102,6 +102,17 @@ interface StudentItem {
   student_name: string;
 }
 
+interface WhiteboardShare {
+  id: string;
+  whiteboard_id: string;
+  student_user_id: string;
+  teacher_user_id: string;
+  title: string;
+  thumbnail_data: string | null;
+  sent_at: string;
+  deleted_at: string | null;
+}
+
 const COLORS = [
   "#1a1a2e", "#e74c3c", "#2980b9", "#27ae60",
   "#f39c12", "#8e44ad", "#e91e63", "#00bcd4",
@@ -141,9 +152,13 @@ export function Whiteboard() {
   const [loading, setLoading] = useState(false);
   const [savedBoards, setSavedBoards] = useState<WhiteboardRecord[]>([]);
   const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
-  const [shareLink, setShareLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Student dropdown + sent history
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [sentWhiteboards, setSentWhiteboards] = useState<WhiteboardShare[]>([]);
+  const [loadingSent, setLoadingSent] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Infinite canvas: pan offset and zoom
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
@@ -619,7 +634,10 @@ export function Whiteboard() {
   useEffect(() => { render(); }, [panOffset, zoom, selectedImageIdx]);
 
   useEffect(() => {
-    if (user) fetchSavedBoards();
+    if (user) {
+      fetchSavedBoards();
+      fetchStudents();
+    }
   }, [user]);
 
   const fetchSavedBoards = async () => {
@@ -640,6 +658,51 @@ export function Whiteboard() {
       .eq("assigned_teacher_id", user.id)
       .order("student_name");
     setStudents(data || []);
+  };
+
+  const fetchSentWhiteboards = async (studentId: string) => {
+    if (!user) return;
+    setLoadingSent(true);
+    try {
+      const { data } = await supabase
+        .from("whiteboard_shares" as any)
+        .select("*")
+        .eq("teacher_user_id", user.id)
+        .eq("student_user_id", studentId)
+        .is("deleted_at", null)
+        .order("sent_at", { ascending: false });
+      setSentWhiteboards((data as unknown as WhiteboardShare[]) || []);
+    } catch (err) {
+      console.error("Error fetching sent whiteboards:", err);
+    } finally {
+      setLoadingSent(false);
+    }
+  };
+
+  const handleSelectStudent = (studentId: string) => {
+    setSelectedStudentId(studentId);
+    fetchSentWhiteboards(studentId);
+  };
+
+  const deleteSentWhiteboard = async (shareId: string) => {
+    try {
+      const { error } = await supabase
+        .from("whiteboard_shares" as any)
+        .update({ deleted_at: new Date().toISOString() } as any)
+        .eq("id", shareId);
+      if (error) throw error;
+      toast({ title: "Deleted", description: "Whiteboard removed." });
+      if (selectedStudentId) fetchSentWhiteboards(selectedStudentId);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setDeleteConfirmId(null);
+    }
+  };
+
+  const editSentWhiteboard = async (share: WhiteboardShare) => {
+    // Load the whiteboard from the whiteboards table
+    await loadBoard(share.whiteboard_id);
   };
 
   const clearCanvas = () => {
@@ -1175,7 +1238,7 @@ export function Whiteboard() {
 
       setTitle(board.title);
       setCurrentBoardId(board.id);
-      setShareLink(board.share_token ? `${window.location.origin}/whiteboard?token=${board.share_token}` : null);
+      // Board loaded
       loadedImagesRef.current.clear();
       setSelectedImageIdx(null);
       setPanOffset({ x: 0, y: 0 });
@@ -1189,25 +1252,11 @@ export function Whiteboard() {
     }
   };
 
-  const generateShareLink = async () => {
-    if (!currentBoardId) {
-      toast({ title: "Save first", description: "Please save before sharing.", variant: "destructive" });
-      return;
-    }
-    const { data } = await wb().select("share_token").eq("id", currentBoardId).single();
-    if (!data) return;
-    const link = `${window.location.origin}/whiteboard?token=${(data as any).share_token}`;
-    setShareLink(link);
-    navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast({ title: "Link copied!", description: "Share this read-only link with students." });
-  };
 
   const newBoard = () => {
     setCurrentBoardId(null);
     setTitle("Untitled Whiteboard");
-    setShareLink(null);
+    // New board created
     stateRef.current = emptyState();
     loadedImagesRef.current.clear();
     setSelectedImageIdx(null);
@@ -1246,7 +1295,27 @@ export function Whiteboard() {
     if (!user || selectedStudents.size === 0) return;
     setSending(true);
     try {
+      // Save the board first if not saved
       if (!currentBoardId) await saveToDatabase();
+      
+      // Generate thumbnail from canvas
+      const thumbnail = getThumbnail();
+      
+      // Insert whiteboard_shares records
+      const shares = Array.from(selectedStudents).map(studentId => ({
+        whiteboard_id: currentBoardId,
+        student_user_id: studentId,
+        teacher_user_id: user.id,
+        title,
+        thumbnail_data: thumbnail,
+      }));
+      
+      const { error: shareError } = await supabase
+        .from("whiteboard_shares" as any)
+        .insert(shares as any);
+      if (shareError) throw shareError;
+
+      // Also send notifications
       const notifications = Array.from(selectedStudents).map(studentId => ({
         recipient_id: studentId,
         sender_id: user.id,
@@ -1257,10 +1326,12 @@ export function Whiteboard() {
         entity_table: "whiteboards",
         role_target: "student",
       }));
-      const { error } = await supabase.from("notifications").insert(notifications);
-      if (error) throw error;
+      await supabase.from("notifications").insert(notifications);
+      
       toast({ title: "✅ Whiteboard shared!", description: "Students will see it in their dashboard." });
-      setTimeout(() => setSendModalOpen(false), 2000);
+      // Refresh sent list if a student is selected
+      if (selectedStudentId) fetchSentWhiteboards(selectedStudentId);
+      setTimeout(() => setSendModalOpen(false), 1500);
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -1390,10 +1461,6 @@ export function Whiteboard() {
             <Button variant="ghost" size="icon" onClick={clearCanvas} title="Clear Board">
               <Trash2 className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={saveToPNG}>
-              <Download className="h-4 w-4" />
-              PNG
-            </Button>
           </div>
 
           {/* Zoom controls */}
@@ -1409,11 +1476,6 @@ export function Whiteboard() {
             </Button>
           </div>
 
-          <Button variant="outline" size="sm" onClick={generateShareLink}>
-            {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-            Share Link
-          </Button>
-
           <Button variant="teacher" size="sm" onClick={openSendModal}>
             <Send className="h-4 w-4" />
             📤 Send to Students
@@ -1425,12 +1487,57 @@ export function Whiteboard() {
         </div>
       </div>
 
-      {shareLink && (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-sm mx-3">
-          <span className="truncate flex-1 font-mono text-xs">{shareLink}</span>
-          <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(shareLink); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
-            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-          </Button>
+      {/* Select Student dropdown + sent history */}
+      <div className="flex items-center gap-3 px-3">
+        <select
+          className="h-9 rounded-xl border border-border bg-card px-3 text-sm min-w-[180px]"
+          value={selectedStudentId || ""}
+          onChange={(e) => e.target.value && handleSelectStudent(e.target.value)}
+        >
+          <option value="" disabled>Select Student...</option>
+          {students.map((s) => (
+            <option key={s.user_id} value={s.user_id}>{s.student_name}</option>
+          ))}
+        </select>
+        {selectedStudentId && (
+          <span className="text-xs text-muted-foreground">
+            {sentWhiteboards.length} whiteboard(s) sent
+          </span>
+        )}
+      </div>
+
+      {/* Sent whiteboards list for selected student */}
+      {selectedStudentId && (
+        <div className="px-3 max-h-36 overflow-y-auto">
+          {loadingSent ? (
+            <div className="flex items-center justify-center py-3">
+              <Loader2 className="h-5 w-5 animate-spin text-teacher" />
+            </div>
+          ) : sentWhiteboards.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2 text-center">No whiteboards sent to this student yet</p>
+          ) : (
+            <div className="flex gap-2 flex-wrap">
+              {sentWhiteboards.map((sw) => (
+                <div key={sw.id} className="flex items-center gap-2 p-2 rounded-lg border border-border bg-card text-sm">
+                  {sw.thumbnail_data && (
+                    <img src={sw.thumbnail_data} alt="" className="w-12 h-8 object-contain rounded border border-border bg-white" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-medium text-xs truncate max-w-[120px]">{sw.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(sw.sent_at).toLocaleDateString()}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => editSentWhiteboard(sw)} title="Edit">
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteConfirmId(sw.id)} title="Delete">
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -1635,6 +1742,20 @@ export function Whiteboard() {
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               Send ({selectedStudents.size})
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Whiteboard?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">This will remove the whiteboard from the student. This action cannot be undone.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteConfirmId && deleteSentWhiteboard(deleteConfirmId)}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
