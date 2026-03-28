@@ -1235,7 +1235,7 @@ export function Whiteboard() {
 
       setTitle(board.title);
       setCurrentBoardId(board.id);
-      setShareLink(board.share_token ? `${window.location.origin}/whiteboard?token=${board.share_token}` : null);
+      // Board loaded
       loadedImagesRef.current.clear();
       setSelectedImageIdx(null);
       setPanOffset({ x: 0, y: 0 });
