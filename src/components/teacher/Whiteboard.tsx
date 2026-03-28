@@ -1249,20 +1249,6 @@ export function Whiteboard() {
     }
   };
 
-  const generateShareLink = async () => {
-    if (!currentBoardId) {
-      toast({ title: "Save first", description: "Please save before sharing.", variant: "destructive" });
-      return;
-    }
-    const { data } = await wb().select("share_token").eq("id", currentBoardId).single();
-    if (!data) return;
-    const link = `${window.location.origin}/whiteboard?token=${(data as any).share_token}`;
-    setShareLink(link);
-    navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast({ title: "Link copied!", description: "Share this read-only link with students." });
-  };
 
   const newBoard = () => {
     setCurrentBoardId(null);
