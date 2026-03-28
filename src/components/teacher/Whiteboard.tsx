@@ -634,7 +634,11 @@ export function Whiteboard() {
   useEffect(() => { render(); }, [panOffset, zoom, selectedImageIdx]);
 
   useEffect(() => {
-    if (user) fetchSavedBoards();
+    if (user) {
+      fetchSavedBoards();
+      fetchStudents();
+    }
+  }, [user]);
   }, [user]);
 
   const fetchSavedBoards = async () => {
