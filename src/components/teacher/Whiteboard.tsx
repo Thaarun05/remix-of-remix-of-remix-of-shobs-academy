@@ -977,6 +977,14 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
         setTitle(share.title);
         setCurrentBoardId(share.whiteboard_id);
         loadedImagesRef.current.clear();
+        // Pre-load all image elements from session state
+        for (const imgItem of stateRef.current.images) {
+          if (imgItem.dataUrl && !loadedImagesRef.current.has(imgItem.dataUrl)) {
+            const imgEl = new Image();
+            imgEl.onload = () => { loadedImagesRef.current.set(imgItem.dataUrl, imgEl); render(); };
+            imgEl.src = imgItem.dataUrl;
+          }
+        }
         setSelectedImageIdx(null);
         setPanOffset({ x: 0, y: 0 });
         setZoom(1);
