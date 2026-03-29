@@ -212,6 +212,17 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   const [textValue, setTextValue] = useState("");
   const [stickyCanvasPos, setStickyCanvasPos] = useState<Point>({ x: 0, y: 0 });
 
+  // Context menu
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean; x: number; y: number;
+    targetType: "image" | "sticky" | "text" | "shape" | "table";
+    targetId: string; targetIdx: number;
+  } | null>(null);
+  const [editingItem, setEditingItem] = useState<{ type: "text" | "sticky"; id: string; x: number; y: number; value: string } | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [selectedItemType, setSelectedItemType] = useState<"shape" | "table" | "sticky" | null>(null);
+  const itemDragRef = useRef<{ id: string; type: string; offsetX: number; offsetY: number; mode: "move" | "resize"; corner?: string; origData?: any } | null>(null);
+
   // Laser
   const laserTrailRef = useRef<LaserPoint[]>([]);
   const laserAnimRef = useRef<number>(0);
@@ -540,6 +551,27 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       }
       case "undo": removeById(payload.itemType, payload.itemId); render(); break;
       case "redo": addItem(payload.itemType, payload.data); render(); break;
+      case "delete_item": removeById(payload.itemType, payload.itemId); render(); break;
+      case "sticky_update": {
+        const note = s.stickyNotes.find(n => n.id === payload.data.id);
+        if (note) { Object.assign(note, payload.data); }
+        render(); break;
+      }
+      case "text_update": {
+        const txt = s.texts.find(t => t.id === payload.data.id);
+        if (txt) { Object.assign(txt, payload.data); }
+        render(); break;
+      }
+      case "shape_update": {
+        const sh = s.shapes.find(x => x.id === payload.data.id);
+        if (sh) { Object.assign(sh, payload.data); }
+        render(); break;
+      }
+      case "table_update": {
+        const tbl = s.tables.find(x => x.id === payload.data.id);
+        if (tbl) { Object.assign(tbl, payload.data); }
+        render(); break;
+      }
       case "laser": {
         const trail = remoteLaserRef.current.get(payload.userId) || [];
         trail.push({ x: payload.x, y: payload.y, time: Date.now() });
@@ -848,6 +880,47 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       ctx.fillText(t.text, t.x, t.y);
     }
 
+    // Draw selection handles for non-image selected items
+    const selId = selectedItemId;
+    const selType = selectedItemType;
+    if (selId && selType) {
+      ctx.save();
+      ctx.strokeStyle = "#2980b9";
+      ctx.lineWidth = 2 / currentZoom;
+      ctx.setLineDash([6 / currentZoom, 4 / currentZoom]);
+      const hs = 8 / currentZoom;
+      ctx.fillStyle = "#2980b9";
+      const drawHandles = (corners: Point[]) => {
+        for (const c of corners) ctx.fillRect(c.x - hs / 2, c.y - hs / 2, hs, hs);
+      };
+      if (selType === "sticky") {
+        const note = stickyNotes.find(n => n.id === selId);
+        if (note) {
+          ctx.strokeRect(note.x, note.y, note.width, note.height);
+          ctx.setLineDash([]);
+          drawHandles([{ x: note.x, y: note.y }, { x: note.x + note.width, y: note.y }, { x: note.x, y: note.y + note.height }, { x: note.x + note.width, y: note.y + note.height }]);
+        }
+      } else if (selType === "table") {
+        const tbl = tables.find(t => t.id === selId);
+        if (tbl) {
+          const tw = tbl.cols * tbl.cellWidth, th = tbl.rows * tbl.cellHeight;
+          ctx.strokeRect(tbl.x, tbl.y, tw, th);
+          ctx.setLineDash([]);
+          drawHandles([{ x: tbl.x, y: tbl.y }, { x: tbl.x + tw, y: tbl.y }, { x: tbl.x, y: tbl.y + th }, { x: tbl.x + tw, y: tbl.y + th }]);
+        }
+      } else if (selType === "shape") {
+        const sh = shapes.find(s => s.id === selId);
+        if (sh) {
+          const minX = Math.min(sh.start.x, sh.end.x), minY = Math.min(sh.start.y, sh.end.y);
+          const maxX = Math.max(sh.start.x, sh.end.x), maxY = Math.max(sh.start.y, sh.end.y);
+          ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+          ctx.setLineDash([]);
+          drawHandles([{ x: minX, y: minY }, { x: maxX, y: minY }, { x: minX, y: maxY }, { x: maxX, y: maxY }]);
+        }
+      }
+      ctx.restore();
+    }
+
     ctx.restore();
 
     // Local laser trail (red)
@@ -1058,8 +1131,68 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     return null;
   };
 
+  const hitTestAll = (worldPos: Point): { type: "image" | "sticky" | "text" | "shape" | "table"; id: string; idx: number } | null => {
+    const imgIdx = hitTestImage(worldPos);
+    if (imgIdx !== null) return { type: "image", id: stateRef.current.images[imgIdx].id, idx: imgIdx };
+    const notes = stateRef.current.stickyNotes;
+    for (let i = notes.length - 1; i >= 0; i--) {
+      const n = notes[i];
+      if (worldPos.x >= n.x && worldPos.x <= n.x + n.width && worldPos.y >= n.y && worldPos.y <= n.y + n.height) return { type: "sticky", id: n.id, idx: i };
+    }
+    const tbls = stateRef.current.tables;
+    for (let i = tbls.length - 1; i >= 0; i--) {
+      const t = tbls[i];
+      const tw = t.cols * t.cellWidth, th = t.rows * t.cellHeight;
+      if (worldPos.x >= t.x && worldPos.x <= t.x + tw && worldPos.y >= t.y && worldPos.y <= t.y + th) return { type: "table", id: t.id, idx: i };
+    }
+    const txts = stateRef.current.texts;
+    for (let i = txts.length - 1; i >= 0; i--) {
+      const t = txts[i];
+      const approxW = Math.max(t.text.length * (t.size * 2 + 7), 40);
+      const approxH = t.size * 4 + 20;
+      if (worldPos.x >= t.x && worldPos.x <= t.x + approxW && worldPos.y >= t.y - approxH && worldPos.y <= t.y + 4) return { type: "text", id: t.id, idx: i };
+    }
+    const shps = stateRef.current.shapes;
+    for (let i = shps.length - 1; i >= 0; i--) {
+      const sh = shps[i];
+      const minX = Math.min(sh.start.x, sh.end.x) - 8, maxX = Math.max(sh.start.x, sh.end.x) + 8;
+      const minY = Math.min(sh.start.y, sh.end.y) - 8, maxY = Math.max(sh.start.y, sh.end.y) + 8;
+      if (worldPos.x >= minX && worldPos.x <= maxX && worldPos.y >= minY && worldPos.y <= maxY) return { type: "shape", id: sh.id, idx: i };
+    }
+    return null;
+  };
+
+  const hitTestItemCorner = (worldPos: Point): string | null => {
+    if (!selectedItemId || !selectedItemType) return null;
+    const hs = 14 / zoom;
+    let corners: { name: string; x: number; y: number }[] = [];
+    if (selectedItemType === "sticky") {
+      const n = stateRef.current.stickyNotes.find(n => n.id === selectedItemId);
+      if (!n) return null;
+      corners = [{ name: "tl", x: n.x, y: n.y }, { name: "tr", x: n.x + n.width, y: n.y }, { name: "bl", x: n.x, y: n.y + n.height }, { name: "br", x: n.x + n.width, y: n.y + n.height }];
+    } else if (selectedItemType === "table") {
+      const t = stateRef.current.tables.find(t => t.id === selectedItemId);
+      if (!t) return null;
+      const tw = t.cols * t.cellWidth, th = t.rows * t.cellHeight;
+      corners = [{ name: "tl", x: t.x, y: t.y }, { name: "tr", x: t.x + tw, y: t.y }, { name: "bl", x: t.x, y: t.y + th }, { name: "br", x: t.x + tw, y: t.y + th }];
+    } else if (selectedItemType === "shape") {
+      const sh = stateRef.current.shapes.find(s => s.id === selectedItemId);
+      if (!sh) return null;
+      const minX = Math.min(sh.start.x, sh.end.x), minY = Math.min(sh.start.y, sh.end.y);
+      const maxX = Math.max(sh.start.x, sh.end.x), maxY = Math.max(sh.start.y, sh.end.y);
+      corners = [{ name: "tl", x: minX, y: minY }, { name: "tr", x: maxX, y: minY }, { name: "bl", x: minX, y: maxY }, { name: "br", x: maxX, y: maxY }];
+    }
+    for (const c of corners) {
+      if (Math.abs(worldPos.x - c.x) < hs && Math.abs(worldPos.y - c.y) < hs) return c.name;
+    }
+    return null;
+  };
+
   // === Mouse handlers ===
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+    // Dismiss context menu on any click
+    if (contextMenu) { setContextMenu(null); return; }
+
     const pos = getCanvasPos(e);
     const screenPos = getScreenPos(e);
     const isMiddleButton = "button" in e && (e as React.MouseEvent).button === 1;
@@ -1083,6 +1216,34 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       return;
     }
 
+    // Check if clicking a resize handle for non-image selected items
+    const itemCorner = hitTestItemCorner(pos);
+    if (itemCorner && selectedItemId && selectedItemType) {
+      itemDragRef.current = { id: selectedItemId, type: selectedItemType, offsetX: pos.x, offsetY: pos.y, mode: "resize", corner: itemCorner };
+      setIsDrawing(true);
+      e.preventDefault();
+      return;
+    }
+
+    // Check if clicking on a selected non-image item to move it
+    if (selectedItemId && selectedItemType) {
+      const hit = hitTestAll(pos);
+      if (hit && hit.id === selectedItemId) {
+        itemDragRef.current = { id: selectedItemId, type: selectedItemType, offsetX: pos.x, offsetY: pos.y, mode: "move",
+          origData: selectedItemType === "sticky" ? { ...stateRef.current.stickyNotes.find(n => n.id === selectedItemId) }
+            : selectedItemType === "table" ? { ...stateRef.current.tables.find(t => t.id === selectedItemId) }
+            : selectedItemType === "shape" ? (() => { const sh = stateRef.current.shapes.find(s => s.id === selectedItemId); return sh ? { startX: sh.start.x, startY: sh.start.y, endX: sh.end.x, endY: sh.end.y } : null; })()
+            : null
+        };
+        setIsDrawing(true);
+        e.preventDefault();
+        return;
+      }
+      // Clicked elsewhere — deselect
+      setSelectedItemId(null);
+      setSelectedItemType(null);
+    }
+
     if (tool === "image") {
       const corner = hitTestImageCorner(pos);
       if (corner && selectedImageIdx !== null) {
@@ -1100,8 +1261,8 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
         e.preventDefault();
         return;
       }
+      // Canvas click with image tool — do NOT open file picker
       setSelectedImageIdx(null);
-      fileInputRef.current?.click();
       return;
     }
 
@@ -1197,6 +1358,54 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       return;
     }
 
+    // Non-image item drag/resize
+    if (itemDragRef.current) {
+      const ref = itemDragRef.current;
+      const dx = pos.x - ref.offsetX, dy = pos.y - ref.offsetY;
+      if (ref.type === "sticky") {
+        const note = stateRef.current.stickyNotes.find(n => n.id === ref.id);
+        if (!note) return;
+        if (ref.mode === "move") {
+          note.x += dx; note.y += dy;
+        } else if (ref.corner) {
+          if (ref.corner === "br") { note.width = Math.max(60, note.width + dx); note.height = Math.max(40, note.height + dy); }
+          else if (ref.corner === "bl") { const nw = Math.max(60, note.width - dx); note.x += note.width - nw; note.width = nw; note.height = Math.max(40, note.height + dy); }
+          else if (ref.corner === "tr") { note.width = Math.max(60, note.width + dx); const nh = Math.max(40, note.height - dy); note.y += note.height - nh; note.height = nh; }
+          else if (ref.corner === "tl") { const nw = Math.max(60, note.width - dx); const nh = Math.max(40, note.height - dy); note.x += note.width - nw; note.y += note.height - nh; note.width = nw; note.height = nh; }
+        }
+        if (activeSessionId) broadcast({ action: "sticky_update", data: { id: note.id, x: note.x, y: note.y, width: note.width, height: note.height, text: note.text, bgColor: note.bgColor } });
+      } else if (ref.type === "table") {
+        const tbl = stateRef.current.tables.find(t => t.id === ref.id);
+        if (!tbl) return;
+        if (ref.mode === "move") {
+          tbl.x += dx; tbl.y += dy;
+        } else if (ref.corner) {
+          const tw = tbl.cols * tbl.cellWidth, th = tbl.rows * tbl.cellHeight;
+          if (ref.corner === "br") { tbl.cellWidth = Math.max(40, (tw + dx) / tbl.cols); tbl.cellHeight = Math.max(20, (th + dy) / tbl.rows); }
+          else if (ref.corner === "bl") { const newW = Math.max(40 * tbl.cols, tw - dx); tbl.x += tw - newW; tbl.cellWidth = newW / tbl.cols; tbl.cellHeight = Math.max(20, (th + dy) / tbl.rows); }
+          else if (ref.corner === "tr") { tbl.cellWidth = Math.max(40, (tw + dx) / tbl.cols); const newH = Math.max(20 * tbl.rows, th - dy); tbl.y += th - newH; tbl.cellHeight = newH / tbl.rows; }
+          else if (ref.corner === "tl") { const newW = Math.max(40 * tbl.cols, tw - dx); const newH = Math.max(20 * tbl.rows, th - dy); tbl.x += tw - newW; tbl.y += th - newH; tbl.cellWidth = newW / tbl.cols; tbl.cellHeight = newH / tbl.rows; }
+        }
+        if (activeSessionId) broadcast({ action: "table_update", data: { id: tbl.id, x: tbl.x, y: tbl.y, cellWidth: tbl.cellWidth, cellHeight: tbl.cellHeight } });
+      } else if (ref.type === "shape") {
+        const sh = stateRef.current.shapes.find(s => s.id === ref.id);
+        if (!sh) return;
+        if (ref.mode === "move") {
+          sh.start.x += dx; sh.start.y += dy; sh.end.x += dx; sh.end.y += dy;
+        } else if (ref.corner) {
+          if (ref.corner === "tl") { sh.start.x += dx; sh.start.y += dy; }
+          else if (ref.corner === "tr") { sh.end.x += dx; sh.start.y += dy; }
+          else if (ref.corner === "bl") { sh.start.x += dx; sh.end.y += dy; }
+          else if (ref.corner === "br") { sh.end.x += dx; sh.end.y += dy; }
+        }
+        if (activeSessionId) broadcast({ action: "shape_update", data: { id: sh.id, start: { ...sh.start }, end: { ...sh.end } } });
+      }
+      ref.offsetX = pos.x;
+      ref.offsetY = pos.y;
+      render();
+      return;
+    }
+
     if (isShapeTool(tool) && shapeStart.current) {
       shapePreview.current = pos;
       render();
@@ -1228,6 +1437,15 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       imageDragRef.current = null;
       setIsDrawing(false);
       if (activeSessionId) saveSessionNow();
+      render();
+      return;
+    }
+
+    if (itemDragRef.current) {
+      itemDragRef.current = null;
+      setIsDrawing(false);
+      if (activeSessionId) saveSessionNow();
+      forceUpdate(n => n + 1);
       render();
       return;
     }
@@ -1334,6 +1552,100 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   };
 
   const handleDoubleClick = () => setIsFullscreen(prev => !prev);
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const pos = getCanvasPos(e);
+    const hit = hitTestAll(pos);
+    if (!hit) { setContextMenu(null); return; }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    setContextMenu({
+      visible: true,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      targetType: hit.type,
+      targetId: hit.id,
+      targetIdx: hit.idx,
+    });
+  };
+
+  const contextMenuDelete = () => {
+    if (!contextMenu) return;
+    const { targetType, targetId } = contextMenu;
+    removeById(targetType, targetId);
+    if (activeSessionId) {
+      broadcast({ action: "delete_item", itemType: targetType, itemId: targetId });
+      saveSessionNow();
+    }
+    setContextMenu(null);
+    setSelectedItemId(null);
+    setSelectedItemType(null);
+    setSelectedImageIdx(null);
+    forceUpdate(n => n + 1);
+    render();
+  };
+
+  const contextMenuEdit = () => {
+    if (!contextMenu) return;
+    const { targetType, targetId } = contextMenu;
+    if (targetType === "text") {
+      const t = stateRef.current.texts.find(x => x.id === targetId);
+      if (t) {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const sx = t.x * zoom + panOffset.x;
+        const sy = t.y * zoom + panOffset.y;
+        setEditingItem({ type: "text", id: t.id, x: sx, y: sy - 10, value: t.text });
+      }
+    } else if (targetType === "sticky") {
+      const n = stateRef.current.stickyNotes.find(x => x.id === targetId);
+      if (n) {
+        const sx = n.x * zoom + panOffset.x;
+        const sy = n.y * zoom + panOffset.y;
+        setEditingItem({ type: "sticky", id: n.id, x: sx, y: sy, value: n.text });
+      }
+    }
+    setContextMenu(null);
+  };
+
+  const commitEdit = () => {
+    if (!editingItem) return;
+    if (editingItem.type === "text") {
+      const t = stateRef.current.texts.find(x => x.id === editingItem.id);
+      if (t) {
+        t.text = editingItem.value;
+        if (activeSessionId) { broadcast({ action: "text_update", data: { id: t.id, text: t.text, x: t.x, y: t.y, color: t.color, size: t.size } }); saveSessionNow(); }
+      }
+    } else if (editingItem.type === "sticky") {
+      const n = stateRef.current.stickyNotes.find(x => x.id === editingItem.id);
+      if (n) {
+        n.text = editingItem.value;
+        if (activeSessionId) { broadcast({ action: "sticky_update", data: { id: n.id, text: n.text, x: n.x, y: n.y, width: n.width, height: n.height, bgColor: n.bgColor } }); saveSessionNow(); }
+      }
+    }
+    setEditingItem(null);
+    forceUpdate(n => n + 1);
+    render();
+  };
+
+  const contextMenuResize = () => {
+    if (!contextMenu) return;
+    const { targetType, targetId } = contextMenu;
+    if (targetType === "image") {
+      const idx = stateRef.current.images.findIndex(i => i.id === targetId);
+      if (idx >= 0) { setSelectedImageIdx(idx); setTool("image"); }
+      setSelectedItemId(null); setSelectedItemType(null);
+    } else if (targetType === "sticky" || targetType === "table" || targetType === "shape") {
+      setSelectedItemId(targetId);
+      setSelectedItemType(targetType as "sticky" | "table" | "shape");
+      setSelectedImageIdx(null);
+    }
+    setContextMenu(null);
+    render();
+  };
 
   const zoomIn = () => {
     const newZoom = Math.min(10, zoom * 1.25);
@@ -1522,7 +1834,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
 
   const handleToolSelect = (id: Tool) => {
     setTool(id);
-    if (id === "image" && selectedImageIdx === null) {
+    if (id === "image") {
       setTimeout(() => fileInputRef.current?.click(), 50);
     }
   };
@@ -1812,7 +2124,67 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
             onTouchEnd={stopDrawing}
             onDoubleClick={handleDoubleClick}
             onWheel={handleWheel}
+            onContextMenu={handleContextMenu}
           />
+
+          {/* Context menu overlay */}
+          {contextMenu && (
+            <div
+              className="absolute z-50 bg-popover border border-border rounded-lg shadow-xl py-1 min-w-[150px] animate-in fade-in-0 zoom-in-95"
+              style={{ left: contextMenu.x, top: contextMenu.y }}
+            >
+              {(contextMenu.targetType === "text" || contextMenu.targetType === "sticky") && (
+                <button
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors"
+                  onClick={contextMenuEdit}
+                >
+                  <Type className="h-3.5 w-3.5" /> Edit
+                </button>
+              )}
+              <button
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors"
+                onClick={contextMenuResize}
+              >
+                <Square className="h-3.5 w-3.5" /> Resize
+              </button>
+              <button
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                onClick={contextMenuDelete}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete
+              </button>
+            </div>
+          )}
+
+          {/* Inline edit overlay */}
+          {editingItem && (
+            <div
+              className="absolute z-50"
+              style={{ left: editingItem.x, top: editingItem.y }}
+            >
+              {editingItem.type === "sticky" ? (
+                <textarea
+                  autoFocus
+                  className="bg-yellow-100 border-2 border-yellow-400 text-yellow-900 rounded-lg px-3 py-2 text-sm shadow-lg outline-none resize-none"
+                  style={{ minWidth: 180, minHeight: 80 }}
+                  value={editingItem.value}
+                  onChange={(e) => setEditingItem({ ...editingItem, value: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitEdit(); } if (e.key === "Escape") setEditingItem(null); }}
+                  onBlur={commitEdit}
+                />
+              ) : (
+                <input
+                  autoFocus
+                  className="bg-card border-2 border-primary rounded-lg px-3 py-2 text-sm shadow-lg outline-none"
+                  style={{ minWidth: 180 }}
+                  value={editingItem.value}
+                  onChange={(e) => setEditingItem({ ...editingItem, value: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") setEditingItem(null); }}
+                  onBlur={commitEdit}
+                />
+              )}
+            </div>
+          )}
 
           {textInput.visible && (
             <input
