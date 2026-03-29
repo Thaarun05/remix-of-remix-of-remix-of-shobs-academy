@@ -1788,45 +1788,27 @@ const TeacherDashboard = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Edit Zoom Dialog */}
-      <Dialog open={editZoomDialog} onOpenChange={setEditZoomDialog}>
+      {/* Edit Google Meet Dialog */}
+      <Dialog open={editMeetDialog} onOpenChange={setEditMeetDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Zoom Link</DialogTitle>
-            <DialogDescription>Update the Zoom meeting details for {editingZoom?.student_name}.</DialogDescription>
+            <DialogTitle>Edit Google Meet Link</DialogTitle>
+            <DialogDescription>Update the Google Meet link for {editingMeet?.student_name}.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Meeting URL</Label>
+              <Label>Google Meet URL</Label>
               <Input 
                 type="url" 
-                placeholder="https://zoom.us/j/..." 
-                value={editZoomForm.meetingUrl} 
-                onChange={(e) => setEditZoomForm({ ...editZoomForm, meetingUrl: e.target.value })} 
+                placeholder="https://meet.google.com/xxx-xxxx-xxx" 
+                value={editMeetForm.meetLink} 
+                onChange={(e) => setEditMeetForm({ ...editMeetForm, meetLink: e.target.value })} 
               />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Meeting ID</Label>
-                <Input 
-                  placeholder="123 456 7890" 
-                  value={editZoomForm.meetingId} 
-                  onChange={(e) => setEditZoomForm({ ...editZoomForm, meetingId: e.target.value })} 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Passcode</Label>
-                <Input 
-                  placeholder="abc123" 
-                  value={editZoomForm.passcode} 
-                  onChange={(e) => setEditZoomForm({ ...editZoomForm, passcode: e.target.value })} 
-                />
-              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditZoomDialog(false)}>Cancel</Button>
-            <Button onClick={handleUpdateZoomLink} disabled={submitting}>
+            <Button variant="outline" onClick={() => setEditMeetDialog(false)}>Cancel</Button>
+            <Button onClick={handleUpdateMeetLink} disabled={submitting}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
             </Button>
           </DialogFooter>
