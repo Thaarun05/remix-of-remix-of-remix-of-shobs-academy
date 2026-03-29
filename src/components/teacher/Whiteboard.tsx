@@ -954,7 +954,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
 
   // Initial render + first action (for undo baseline)
   useEffect(() => { render(); }, []);
-  useEffect(() => { render(); }, [panOffset, zoom, selectedImageIdx]);
+  useEffect(() => { render(); }, [panOffset, zoom, selectedImageIdx, selectedItemId, selectedItemType]);
 
   useEffect(() => {
     if (user && mode === "teacher") {
