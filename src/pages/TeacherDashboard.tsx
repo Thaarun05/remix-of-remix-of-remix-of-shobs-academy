@@ -1408,8 +1408,8 @@ const TeacherDashboard = () => {
                 </CardTitle>
                 <CardDescription>
                   {selectedStudent 
-                    ? `Setting Zoom link for: ${students.find(s => s.user_id === selectedStudent)?.student_name || "Selected Student"}`
-                    : "Select a student above to create or update their Zoom link"
+                    ? `Setting Google Meet link for: ${students.find(s => s.user_id === selectedStudent)?.student_name || "Selected Student"}`
+                    : "Select a student above to create or update their Google Meet link"
                   }
                 </CardDescription>
               </CardHeader>
