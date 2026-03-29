@@ -1553,7 +1553,11 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     setZoom(newZoom);
   };
 
-  const handleDoubleClick = () => setIsFullscreen(prev => !prev);
+  const handleDoubleClick = () => {
+    // Don't toggle fullscreen while drawing or if shapes tool is active
+    if (isDrawing || shapeStart.current) return;
+    setIsFullscreen(prev => !prev);
+  };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
