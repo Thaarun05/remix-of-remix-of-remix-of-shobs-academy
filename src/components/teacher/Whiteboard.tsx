@@ -237,6 +237,10 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   const myActionsRef = useRef<UndoAction[]>([]);
   const myRedoRef = useRef<UndoAction[]>([]);
 
+  // Global presence (who's on whiteboard dashboard)
+  const globalChannelRef = useRef<RealtimeChannel | null>(null);
+  const [globalOnlineStudents, setGlobalOnlineStudents] = useState<{ user_id: string; name: string }[]>([]);
+
   const getCanvasDims = () => {
     const container = containerRef.current;
     if (!container) return { w: 1920, h: 1080 };
