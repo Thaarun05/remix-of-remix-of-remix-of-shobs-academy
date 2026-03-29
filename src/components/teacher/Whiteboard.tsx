@@ -1153,6 +1153,9 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
         else if (corner === "tr") { img.width = Math.max(30, pos.x - img.x); const nh = Math.max(30, (img.y + img.height) - pos.y); img.y = img.y + img.height - nh; img.height = nh; }
         else if (corner === "tl") { const nw = Math.max(30, (img.x + img.width) - pos.x); const nh = Math.max(30, (img.y + img.height) - pos.y); img.x = img.x + img.width - nw; img.y = img.y + img.height - nh; img.width = nw; img.height = nh; }
       }
+      if (activeSessionId) {
+        broadcast({ action: "image_update", data: { id: img.id, x: img.x, y: img.y, width: img.width, height: img.height } });
+      }
       render();
       return;
     }
