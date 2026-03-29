@@ -950,11 +950,11 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
         ctx.fillStyle = `rgba(30, 100, 255, ${alpha * 0.2})`; ctx.fill();
       }
     });
-  }, [tool, color, strokeSize, panOffset, zoom, selectedImageIdx]);
+  }, [tool, color, strokeSize, panOffset, zoom, selectedImageIdx, selectedItemId, selectedItemType]);
 
   // Initial render + first action (for undo baseline)
   useEffect(() => { render(); }, []);
-  useEffect(() => { render(); }, [panOffset, zoom, selectedImageIdx]);
+  useEffect(() => { render(); }, [panOffset, zoom, selectedImageIdx, selectedItemId, selectedItemType]);
 
   useEffect(() => {
     if (user && mode === "teacher") {
@@ -1192,6 +1192,8 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     // Dismiss context menu on any click
     if (contextMenu) { setContextMenu(null); return; }
+    // Only handle left mouse button (button 0) or touch — ignore right-click
+    if ("button" in e && (e as React.MouseEvent).button === 2) return;
 
     const pos = getCanvasPos(e);
     const screenPos = getScreenPos(e);
@@ -1551,7 +1553,11 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     setZoom(newZoom);
   };
 
-  const handleDoubleClick = () => setIsFullscreen(prev => !prev);
+  const handleDoubleClick = () => {
+    // Don't toggle fullscreen while drawing or if shapes tool is active
+    if (isDrawing || shapeStart.current) return;
+    setIsFullscreen(prev => !prev);
+  };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
