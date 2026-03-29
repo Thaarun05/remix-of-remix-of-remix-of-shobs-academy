@@ -1179,6 +1179,9 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
 
   // === Mouse handlers ===
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+    // Dismiss context menu on any click
+    if (contextMenu) { setContextMenu(null); return; }
+
     const pos = getCanvasPos(e);
     const screenPos = getScreenPos(e);
     const isMiddleButton = "button" in e && (e as React.MouseEvent).button === 1;
@@ -1202,6 +1205,34 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       return;
     }
 
+    // Check if clicking a resize handle for non-image selected items
+    const itemCorner = hitTestItemCorner(pos);
+    if (itemCorner && selectedItemId && selectedItemType) {
+      itemDragRef.current = { id: selectedItemId, type: selectedItemType, offsetX: pos.x, offsetY: pos.y, mode: "resize", corner: itemCorner };
+      setIsDrawing(true);
+      e.preventDefault();
+      return;
+    }
+
+    // Check if clicking on a selected non-image item to move it
+    if (selectedItemId && selectedItemType) {
+      const hit = hitTestAll(pos);
+      if (hit && hit.id === selectedItemId) {
+        itemDragRef.current = { id: selectedItemId, type: selectedItemType, offsetX: pos.x, offsetY: pos.y, mode: "move",
+          origData: selectedItemType === "sticky" ? { ...stateRef.current.stickyNotes.find(n => n.id === selectedItemId) }
+            : selectedItemType === "table" ? { ...stateRef.current.tables.find(t => t.id === selectedItemId) }
+            : selectedItemType === "shape" ? (() => { const sh = stateRef.current.shapes.find(s => s.id === selectedItemId); return sh ? { startX: sh.start.x, startY: sh.start.y, endX: sh.end.x, endY: sh.end.y } : null; })()
+            : null
+        };
+        setIsDrawing(true);
+        e.preventDefault();
+        return;
+      }
+      // Clicked elsewhere — deselect
+      setSelectedItemId(null);
+      setSelectedItemType(null);
+    }
+
     if (tool === "image") {
       const corner = hitTestImageCorner(pos);
       if (corner && selectedImageIdx !== null) {
@@ -1219,8 +1250,8 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
         e.preventDefault();
         return;
       }
+      // Canvas click with image tool — do NOT open file picker
       setSelectedImageIdx(null);
-      fileInputRef.current?.click();
       return;
     }
 
