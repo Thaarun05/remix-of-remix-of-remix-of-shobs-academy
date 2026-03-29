@@ -1398,7 +1398,7 @@ const TeacherDashboard = () => {
           </Card>
         )}
 
-        {activeTab === "zoom" && (
+        {activeTab === "google-meet" && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="dashboard-list-card">
               <CardHeader>
