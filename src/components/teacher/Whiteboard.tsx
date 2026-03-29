@@ -922,43 +922,18 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   };
 
   const editSentWhiteboard = async (share: WhiteboardShare) => {
-    setLoading(true);
+    await loadBoard(share.whiteboard_id);
+    // Find or create session for collaboration
     try {
-      // Find or create session for collaboration
       const { data: existingSession } = await sessionsTable()
-        .select("id, canvas_state")
+        .select("id")
         .eq("whiteboard_id", share.whiteboard_id)
         .eq("student_user_id", share.student_user_id)
         .eq("is_active", true)
         .maybeSingle();
-
       if (existingSession) {
-        // Load from session state (includes student drawings)
-        const sessionData = existingSession as any;
-        if (sessionData.canvas_state) {
-          try {
-            const parsed = JSON.parse(sessionData.canvas_state);
-            stateRef.current = {
-              strokes: parsed.strokes || [], shapes: parsed.shapes || [],
-              texts: parsed.texts || [], stickyNotes: parsed.stickyNotes || [],
-              tables: parsed.tables || [], images: parsed.images || [],
-            };
-          } catch { stateRef.current = emptyState(); }
-        }
-        setTitle(share.title);
-        setCurrentBoardId(share.whiteboard_id);
-        loadedImagesRef.current.clear();
-        setSelectedImageIdx(null);
-        setPanOffset({ x: 0, y: 0 });
-        setZoom(1);
-        myActionsRef.current = [];
-        myRedoRef.current = [];
-        setActiveSessionId(sessionData.id);
-        forceUpdate(n => n + 1);
-        render();
+        setActiveSessionId((existingSession as any).id);
       } else {
-        // No session exists yet — load original board and create session
-        await loadBoard(share.whiteboard_id);
         const { data: newSession } = await sessionsTable()
           .insert({
             whiteboard_id: share.whiteboard_id,
@@ -972,8 +947,6 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       }
     } catch (err) {
       console.error("Failed to setup session:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
