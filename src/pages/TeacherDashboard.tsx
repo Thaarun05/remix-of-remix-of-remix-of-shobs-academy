@@ -1404,7 +1404,7 @@ const TeacherDashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Plus className="h-5 w-5" />
-                  {selectedStudent ? "Create / Update Zoom Link" : "Create New Zoom Link"}
+                  {selectedStudent ? "Create / Update Google Meet Link" : "Create New Google Meet Link"}
                 </CardTitle>
                 <CardDescription>
                   {selectedStudent 
