@@ -2113,7 +2113,67 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
             onTouchEnd={stopDrawing}
             onDoubleClick={handleDoubleClick}
             onWheel={handleWheel}
+            onContextMenu={handleContextMenu}
           />
+
+          {/* Context menu overlay */}
+          {contextMenu && (
+            <div
+              className="absolute z-50 bg-popover border border-border rounded-lg shadow-xl py-1 min-w-[150px] animate-in fade-in-0 zoom-in-95"
+              style={{ left: contextMenu.x, top: contextMenu.y }}
+            >
+              {(contextMenu.targetType === "text" || contextMenu.targetType === "sticky") && (
+                <button
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors"
+                  onClick={contextMenuEdit}
+                >
+                  <Type className="h-3.5 w-3.5" /> Edit
+                </button>
+              )}
+              <button
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors"
+                onClick={contextMenuResize}
+              >
+                <Square className="h-3.5 w-3.5" /> Resize
+              </button>
+              <button
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                onClick={contextMenuDelete}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete
+              </button>
+            </div>
+          )}
+
+          {/* Inline edit overlay */}
+          {editingItem && (
+            <div
+              className="absolute z-50"
+              style={{ left: editingItem.x, top: editingItem.y }}
+            >
+              {editingItem.type === "sticky" ? (
+                <textarea
+                  autoFocus
+                  className="bg-yellow-100 border-2 border-yellow-400 text-yellow-900 rounded-lg px-3 py-2 text-sm shadow-lg outline-none resize-none"
+                  style={{ minWidth: 180, minHeight: 80 }}
+                  value={editingItem.value}
+                  onChange={(e) => setEditingItem({ ...editingItem, value: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitEdit(); } if (e.key === "Escape") setEditingItem(null); }}
+                  onBlur={commitEdit}
+                />
+              ) : (
+                <input
+                  autoFocus
+                  className="bg-card border-2 border-primary rounded-lg px-3 py-2 text-sm shadow-lg outline-none"
+                  style={{ minWidth: 180 }}
+                  value={editingItem.value}
+                  onChange={(e) => setEditingItem({ ...editingItem, value: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") setEditingItem(null); }}
+                  onBlur={commitEdit}
+                />
+              )}
+            </div>
+          )}
 
           {textInput.visible && (
             <input
