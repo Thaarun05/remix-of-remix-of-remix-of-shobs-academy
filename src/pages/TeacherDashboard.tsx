@@ -260,8 +260,8 @@ const TeacherDashboard = () => {
           .order("created_at", { ascending: false })
           .limit(20),
         supabase
-          .from("zoom_links")
-          .select("student_user_id, meeting_url, meeting_id, passcode, deleted_at")
+          .from("meet_links")
+          .select("student_user_id, meet_link, deleted_at")
           .is("deleted_at", null),
         supabase
           .from("student_fees")
