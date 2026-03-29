@@ -291,12 +291,12 @@ const TeacherDashboard = () => {
       }));
       setAttendanceRecords(attendanceWithNames);
       
-      // Set zoom links with student names
-      const zoomWithNames = (zoomRes.data || []).map(z => ({
+      // Set meet links with student names
+      const meetWithNames = (zoomRes.data || []).map((z: any) => ({
         ...z,
         student_name: studentsMap.get(z.student_user_id) || "Unknown Student"
       }));
-      setZoomLinks(zoomWithNames);
+      setMeetLinks(meetWithNames);
       
       setRecentFees(feesRes.data || []);
 
