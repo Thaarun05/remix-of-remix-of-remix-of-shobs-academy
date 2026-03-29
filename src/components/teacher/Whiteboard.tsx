@@ -221,7 +221,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   const [editingItem, setEditingItem] = useState<{ type: "text" | "sticky"; id: string; x: number; y: number; value: string } | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedItemType, setSelectedItemType] = useState<"shape" | "table" | "sticky" | null>(null);
-  const itemDragRef = useRef<{ id: string; type: string; offsetX: number; offsetY: number; mode: "move" | "resize"; corner?: string } | null>(null);
+  const itemDragRef = useRef<{ id: string; type: string; offsetX: number; offsetY: number; mode: "move" | "resize"; corner?: string; origData?: any } | null>(null);
 
   // Laser
   const laserTrailRef = useRef<LaserPoint[]>([]);
