@@ -460,6 +460,18 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     return () => clearInterval(interval);
   }, [activeSessionId]);
 
+  // Immediate save to session DB
+  const saveSessionNow = useCallback(async () => {
+    if (!activeSessionId) return;
+    try {
+      await sessionsTable()
+        .update({ canvas_state: JSON.stringify(stateRef.current), last_saved_at: new Date().toISOString() } as any)
+        .eq("id", activeSessionId);
+    } catch (err) {
+      console.error("Immediate save failed:", err);
+    }
+  }, [activeSessionId]);
+
   // Broadcast helper
   const broadcast = useCallback((payload: any) => {
     channelRef.current?.send({
