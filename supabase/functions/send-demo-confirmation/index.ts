@@ -74,7 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
             <ol style="color: #4b5563; line-height: 1.8;">
               <li>Our team will review your request within 24 hours</li>
               <li>We'll contact you to schedule the demo class at a convenient time</li>
-              <li>You'll receive a Zoom link before the scheduled session</li>
+              <li>You'll receive a Google Meet link before the scheduled session</li>
             </ol>
             
             <p>If you have any questions, feel free to reply to this email or contact us directly.</p>
