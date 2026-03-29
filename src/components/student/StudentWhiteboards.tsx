@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/EmptyState";
@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Whiteboard } from "@/components/teacher/Whiteboard";
 import { PenTool, Loader2, Calendar, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 interface WhiteboardShare {
   id: string;
@@ -23,8 +24,42 @@ export function StudentWhiteboards() {
   const [boards, setBoards] = useState<WhiteboardShare[]>([]);
   const [activeSession, setActiveSession] = useState<{ sessionId: string; title: string } | null>(null);
 
+  const globalChannelRef = useRef<RealtimeChannel | null>(null);
+
   useEffect(() => {
     if (user) fetchSharedBoards();
+  }, [user]);
+
+  // Join global presence so teacher can see this student is live
+  useEffect(() => {
+    if (!user) return;
+    const fetchNameAndJoin = async () => {
+      const { data } = await supabase.from("student_profiles").select("student_name").eq("user_id", user.id).maybeSingle();
+      const name = data?.student_name || "Student";
+
+      const channel = supabase.channel("wb:global", {
+        config: { presence: { key: user.id } },
+      });
+      channel.subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({
+            user_id: user.id,
+            role: "student",
+            name,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+      globalChannelRef.current = channel;
+    };
+    fetchNameAndJoin();
+
+    return () => {
+      if (globalChannelRef.current) {
+        supabase.removeChannel(globalChannelRef.current);
+        globalChannelRef.current = null;
+      }
+    };
   }, [user]);
 
   const fetchSharedBoards = async () => {
