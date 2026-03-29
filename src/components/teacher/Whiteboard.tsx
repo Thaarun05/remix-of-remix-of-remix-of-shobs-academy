@@ -1347,6 +1347,54 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       return;
     }
 
+    // Non-image item drag/resize
+    if (itemDragRef.current) {
+      const ref = itemDragRef.current;
+      const dx = pos.x - ref.offsetX, dy = pos.y - ref.offsetY;
+      if (ref.type === "sticky") {
+        const note = stateRef.current.stickyNotes.find(n => n.id === ref.id);
+        if (!note) return;
+        if (ref.mode === "move") {
+          note.x += dx; note.y += dy;
+        } else if (ref.corner) {
+          if (ref.corner === "br") { note.width = Math.max(60, note.width + dx); note.height = Math.max(40, note.height + dy); }
+          else if (ref.corner === "bl") { const nw = Math.max(60, note.width - dx); note.x += note.width - nw; note.width = nw; note.height = Math.max(40, note.height + dy); }
+          else if (ref.corner === "tr") { note.width = Math.max(60, note.width + dx); const nh = Math.max(40, note.height - dy); note.y += note.height - nh; note.height = nh; }
+          else if (ref.corner === "tl") { const nw = Math.max(60, note.width - dx); const nh = Math.max(40, note.height - dy); note.x += note.width - nw; note.y += note.height - nh; note.width = nw; note.height = nh; }
+        }
+        if (activeSessionId) broadcast({ action: "sticky_update", data: { id: note.id, x: note.x, y: note.y, width: note.width, height: note.height, text: note.text, bgColor: note.bgColor } });
+      } else if (ref.type === "table") {
+        const tbl = stateRef.current.tables.find(t => t.id === ref.id);
+        if (!tbl) return;
+        if (ref.mode === "move") {
+          tbl.x += dx; tbl.y += dy;
+        } else if (ref.corner) {
+          const tw = tbl.cols * tbl.cellWidth, th = tbl.rows * tbl.cellHeight;
+          if (ref.corner === "br") { tbl.cellWidth = Math.max(40, (tw + dx) / tbl.cols); tbl.cellHeight = Math.max(20, (th + dy) / tbl.rows); }
+          else if (ref.corner === "bl") { const newW = Math.max(40 * tbl.cols, tw - dx); tbl.x += tw - newW; tbl.cellWidth = newW / tbl.cols; tbl.cellHeight = Math.max(20, (th + dy) / tbl.rows); }
+          else if (ref.corner === "tr") { tbl.cellWidth = Math.max(40, (tw + dx) / tbl.cols); const newH = Math.max(20 * tbl.rows, th - dy); tbl.y += th - newH; tbl.cellHeight = newH / tbl.rows; }
+          else if (ref.corner === "tl") { const newW = Math.max(40 * tbl.cols, tw - dx); const newH = Math.max(20 * tbl.rows, th - dy); tbl.x += tw - newW; tbl.y += th - newH; tbl.cellWidth = newW / tbl.cols; tbl.cellHeight = newH / tbl.rows; }
+        }
+        if (activeSessionId) broadcast({ action: "table_update", data: { id: tbl.id, x: tbl.x, y: tbl.y, cellWidth: tbl.cellWidth, cellHeight: tbl.cellHeight } });
+      } else if (ref.type === "shape") {
+        const sh = stateRef.current.shapes.find(s => s.id === ref.id);
+        if (!sh) return;
+        if (ref.mode === "move") {
+          sh.start.x += dx; sh.start.y += dy; sh.end.x += dx; sh.end.y += dy;
+        } else if (ref.corner) {
+          if (ref.corner === "tl") { sh.start.x += dx; sh.start.y += dy; }
+          else if (ref.corner === "tr") { sh.end.x += dx; sh.start.y += dy; }
+          else if (ref.corner === "bl") { sh.start.x += dx; sh.end.y += dy; }
+          else if (ref.corner === "br") { sh.end.x += dx; sh.end.y += dy; }
+        }
+        if (activeSessionId) broadcast({ action: "shape_update", data: { id: sh.id, start: { ...sh.start }, end: { ...sh.end } } });
+      }
+      ref.offsetX = pos.x;
+      ref.offsetY = pos.y;
+      render();
+      return;
+    }
+
     if (isShapeTool(tool) && shapeStart.current) {
       shapePreview.current = pos;
       render();
