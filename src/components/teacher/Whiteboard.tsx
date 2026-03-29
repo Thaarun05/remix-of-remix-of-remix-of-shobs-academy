@@ -194,6 +194,10 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   // Infinite canvas
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const panOffsetRef = useRef<Point>({ x: 0, y: 0 });
+  const zoomRef = useRef(1);
+  const toolRef = useRef<Tool>("pen");
+  const selectedImageIdxRef = useRef<number | null>(null);
   const isPanningRef = useRef(false);
   const panStartRef = useRef<Point>({ x: 0, y: 0 });
   const panOffsetStartRef = useRef<Point>({ x: 0, y: 0 });
@@ -240,6 +244,12 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   // Global presence (who's on whiteboard dashboard)
   const globalChannelRef = useRef<RealtimeChannel | null>(null);
   const [globalOnlineStudents, setGlobalOnlineStudents] = useState<{ user_id: string; name: string }[]>([]);
+
+  // Keep refs in sync with state for use in render callback
+  useEffect(() => { panOffsetRef.current = panOffset; }, [panOffset]);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => { toolRef.current = tool; }, [tool]);
+  useEffect(() => { selectedImageIdxRef.current = selectedImageIdx; }, [selectedImageIdx]);
 
   const getCanvasDims = () => {
     const container = containerRef.current;
@@ -584,14 +594,16 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
 
   // === Drawing helpers (unchanged) ===
   const drawGrid = (ctx: CanvasRenderingContext2D) => {
+    const z = zoomRef.current;
+    const pan = panOffsetRef.current;
     ctx.save();
     ctx.strokeStyle = "#e8edf2";
-    ctx.lineWidth = 0.5 / zoom;
+    ctx.lineWidth = 0.5 / z;
     const canvas = canvasRef.current!;
     const w = canvas.width / (window.devicePixelRatio || 1);
     const h = canvas.height / (window.devicePixelRatio || 1);
-    const worldLeft = -panOffset.x / zoom, worldTop = -panOffset.y / zoom;
-    const worldRight = worldLeft + w / zoom, worldBottom = worldTop + h / zoom;
+    const worldLeft = -pan.x / z, worldTop = -pan.y / z;
+    const worldRight = worldLeft + w / z, worldBottom = worldTop + h / z;
     const startX = Math.floor(worldLeft / GRID_SIZE) * GRID_SIZE;
     const startY = Math.floor(worldTop / GRID_SIZE) * GRID_SIZE;
     for (let x = startX; x <= worldRight; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, worldTop); ctx.lineTo(x, worldBottom); ctx.stroke(); }
@@ -677,12 +689,14 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     const cached = loadedImagesRef.current.get(item.dataUrl);
     if (cached) {
       ctx.drawImage(cached, item.x, item.y, item.width, item.height);
-      if (selectedImageIdx === idx) {
+      const selImg = selectedImageIdxRef.current;
+      const z = zoomRef.current;
+      if (selImg === idx) {
         ctx.save();
-        ctx.strokeStyle = "#2980b9"; ctx.lineWidth = 2 / zoom; ctx.setLineDash([6 / zoom, 4 / zoom]);
+        ctx.strokeStyle = "#2980b9"; ctx.lineWidth = 2 / z; ctx.setLineDash([6 / z, 4 / z]);
         ctx.strokeRect(item.x, item.y, item.width, item.height);
         ctx.setLineDash([]);
-        const hs = 8 / zoom;
+        const hs = 8 / z;
         ctx.fillStyle = "#2980b9";
         for (const c of [{ x: item.x, y: item.y }, { x: item.x + item.width, y: item.y }, { x: item.x, y: item.y + item.height }, { x: item.x + item.width, y: item.y + item.height }]) {
           ctx.fillRect(c.x - hs / 2, c.y - hs / 2, hs, hs);
@@ -729,6 +743,10 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     if (!ctx) return;
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.width / dpr, h = canvas.height / dpr;
+    const currentPan = panOffsetRef.current;
+    const currentZoom = zoomRef.current;
+    const currentTool = toolRef.current;
+    const currentSelectedImg = selectedImageIdxRef.current;
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -737,8 +755,8 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     ctx.fillRect(0, 0, w, h);
 
     ctx.save();
-    ctx.translate(panOffset.x, panOffset.y);
-    ctx.scale(zoom, zoom);
+    ctx.translate(currentPan.x, currentPan.y);
+    ctx.scale(currentZoom, currentZoom);
 
     drawGrid(ctx);
 
@@ -757,7 +775,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
 
     // Shape preview
     if (shapeStart.current && shapePreview.current) {
-      const shapeTool = tool as string;
+      const shapeTool = currentTool as string;
       if (["line", "rect", "circle", "arrow", "connector", "frame"].includes(shapeTool)) {
         drawShape(ctx, {
           id: "", ownerId: "",
@@ -780,12 +798,12 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     ctx.restore();
 
     // Local laser trail (red)
-    if (tool === "laser" && laserTrailRef.current.length > 0) {
+    if (currentTool === "laser" && laserTrailRef.current.length > 0) {
       const now = Date.now();
       for (const p of laserTrailRef.current) {
         const alpha = Math.max(0, 1 - (now - p.time) / LASER_FADE_MS);
         const r = 6 * alpha + 2;
-        const sx = p.x * zoom + panOffset.x, sy = p.y * zoom + panOffset.y;
+        const sx = p.x * currentZoom + currentPan.x, sy = p.y * currentZoom + currentPan.y;
         ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(255, 30, 30, ${alpha * 0.9})`; ctx.fill();
         ctx.beginPath(); ctx.arc(sx, sy, r * 2.5, 0, Math.PI * 2);
@@ -799,7 +817,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       for (const p of trail) {
         const alpha = Math.max(0, 1 - (now - p.time) / LASER_FADE_MS);
         const r = 6 * alpha + 2;
-        const sx = p.x * zoom + panOffset.x, sy = p.y * zoom + panOffset.y;
+        const sx = p.x * currentZoom + currentPan.x, sy = p.y * currentZoom + currentPan.y;
         ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(30, 100, 255, ${alpha * 0.9})`; ctx.fill();
         ctx.beginPath(); ctx.arc(sx, sy, r * 2.5, 0, Math.PI * 2);
