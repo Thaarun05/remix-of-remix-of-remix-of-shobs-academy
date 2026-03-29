@@ -24,8 +24,42 @@ export function StudentWhiteboards() {
   const [boards, setBoards] = useState<WhiteboardShare[]>([]);
   const [activeSession, setActiveSession] = useState<{ sessionId: string; title: string } | null>(null);
 
+  const globalChannelRef = useRef<RealtimeChannel | null>(null);
+
   useEffect(() => {
     if (user) fetchSharedBoards();
+  }, [user]);
+
+  // Join global presence so teacher can see this student is live
+  useEffect(() => {
+    if (!user) return;
+    const fetchNameAndJoin = async () => {
+      const { data } = await supabase.from("student_profiles").select("student_name").eq("user_id", user.id).maybeSingle();
+      const name = data?.student_name || "Student";
+
+      const channel = supabase.channel("wb:global", {
+        config: { presence: { key: user.id } },
+      });
+      channel.subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({
+            user_id: user.id,
+            role: "student",
+            name,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+      globalChannelRef.current = channel;
+    };
+    fetchNameAndJoin();
+
+    return () => {
+      if (globalChannelRef.current) {
+        supabase.removeChannel(globalChannelRef.current);
+        globalChannelRef.current = null;
+      }
+    };
   }, [user]);
 
   const fetchSharedBoards = async () => {
