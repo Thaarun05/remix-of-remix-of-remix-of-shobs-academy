@@ -76,10 +76,8 @@ interface Assignment {
   submission_attachments: FileInfo[];
 }
 
-interface ZoomLink {
-  meeting_url: string;
-  meeting_id: string | null;
-  passcode: string | null;
+interface MeetLink {
+  meet_link: string;
 }
 
 interface StudentFee {
