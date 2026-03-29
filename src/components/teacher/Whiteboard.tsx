@@ -460,6 +460,18 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     return () => clearInterval(interval);
   }, [activeSessionId]);
 
+  // Immediate save to session DB
+  const saveSessionNow = useCallback(async () => {
+    if (!activeSessionId) return;
+    try {
+      await sessionsTable()
+        .update({ canvas_state: JSON.stringify(stateRef.current), last_saved_at: new Date().toISOString() } as any)
+        .eq("id", activeSessionId);
+    } catch (err) {
+      console.error("Immediate save failed:", err);
+    }
+  }, [activeSessionId]);
+
   // Broadcast helper
   const broadcast = useCallback((payload: any) => {
     channelRef.current?.send({
@@ -515,6 +527,12 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
         render();
         break;
       }
+      case "clear_all": {
+        stateRef.current = emptyState();
+        loadedImagesRef.current.clear();
+        render();
+        break;
+      }
     }
     forceUpdate(n => n + 1);
   }, []);
@@ -553,20 +571,26 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     const action = myActionsRef.current.pop()!;
     removeById(action.type, action.id);
     myRedoRef.current.push(action);
-    if (activeSessionId) broadcast({ action: "undo", itemType: action.type, itemId: action.id });
+    if (activeSessionId) {
+      broadcast({ action: "undo", itemType: action.type, itemId: action.id });
+      saveSessionNow();
+    }
     forceUpdate(n => n + 1);
     render();
-  }, [activeSessionId, broadcast]);
+  }, [activeSessionId, broadcast, saveSessionNow]);
 
   const redo = useCallback(() => {
     if (myRedoRef.current.length === 0) return;
     const action = myRedoRef.current.pop()!;
     addItem(action.type, action.data);
     myActionsRef.current.push(action);
-    if (activeSessionId) broadcast({ action: "redo", itemType: action.type, itemId: action.id, data: action.data });
+    if (activeSessionId) {
+      broadcast({ action: "redo", itemType: action.type, itemId: action.id, data: action.data });
+      saveSessionNow();
+    }
     forceUpdate(n => n + 1);
     render();
-  }, [activeSessionId, broadcast]);
+  }, [activeSessionId, broadcast, saveSessionNow]);
 
   const screenToWorld = (screenX: number, screenY: number): Point => {
     const canvas = canvasRef.current;
@@ -898,18 +922,43 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   };
 
   const editSentWhiteboard = async (share: WhiteboardShare) => {
-    await loadBoard(share.whiteboard_id);
-    // Find or create session for collaboration
+    setLoading(true);
     try {
+      // Find or create session for collaboration
       const { data: existingSession } = await sessionsTable()
-        .select("id")
+        .select("id, canvas_state")
         .eq("whiteboard_id", share.whiteboard_id)
         .eq("student_user_id", share.student_user_id)
         .eq("is_active", true)
         .maybeSingle();
+
       if (existingSession) {
-        setActiveSessionId((existingSession as any).id);
+        // Load from session state (includes student drawings)
+        const sessionData = existingSession as any;
+        if (sessionData.canvas_state) {
+          try {
+            const parsed = JSON.parse(sessionData.canvas_state);
+            stateRef.current = {
+              strokes: parsed.strokes || [], shapes: parsed.shapes || [],
+              texts: parsed.texts || [], stickyNotes: parsed.stickyNotes || [],
+              tables: parsed.tables || [], images: parsed.images || [],
+            };
+          } catch { stateRef.current = emptyState(); }
+        }
+        setTitle(share.title);
+        setCurrentBoardId(share.whiteboard_id);
+        loadedImagesRef.current.clear();
+        setSelectedImageIdx(null);
+        setPanOffset({ x: 0, y: 0 });
+        setZoom(1);
+        myActionsRef.current = [];
+        myRedoRef.current = [];
+        setActiveSessionId(sessionData.id);
+        forceUpdate(n => n + 1);
+        render();
       } else {
+        // No session exists yet — load original board and create session
+        await loadBoard(share.whiteboard_id);
         const { data: newSession } = await sessionsTable()
           .insert({
             whiteboard_id: share.whiteboard_id,
@@ -923,22 +972,19 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       }
     } catch (err) {
       console.error("Failed to setup session:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const clearCanvas = () => {
     if (activeSessionId && user) {
-      // Only clear own items
-      const s = stateRef.current;
-      s.strokes = s.strokes.filter(i => i.ownerId !== user.id);
-      s.shapes = s.shapes.filter(i => i.ownerId !== user.id);
-      s.texts = s.texts.filter(i => i.ownerId !== user.id);
-      s.stickyNotes = s.stickyNotes.filter(i => i.ownerId !== user.id);
-      s.tables = s.tables.filter(i => i.ownerId !== user.id);
-      s.images = s.images.filter(i => i.ownerId !== user.id);
+      // Clear ALL items on the canvas (full clear syncs to other user)
+      stateRef.current = emptyState();
       myActionsRef.current = [];
       myRedoRef.current = [];
-      broadcast({ action: "clear", userId: user.id });
+      broadcast({ action: "clear_all" });
+      saveSessionNow();
     } else {
       stateRef.current = emptyState();
       myActionsRef.current = [];
