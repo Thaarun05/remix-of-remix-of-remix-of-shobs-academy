@@ -1542,6 +1542,100 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
 
   const handleDoubleClick = () => setIsFullscreen(prev => !prev);
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const pos = getCanvasPos(e);
+    const hit = hitTestAll(pos);
+    if (!hit) { setContextMenu(null); return; }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    setContextMenu({
+      visible: true,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      targetType: hit.type,
+      targetId: hit.id,
+      targetIdx: hit.idx,
+    });
+  };
+
+  const contextMenuDelete = () => {
+    if (!contextMenu) return;
+    const { targetType, targetId } = contextMenu;
+    removeById(targetType, targetId);
+    if (activeSessionId) {
+      broadcast({ action: "delete_item", itemType: targetType, itemId: targetId });
+      saveSessionNow();
+    }
+    setContextMenu(null);
+    setSelectedItemId(null);
+    setSelectedItemType(null);
+    setSelectedImageIdx(null);
+    forceUpdate(n => n + 1);
+    render();
+  };
+
+  const contextMenuEdit = () => {
+    if (!contextMenu) return;
+    const { targetType, targetId } = contextMenu;
+    if (targetType === "text") {
+      const t = stateRef.current.texts.find(x => x.id === targetId);
+      if (t) {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const sx = t.x * zoom + panOffset.x;
+        const sy = t.y * zoom + panOffset.y;
+        setEditingItem({ type: "text", id: t.id, x: sx, y: sy - 10, value: t.text });
+      }
+    } else if (targetType === "sticky") {
+      const n = stateRef.current.stickyNotes.find(x => x.id === targetId);
+      if (n) {
+        const sx = n.x * zoom + panOffset.x;
+        const sy = n.y * zoom + panOffset.y;
+        setEditingItem({ type: "sticky", id: n.id, x: sx, y: sy, value: n.text });
+      }
+    }
+    setContextMenu(null);
+  };
+
+  const commitEdit = () => {
+    if (!editingItem) return;
+    if (editingItem.type === "text") {
+      const t = stateRef.current.texts.find(x => x.id === editingItem.id);
+      if (t) {
+        t.text = editingItem.value;
+        if (activeSessionId) { broadcast({ action: "text_update", data: { id: t.id, text: t.text, x: t.x, y: t.y, color: t.color, size: t.size } }); saveSessionNow(); }
+      }
+    } else if (editingItem.type === "sticky") {
+      const n = stateRef.current.stickyNotes.find(x => x.id === editingItem.id);
+      if (n) {
+        n.text = editingItem.value;
+        if (activeSessionId) { broadcast({ action: "sticky_update", data: { id: n.id, text: n.text, x: n.x, y: n.y, width: n.width, height: n.height, bgColor: n.bgColor } }); saveSessionNow(); }
+      }
+    }
+    setEditingItem(null);
+    forceUpdate(n => n + 1);
+    render();
+  };
+
+  const contextMenuResize = () => {
+    if (!contextMenu) return;
+    const { targetType, targetId } = contextMenu;
+    if (targetType === "image") {
+      const idx = stateRef.current.images.findIndex(i => i.id === targetId);
+      if (idx >= 0) { setSelectedImageIdx(idx); setTool("image"); }
+      setSelectedItemId(null); setSelectedItemType(null);
+    } else if (targetType === "sticky" || targetType === "table" || targetType === "shape") {
+      setSelectedItemId(targetId);
+      setSelectedItemType(targetType as "sticky" | "table" | "shape");
+      setSelectedImageIdx(null);
+    }
+    setContextMenu(null);
+    render();
+  };
+
   const zoomIn = () => {
     const newZoom = Math.min(10, zoom * 1.25);
     const canvas = canvasRef.current;
