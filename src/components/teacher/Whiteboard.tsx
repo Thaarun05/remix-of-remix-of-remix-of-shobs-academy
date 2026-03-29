@@ -508,7 +508,28 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       case "text_add": s.texts.push(payload.data); render(); break;
       case "sticky_add": s.stickyNotes.push(payload.data); render(); break;
       case "table_add": s.tables.push(payload.data); render(); break;
-      case "image_add": s.images.push(payload.data); render(); break;
+      case "image_add": {
+        s.images.push(payload.data);
+        // Pre-load the image element so it renders immediately
+        if (payload.data.dataUrl && !loadedImagesRef.current.has(payload.data.dataUrl)) {
+          const img = new Image();
+          img.onload = () => { loadedImagesRef.current.set(payload.data.dataUrl, img); render(); };
+          img.src = payload.data.dataUrl;
+        }
+        render();
+        break;
+      }
+      case "image_update": {
+        const target = s.images.find(i => i.id === payload.data.id);
+        if (target) {
+          target.x = payload.data.x;
+          target.y = payload.data.y;
+          target.width = payload.data.width;
+          target.height = payload.data.height;
+        }
+        render();
+        break;
+      }
       case "undo": removeById(payload.itemType, payload.itemId); render(); break;
       case "redo": addItem(payload.itemType, payload.data); render(); break;
       case "laser": {
