@@ -212,6 +212,17 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   const [textValue, setTextValue] = useState("");
   const [stickyCanvasPos, setStickyCanvasPos] = useState<Point>({ x: 0, y: 0 });
 
+  // Context menu
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean; x: number; y: number;
+    targetType: "image" | "sticky" | "text" | "shape" | "table";
+    targetId: string; targetIdx: number;
+  } | null>(null);
+  const [editingItem, setEditingItem] = useState<{ type: "text" | "sticky"; id: string; x: number; y: number; value: string } | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [selectedItemType, setSelectedItemType] = useState<"shape" | "table" | "sticky" | null>(null);
+  const itemDragRef = useRef<{ id: string; type: string; offsetX: number; offsetY: number; mode: "move" | "resize"; corner?: string } | null>(null);
+
   // Laser
   const laserTrailRef = useRef<LaserPoint[]>([]);
   const laserAnimRef = useRef<number>(0);
