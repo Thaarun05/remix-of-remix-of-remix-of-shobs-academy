@@ -689,12 +689,14 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     const cached = loadedImagesRef.current.get(item.dataUrl);
     if (cached) {
       ctx.drawImage(cached, item.x, item.y, item.width, item.height);
-      if (selectedImageIdx === idx) {
+      const selImg = selectedImageIdxRef.current;
+      const z = zoomRef.current;
+      if (selImg === idx) {
         ctx.save();
-        ctx.strokeStyle = "#2980b9"; ctx.lineWidth = 2 / zoom; ctx.setLineDash([6 / zoom, 4 / zoom]);
+        ctx.strokeStyle = "#2980b9"; ctx.lineWidth = 2 / z; ctx.setLineDash([6 / z, 4 / z]);
         ctx.strokeRect(item.x, item.y, item.width, item.height);
         ctx.setLineDash([]);
-        const hs = 8 / zoom;
+        const hs = 8 / z;
         ctx.fillStyle = "#2980b9";
         for (const c of [{ x: item.x, y: item.y }, { x: item.x + item.width, y: item.y }, { x: item.x, y: item.y + item.height }, { x: item.x + item.width, y: item.y + item.height }]) {
           ctx.fillRect(c.x - hs / 2, c.y - hs / 2, hs, hs);
