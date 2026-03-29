@@ -161,10 +161,8 @@ const TeacherDashboard = () => {
     description: "",
     dueDate: "",
   });
-  const [zoomForm, setZoomForm] = useState({
-    meetingUrl: "",
-    meetingId: "",
-    passcode: "",
+  const [meetForm, setMeetForm] = useState({
+    meetLink: "",
   });
   const [profileForm, setProfileForm] = useState({
     subjects: "",
