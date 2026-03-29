@@ -194,6 +194,10 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   // Infinite canvas
   const [panOffset, setPanOffset] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const panOffsetRef = useRef<Point>({ x: 0, y: 0 });
+  const zoomRef = useRef(1);
+  const toolRef = useRef<Tool>("pen");
+  const selectedImageIdxRef = useRef<number | null>(null);
   const isPanningRef = useRef(false);
   const panStartRef = useRef<Point>({ x: 0, y: 0 });
   const panOffsetStartRef = useRef<Point>({ x: 0, y: 0 });
