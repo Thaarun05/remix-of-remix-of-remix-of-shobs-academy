@@ -208,12 +208,10 @@ const TeacherDashboard = () => {
     description: "",
     dueDate: "",
   });
-  const [editZoomDialog, setEditZoomDialog] = useState(false);
-  const [editingZoom, setEditingZoom] = useState<ZoomLink | null>(null);
-  const [editZoomForm, setEditZoomForm] = useState({
-    meetingUrl: "",
-    meetingId: "",
-    passcode: "",
+  const [editMeetDialog, setEditMeetDialog] = useState(false);
+  const [editingMeet, setEditingMeet] = useState<MeetLink | null>(null);
+  const [editMeetForm, setEditMeetForm] = useState({
+    meetLink: "",
   });
 
   // File upload states
