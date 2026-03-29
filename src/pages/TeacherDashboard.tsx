@@ -114,11 +114,9 @@ interface AttendanceRecord {
   deleted_at?: string | null;
 }
 
-interface ZoomLink {
+interface MeetLink {
   student_user_id: string;
-  meeting_url: string;
-  meeting_id: string | null;
-  passcode: string | null;
+  meet_link: string;
   student_name?: string;
   deleted_at?: string | null;
 }
