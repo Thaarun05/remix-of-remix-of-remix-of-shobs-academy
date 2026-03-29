@@ -245,6 +245,12 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   const globalChannelRef = useRef<RealtimeChannel | null>(null);
   const [globalOnlineStudents, setGlobalOnlineStudents] = useState<{ user_id: string; name: string }[]>([]);
 
+  // Keep refs in sync with state for use in render callback
+  useEffect(() => { panOffsetRef.current = panOffset; }, [panOffset]);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => { toolRef.current = tool; }, [tool]);
+  useEffect(() => { selectedImageIdxRef.current = selectedImageIdx; }, [selectedImageIdx]);
+
   const getCanvasDims = () => {
     const container = containerRef.current;
     if (!container) return { w: 1920, h: 1080 };
