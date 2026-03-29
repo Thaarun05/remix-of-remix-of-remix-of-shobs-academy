@@ -157,7 +157,7 @@ const StudentDashboard = () => {
         attachments: (a.attachments as unknown as FileInfo[]) || [],
         submission_attachments: (a.submission_attachments as unknown as FileInfo[]) || [],
       })));
-      setZoomLink(zoomRes.data);
+      setMeetLink(zoomRes.data);
       setFees(feesRes.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
