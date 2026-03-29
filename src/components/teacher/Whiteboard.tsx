@@ -1192,6 +1192,8 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     // Dismiss context menu on any click
     if (contextMenu) { setContextMenu(null); return; }
+    // Only handle left mouse button (button 0) or touch — ignore right-click
+    if ("button" in e && (e as React.MouseEvent).button === 2) return;
 
     const pos = getCanvasPos(e);
     const screenPos = getScreenPos(e);
