@@ -1430,6 +1430,15 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       return;
     }
 
+    if (itemDragRef.current) {
+      itemDragRef.current = null;
+      setIsDrawing(false);
+      if (activeSessionId) saveSessionNow();
+      forceUpdate(n => n + 1);
+      render();
+      return;
+    }
+
     if (!isDrawing) return;
 
     if (isShapeTool(tool) && shapeStart.current && shapePreview.current) {
