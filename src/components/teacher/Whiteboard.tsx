@@ -540,6 +540,27 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       }
       case "undo": removeById(payload.itemType, payload.itemId); render(); break;
       case "redo": addItem(payload.itemType, payload.data); render(); break;
+      case "delete_item": removeById(payload.itemType, payload.itemId); render(); break;
+      case "sticky_update": {
+        const note = s.stickyNotes.find(n => n.id === payload.data.id);
+        if (note) { Object.assign(note, payload.data); }
+        render(); break;
+      }
+      case "text_update": {
+        const txt = s.texts.find(t => t.id === payload.data.id);
+        if (txt) { Object.assign(txt, payload.data); }
+        render(); break;
+      }
+      case "shape_update": {
+        const sh = s.shapes.find(x => x.id === payload.data.id);
+        if (sh) { Object.assign(sh, payload.data); }
+        render(); break;
+      }
+      case "table_update": {
+        const tbl = s.tables.find(x => x.id === payload.data.id);
+        if (tbl) { Object.assign(tbl, payload.data); }
+        render(); break;
+      }
       case "laser": {
         const trail = remoteLaserRef.current.get(payload.userId) || [];
         trail.push({ x: payload.x, y: payload.y, time: Date.now() });
