@@ -101,7 +101,7 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [zoomLink, setZoomLink] = useState<ZoomLink | null>(null);
+  const [meetLink, setMeetLink] = useState<MeetLink | null>(null);
   const [fees, setFees] = useState<StudentFee[]>([]);
   const [activeTab, setActiveTab] = useState("schedule");
   const [feeDialogOpen, setFeeDialogOpen] = useState(false);
