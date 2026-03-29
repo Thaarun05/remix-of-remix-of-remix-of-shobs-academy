@@ -617,6 +617,39 @@ export type Database = {
         }
         Relationships: []
       }
+      whiteboard_sessions: {
+        Row: {
+          canvas_state: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_saved_at: string | null
+          student_user_id: string
+          teacher_user_id: string
+          whiteboard_id: string
+        }
+        Insert: {
+          canvas_state?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_saved_at?: string | null
+          student_user_id: string
+          teacher_user_id: string
+          whiteboard_id: string
+        }
+        Update: {
+          canvas_state?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_saved_at?: string | null
+          student_user_id?: string
+          teacher_user_id?: string
+          whiteboard_id?: string
+        }
+        Relationships: []
+      }
       whiteboard_shares: {
         Row: {
           deleted_at: string | null
