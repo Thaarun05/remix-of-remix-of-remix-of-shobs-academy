@@ -362,45 +362,35 @@ const StudentDashboard = () => {
           <StudentAttendanceHistory attendance={attendance} />
         )}
 
-        {activeTab === "zoom" && (
+        {activeTab === "google-meet" && (
           <Card className="max-w-lg dashboard-list-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Video className="h-5 w-5 text-student" />
-                Zoom Meeting Link
+                Google Meet Link
               </CardTitle>
-              <CardDescription>Your assigned Zoom meeting details</CardDescription>
+              <CardDescription>Your assigned Google Meet details</CardDescription>
             </CardHeader>
             <CardContent>
-              {zoomLink ? (
+              {meetLink ? (
                 <div className="space-y-4">
                   <div className="p-4 rounded-lg bg-muted">
-                    {zoomLink.meeting_id && (
-                      <div className="mb-2">
-                        <p className="text-sm text-muted-foreground">Meeting ID</p>
-                        <p className="font-mono text-foreground">{zoomLink.meeting_id}</p>
-                      </div>
-                    )}
-                    {zoomLink.passcode && (
-                      <div>
-                        <p className="text-sm text-muted-foreground">Passcode</p>
-                        <p className="font-mono text-foreground">{zoomLink.passcode}</p>
-                      </div>
-                    )}
+                    <p className="text-sm text-muted-foreground">Meeting Link</p>
+                    <p className="font-mono text-foreground break-all">{meetLink.meet_link}</p>
                   </div>
                   <Button 
                     className="w-full dashboard-btn dashboard-btn-student"
-                    onClick={() => window.open(zoomLink.meeting_url, "_blank")}
+                    onClick={() => window.open(meetLink.meet_link, "_blank")}
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    Join Zoom Meeting
+                    Join Google Meet
                   </Button>
                 </div>
               ) : (
                 <EmptyState 
                   icon={Video}
-                  title="No Zoom link assigned yet"
-                  description="Your teacher will add a Zoom meeting link for your classes soon."
+                  title="No Google Meet link assigned yet"
+                  description="Your teacher will add a Google Meet link for your classes soon."
                 />
               )}
             </CardContent>
