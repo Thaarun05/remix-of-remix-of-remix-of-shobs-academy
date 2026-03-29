@@ -594,14 +594,16 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
 
   // === Drawing helpers (unchanged) ===
   const drawGrid = (ctx: CanvasRenderingContext2D) => {
+    const z = zoomRef.current;
+    const pan = panOffsetRef.current;
     ctx.save();
     ctx.strokeStyle = "#e8edf2";
-    ctx.lineWidth = 0.5 / zoom;
+    ctx.lineWidth = 0.5 / z;
     const canvas = canvasRef.current!;
     const w = canvas.width / (window.devicePixelRatio || 1);
     const h = canvas.height / (window.devicePixelRatio || 1);
-    const worldLeft = -panOffset.x / zoom, worldTop = -panOffset.y / zoom;
-    const worldRight = worldLeft + w / zoom, worldBottom = worldTop + h / zoom;
+    const worldLeft = -pan.x / z, worldTop = -pan.y / z;
+    const worldRight = worldLeft + w / z, worldBottom = worldTop + h / z;
     const startX = Math.floor(worldLeft / GRID_SIZE) * GRID_SIZE;
     const startY = Math.floor(worldTop / GRID_SIZE) * GRID_SIZE;
     for (let x = startX; x <= worldRight; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, worldTop); ctx.lineTo(x, worldBottom); ctx.stroke(); }
