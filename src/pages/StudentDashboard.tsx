@@ -138,8 +138,8 @@ const StudentDashboard = () => {
           .is("deleted_at", null)
           .order("due_date", { ascending: true }),
         supabase
-          .from("zoom_links")
-          .select("meeting_url, meeting_id, passcode")
+          .from("meet_links")
+          .select("meet_link")
           .eq("student_user_id", user.id)
           .is("deleted_at", null)
           .maybeSingle(),
