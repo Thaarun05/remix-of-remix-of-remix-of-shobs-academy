@@ -689,8 +689,8 @@ const TeacherDashboard = () => {
   
   const handleSoftDelete = async (table: string, id: string) => {
     try {
-      // Zoom links use student_user_id as the key, not id
-      const column = table === "zoom_links" ? "student_user_id" : "id";
+      // Meet links use student_user_id as the key, not id
+      const column = table === "meet_links" ? "student_user_id" : "id";
       
       const { error } = await supabase
         .from(table as any)
