@@ -523,17 +523,15 @@ const TeacherDashboard = () => {
     }
   };
 
-  const handleUpdateZoom = async (e: React.FormEvent) => {
+  const handleUpdateMeet = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !selectedStudent) return;
     setSubmitting(true);
 
     try {
-      const { error } = await supabase.from("zoom_links").upsert({
+      const { error } = await supabase.from("meet_links").upsert({
         student_user_id: selectedStudent,
-        meeting_url: zoomForm.meetingUrl,
-        meeting_id: zoomForm.meetingId || null,
-        passcode: zoomForm.passcode || null,
+        meet_link: meetForm.meetLink,
         deleted_at: null,
         updated_at: new Date().toISOString(),
       });
@@ -541,14 +539,14 @@ const TeacherDashboard = () => {
       if (error) throw error;
 
       toast({
-        title: "Zoom link updated",
-        description: "The Zoom meeting link has been saved for the student.",
+        title: "Google Meet link updated",
+        description: "The Google Meet link has been saved for the student.",
       });
 
-      setZoomForm({ meetingUrl: "", meetingId: "", passcode: "" });
-      fetchData(); // Refresh to show the new zoom link
+      setMeetForm({ meetLink: "" });
+      fetchData();
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to save Zoom link.";
+      const errorMessage = error instanceof Error ? error.message : "Failed to save Google Meet link.";
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
       setSubmitting(false);
