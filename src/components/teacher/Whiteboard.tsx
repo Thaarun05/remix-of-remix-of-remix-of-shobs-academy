@@ -325,6 +325,45 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     fetchName();
   }, [user, mode]);
 
+  // === Global presence channel (shows who's on whiteboard) ===
+  useEffect(() => {
+    if (!user || !displayName) return;
+    const globalChannel = supabase.channel("wb:global", {
+      config: { presence: { key: user.id } },
+    });
+
+    globalChannel
+      .on("presence", { event: "sync" }, () => {
+        const state = globalChannel.presenceState();
+        const onlineStudents: { user_id: string; name: string }[] = [];
+        Object.values(state).forEach((presences: any[]) => {
+          presences.forEach((p: any) => {
+            if (p.role === "student" && p.user_id !== user.id) {
+              onlineStudents.push({ user_id: p.user_id, name: p.name });
+            }
+          });
+        });
+        setGlobalOnlineStudents(onlineStudents);
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await globalChannel.track({
+            user_id: user.id,
+            role: mode,
+            name: displayName,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+
+    globalChannelRef.current = globalChannel;
+
+    return () => {
+      supabase.removeChannel(globalChannel);
+      globalChannelRef.current = null;
+    };
+  }, [user, displayName, mode]);
+
   // === Realtime channel ===
   useEffect(() => {
     if (!activeSessionId || !user) return;
