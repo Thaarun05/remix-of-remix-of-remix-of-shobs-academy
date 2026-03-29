@@ -1120,6 +1120,63 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     return null;
   };
 
+  const hitTestAll = (worldPos: Point): { type: "image" | "sticky" | "text" | "shape" | "table"; id: string; idx: number } | null => {
+    const imgIdx = hitTestImage(worldPos);
+    if (imgIdx !== null) return { type: "image", id: stateRef.current.images[imgIdx].id, idx: imgIdx };
+    const notes = stateRef.current.stickyNotes;
+    for (let i = notes.length - 1; i >= 0; i--) {
+      const n = notes[i];
+      if (worldPos.x >= n.x && worldPos.x <= n.x + n.width && worldPos.y >= n.y && worldPos.y <= n.y + n.height) return { type: "sticky", id: n.id, idx: i };
+    }
+    const tbls = stateRef.current.tables;
+    for (let i = tbls.length - 1; i >= 0; i--) {
+      const t = tbls[i];
+      const tw = t.cols * t.cellWidth, th = t.rows * t.cellHeight;
+      if (worldPos.x >= t.x && worldPos.x <= t.x + tw && worldPos.y >= t.y && worldPos.y <= t.y + th) return { type: "table", id: t.id, idx: i };
+    }
+    const txts = stateRef.current.texts;
+    for (let i = txts.length - 1; i >= 0; i--) {
+      const t = txts[i];
+      const approxW = Math.max(t.text.length * (t.size * 2 + 7), 40);
+      const approxH = t.size * 4 + 20;
+      if (worldPos.x >= t.x && worldPos.x <= t.x + approxW && worldPos.y >= t.y - approxH && worldPos.y <= t.y + 4) return { type: "text", id: t.id, idx: i };
+    }
+    const shps = stateRef.current.shapes;
+    for (let i = shps.length - 1; i >= 0; i--) {
+      const sh = shps[i];
+      const minX = Math.min(sh.start.x, sh.end.x) - 8, maxX = Math.max(sh.start.x, sh.end.x) + 8;
+      const minY = Math.min(sh.start.y, sh.end.y) - 8, maxY = Math.max(sh.start.y, sh.end.y) + 8;
+      if (worldPos.x >= minX && worldPos.x <= maxX && worldPos.y >= minY && worldPos.y <= maxY) return { type: "shape", id: sh.id, idx: i };
+    }
+    return null;
+  };
+
+  const hitTestItemCorner = (worldPos: Point): string | null => {
+    if (!selectedItemId || !selectedItemType) return null;
+    const hs = 14 / zoom;
+    let corners: { name: string; x: number; y: number }[] = [];
+    if (selectedItemType === "sticky") {
+      const n = stateRef.current.stickyNotes.find(n => n.id === selectedItemId);
+      if (!n) return null;
+      corners = [{ name: "tl", x: n.x, y: n.y }, { name: "tr", x: n.x + n.width, y: n.y }, { name: "bl", x: n.x, y: n.y + n.height }, { name: "br", x: n.x + n.width, y: n.y + n.height }];
+    } else if (selectedItemType === "table") {
+      const t = stateRef.current.tables.find(t => t.id === selectedItemId);
+      if (!t) return null;
+      const tw = t.cols * t.cellWidth, th = t.rows * t.cellHeight;
+      corners = [{ name: "tl", x: t.x, y: t.y }, { name: "tr", x: t.x + tw, y: t.y }, { name: "bl", x: t.x, y: t.y + th }, { name: "br", x: t.x + tw, y: t.y + th }];
+    } else if (selectedItemType === "shape") {
+      const sh = stateRef.current.shapes.find(s => s.id === selectedItemId);
+      if (!sh) return null;
+      const minX = Math.min(sh.start.x, sh.end.x), minY = Math.min(sh.start.y, sh.end.y);
+      const maxX = Math.max(sh.start.x, sh.end.x), maxY = Math.max(sh.start.y, sh.end.y);
+      corners = [{ name: "tl", x: minX, y: minY }, { name: "tr", x: maxX, y: minY }, { name: "bl", x: minX, y: maxY }, { name: "br", x: maxX, y: maxY }];
+    }
+    for (const c of corners) {
+      if (Math.abs(worldPos.x - c.x) < hs && Math.abs(worldPos.y - c.y) < hs) return c.name;
+    }
+    return null;
+  };
+
   // === Mouse handlers ===
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     const pos = getCanvasPos(e);
