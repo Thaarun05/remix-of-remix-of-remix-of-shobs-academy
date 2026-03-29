@@ -812,45 +812,41 @@ const TeacherDashboard = () => {
     }
   };
   
-  const openEditZoom = (link: ZoomLink) => {
-    setEditingZoom(link);
-    setEditZoomForm({
-      meetingUrl: link.meeting_url,
-      meetingId: link.meeting_id || "",
-      passcode: link.passcode || "",
+  const openEditMeet = (link: MeetLink) => {
+    setEditingMeet(link);
+    setEditMeetForm({
+      meetLink: link.meet_link,
     });
-    setEditZoomDialog(true);
+    setEditMeetDialog(true);
   };
   
-  const handleUpdateZoomLink = async () => {
-    if (!editingZoom || !user) return;
+  const handleUpdateMeetLink = async () => {
+    if (!editingMeet || !user) return;
     setSubmitting(true);
     
     try {
       const { error } = await supabase
-        .from("zoom_links")
+        .from("meet_links")
         .update({
-          meeting_url: editZoomForm.meetingUrl,
-          meeting_id: editZoomForm.meetingId || null,
-          passcode: editZoomForm.passcode || null,
+          meet_link: editMeetForm.meetLink,
         })
-        .eq("student_user_id", editingZoom.student_user_id);
+        .eq("student_user_id", editingMeet.student_user_id);
       
       if (error) throw error;
       
-      // Notify student about updated Zoom link
+      // Notify student about updated Meet link
       await supabase.from("notifications").insert({
-        recipient_id: editingZoom.student_user_id,
+        recipient_id: editingMeet.student_user_id,
         sender_id: user.id,
-        type: "zoom",
-        title: "Zoom Link Updated",
-        body: "Your Zoom meeting link has been updated.",
-        entity_table: "zoom_links",
+        type: "meet",
+        title: "Google Meet Link Updated",
+        body: "Your Google Meet link has been updated.",
+        entity_table: "meet_links",
       });
       
-      toast({ title: "Zoom link updated", description: "The student has been notified." });
-      setEditZoomDialog(false);
-      setEditingZoom(null);
+      toast({ title: "Google Meet link updated", description: "The student has been notified." });
+      setEditMeetDialog(false);
+      setEditingMeet(null);
       fetchData();
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
