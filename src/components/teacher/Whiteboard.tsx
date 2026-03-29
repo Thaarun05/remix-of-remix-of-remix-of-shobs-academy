@@ -946,17 +946,12 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
 
   const clearCanvas = () => {
     if (activeSessionId && user) {
-      // Only clear own items
-      const s = stateRef.current;
-      s.strokes = s.strokes.filter(i => i.ownerId !== user.id);
-      s.shapes = s.shapes.filter(i => i.ownerId !== user.id);
-      s.texts = s.texts.filter(i => i.ownerId !== user.id);
-      s.stickyNotes = s.stickyNotes.filter(i => i.ownerId !== user.id);
-      s.tables = s.tables.filter(i => i.ownerId !== user.id);
-      s.images = s.images.filter(i => i.ownerId !== user.id);
+      // Clear ALL items on the canvas (full clear syncs to other user)
+      stateRef.current = emptyState();
       myActionsRef.current = [];
       myRedoRef.current = [];
-      broadcast({ action: "clear", userId: user.id });
+      broadcast({ action: "clear_all" });
+      saveSessionNow();
     } else {
       stateRef.current = emptyState();
       myActionsRef.current = [];
