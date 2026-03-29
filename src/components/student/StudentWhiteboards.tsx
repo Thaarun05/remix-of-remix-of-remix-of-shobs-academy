@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/EmptyState";
@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Whiteboard } from "@/components/teacher/Whiteboard";
 import { PenTool, Loader2, Calendar, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 interface WhiteboardShare {
   id: string;
