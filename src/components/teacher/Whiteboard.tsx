@@ -434,6 +434,14 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
             images: parsed.images || [],
           };
           loadedImagesRef.current.clear();
+          // Pre-load all image elements from saved state
+          for (const imgItem of stateRef.current.images) {
+            if (imgItem.dataUrl && !loadedImagesRef.current.has(imgItem.dataUrl)) {
+              const imgEl = new Image();
+              imgEl.onload = () => { loadedImagesRef.current.set(imgItem.dataUrl, imgEl); render(); };
+              imgEl.src = imgItem.dataUrl;
+            }
+          }
           render();
         }
       } catch (err) {
@@ -508,7 +516,28 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       case "text_add": s.texts.push(payload.data); render(); break;
       case "sticky_add": s.stickyNotes.push(payload.data); render(); break;
       case "table_add": s.tables.push(payload.data); render(); break;
-      case "image_add": s.images.push(payload.data); render(); break;
+      case "image_add": {
+        s.images.push(payload.data);
+        // Pre-load the image element so it renders immediately
+        if (payload.data.dataUrl && !loadedImagesRef.current.has(payload.data.dataUrl)) {
+          const img = new Image();
+          img.onload = () => { loadedImagesRef.current.set(payload.data.dataUrl, img); render(); };
+          img.src = payload.data.dataUrl;
+        }
+        render();
+        break;
+      }
+      case "image_update": {
+        const target = s.images.find(i => i.id === payload.data.id);
+        if (target) {
+          target.x = payload.data.x;
+          target.y = payload.data.y;
+          target.width = payload.data.width;
+          target.height = payload.data.height;
+        }
+        render();
+        break;
+      }
       case "undo": removeById(payload.itemType, payload.itemId); render(); break;
       case "redo": addItem(payload.itemType, payload.data); render(); break;
       case "laser": {
@@ -948,6 +977,14 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
         setTitle(share.title);
         setCurrentBoardId(share.whiteboard_id);
         loadedImagesRef.current.clear();
+        // Pre-load all image elements from session state
+        for (const imgItem of stateRef.current.images) {
+          if (imgItem.dataUrl && !loadedImagesRef.current.has(imgItem.dataUrl)) {
+            const imgEl = new Image();
+            imgEl.onload = () => { loadedImagesRef.current.set(imgItem.dataUrl, imgEl); render(); };
+            imgEl.src = imgItem.dataUrl;
+          }
+        }
         setSelectedImageIdx(null);
         setPanOffset({ x: 0, y: 0 });
         setZoom(1);
@@ -1153,6 +1190,9 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
         else if (corner === "tr") { img.width = Math.max(30, pos.x - img.x); const nh = Math.max(30, (img.y + img.height) - pos.y); img.y = img.y + img.height - nh; img.height = nh; }
         else if (corner === "tl") { const nw = Math.max(30, (img.x + img.width) - pos.x); const nh = Math.max(30, (img.y + img.height) - pos.y); img.x = img.x + img.width - nw; img.y = img.y + img.height - nh; img.width = nw; img.height = nh; }
       }
+      if (activeSessionId) {
+        broadcast({ action: "image_update", data: { id: img.id, x: img.x, y: img.y, width: img.width, height: img.height } });
+      }
       render();
       return;
     }
@@ -1187,6 +1227,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     if (imageDragRef.current) {
       imageDragRef.current = null;
       setIsDrawing(false);
+      if (activeSessionId) saveSessionNow();
       render();
       return;
     }
