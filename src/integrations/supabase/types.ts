@@ -217,6 +217,27 @@ export type Database = {
           },
         ]
       }
+      meet_links: {
+        Row: {
+          deleted_at: string | null
+          meet_link: string
+          student_user_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          deleted_at?: string | null
+          meet_link: string
+          student_user_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          deleted_at?: string | null
+          meet_link?: string
+          student_user_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -713,33 +734,6 @@ export type Database = {
           teacher_user_id?: string
           title?: string
           updated_at?: string
-        }
-        Relationships: []
-      }
-      zoom_links: {
-        Row: {
-          deleted_at: string | null
-          meeting_id: string | null
-          meeting_url: string
-          passcode: string | null
-          student_user_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          deleted_at?: string | null
-          meeting_id?: string | null
-          meeting_url: string
-          passcode?: string | null
-          student_user_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          deleted_at?: string | null
-          meeting_id?: string | null
-          meeting_url?: string
-          passcode?: string | null
-          student_user_id?: string
-          updated_at?: string | null
         }
         Relationships: []
       }
