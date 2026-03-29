@@ -1190,6 +1190,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     if (imageDragRef.current) {
       imageDragRef.current = null;
       setIsDrawing(false);
+      if (activeSessionId) saveSessionNow();
       render();
       return;
     }
