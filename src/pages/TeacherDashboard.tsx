@@ -139,7 +139,7 @@ const TeacherDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [assignments, setAssignments] = useState<AssignmentWithFiles[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-  const [zoomLinks, setZoomLinks] = useState<ZoomLink[]>([]);
+  const [meetLinks, setMeetLinks] = useState<MeetLink[]>([]);
   const [recentFees, setRecentFees] = useState<StudentFee[]>([]);
   const [salaries, setSalaries] = useState<TeacherSalary[]>([]);
   
