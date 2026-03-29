@@ -565,20 +565,26 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     const action = myActionsRef.current.pop()!;
     removeById(action.type, action.id);
     myRedoRef.current.push(action);
-    if (activeSessionId) broadcast({ action: "undo", itemType: action.type, itemId: action.id });
+    if (activeSessionId) {
+      broadcast({ action: "undo", itemType: action.type, itemId: action.id });
+      saveSessionNow();
+    }
     forceUpdate(n => n + 1);
     render();
-  }, [activeSessionId, broadcast]);
+  }, [activeSessionId, broadcast, saveSessionNow]);
 
   const redo = useCallback(() => {
     if (myRedoRef.current.length === 0) return;
     const action = myRedoRef.current.pop()!;
     addItem(action.type, action.data);
     myActionsRef.current.push(action);
-    if (activeSessionId) broadcast({ action: "redo", itemType: action.type, itemId: action.id, data: action.data });
+    if (activeSessionId) {
+      broadcast({ action: "redo", itemType: action.type, itemId: action.id, data: action.data });
+      saveSessionNow();
+    }
     forceUpdate(n => n + 1);
     render();
-  }, [activeSessionId, broadcast]);
+  }, [activeSessionId, broadcast, saveSessionNow]);
 
   const screenToWorld = (screenX: number, screenY: number): Point => {
     const canvas = canvasRef.current;
