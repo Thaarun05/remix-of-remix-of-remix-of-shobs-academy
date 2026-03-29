@@ -950,7 +950,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
         ctx.fillStyle = `rgba(30, 100, 255, ${alpha * 0.2})`; ctx.fill();
       }
     });
-  }, [tool, color, strokeSize, panOffset, zoom, selectedImageIdx]);
+  }, [tool, color, strokeSize, panOffset, zoom, selectedImageIdx, selectedItemId, selectedItemType]);
 
   // Initial render + first action (for undo baseline)
   useEffect(() => { render(); }, []);
