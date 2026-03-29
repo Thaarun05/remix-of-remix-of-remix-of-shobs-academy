@@ -869,6 +869,47 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       ctx.fillText(t.text, t.x, t.y);
     }
 
+    // Draw selection handles for non-image selected items
+    const selId = selectedItemId;
+    const selType = selectedItemType;
+    if (selId && selType) {
+      ctx.save();
+      ctx.strokeStyle = "#2980b9";
+      ctx.lineWidth = 2 / currentZoom;
+      ctx.setLineDash([6 / currentZoom, 4 / currentZoom]);
+      const hs = 8 / currentZoom;
+      ctx.fillStyle = "#2980b9";
+      const drawHandles = (corners: Point[]) => {
+        for (const c of corners) ctx.fillRect(c.x - hs / 2, c.y - hs / 2, hs, hs);
+      };
+      if (selType === "sticky") {
+        const note = stickyNotes.find(n => n.id === selId);
+        if (note) {
+          ctx.strokeRect(note.x, note.y, note.width, note.height);
+          ctx.setLineDash([]);
+          drawHandles([{ x: note.x, y: note.y }, { x: note.x + note.width, y: note.y }, { x: note.x, y: note.y + note.height }, { x: note.x + note.width, y: note.y + note.height }]);
+        }
+      } else if (selType === "table") {
+        const tbl = tables.find(t => t.id === selId);
+        if (tbl) {
+          const tw = tbl.cols * tbl.cellWidth, th = tbl.rows * tbl.cellHeight;
+          ctx.strokeRect(tbl.x, tbl.y, tw, th);
+          ctx.setLineDash([]);
+          drawHandles([{ x: tbl.x, y: tbl.y }, { x: tbl.x + tw, y: tbl.y }, { x: tbl.x, y: tbl.y + th }, { x: tbl.x + tw, y: tbl.y + th }]);
+        }
+      } else if (selType === "shape") {
+        const sh = shapes.find(s => s.id === selId);
+        if (sh) {
+          const minX = Math.min(sh.start.x, sh.end.x), minY = Math.min(sh.start.y, sh.end.y);
+          const maxX = Math.max(sh.start.x, sh.end.x), maxY = Math.max(sh.start.y, sh.end.y);
+          ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+          ctx.setLineDash([]);
+          drawHandles([{ x: minX, y: minY }, { x: maxX, y: minY }, { x: minX, y: maxY }, { x: maxX, y: maxY }]);
+        }
+      }
+      ctx.restore();
+    }
+
     ctx.restore();
 
     // Local laser trail (red)
