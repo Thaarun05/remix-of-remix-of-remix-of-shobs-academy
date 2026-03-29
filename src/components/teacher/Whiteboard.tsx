@@ -1510,6 +1510,39 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
           {isFullscreen && (
             <span className={`px-2 py-1 rounded-full bg-${roleAccent}/10 text-${roleAccent} text-xs font-bold`}>FULLSCREEN</span>
           )}
+
+          {/* Live students indicator (teacher only) */}
+          {mode === "teacher" && globalOnlineStudents.length > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent border border-border">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-xs font-semibold text-foreground">{globalOnlineStudents.length} Live</span>
+              <div className="flex -space-x-1.5 ml-1">
+                {globalOnlineStudents.slice(0, 5).map((s) => (
+                  <div key={s.user_id} className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold border-2 border-background" title={s.name}>
+                    {s.name.charAt(0).toUpperCase()}
+                  </div>
+                ))}
+                {globalOnlineStudents.length > 5 && (
+                  <div className="w-6 h-6 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-[10px] font-bold border-2 border-background">
+                    +{globalOnlineStudents.length - 5}
+                  </div>
+                )}
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="ml-1 text-xs text-muted-foreground hover:text-foreground"><ChevronDown className="h-3 w-3" /></button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[160px]">
+                  {globalOnlineStudents.map((s) => (
+                    <DropdownMenuItem key={s.user_id} className="text-sm">
+                      <span className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                      {s.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
       </div>
 
