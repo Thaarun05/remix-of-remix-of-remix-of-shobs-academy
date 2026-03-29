@@ -739,6 +739,10 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     if (!ctx) return;
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.width / dpr, h = canvas.height / dpr;
+    const currentPan = panOffsetRef.current;
+    const currentZoom = zoomRef.current;
+    const currentTool = toolRef.current;
+    const currentSelectedImg = selectedImageIdxRef.current;
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -747,8 +751,8 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     ctx.fillRect(0, 0, w, h);
 
     ctx.save();
-    ctx.translate(panOffset.x, panOffset.y);
-    ctx.scale(zoom, zoom);
+    ctx.translate(currentPan.x, currentPan.y);
+    ctx.scale(currentZoom, currentZoom);
 
     drawGrid(ctx);
 
@@ -767,7 +771,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
 
     // Shape preview
     if (shapeStart.current && shapePreview.current) {
-      const shapeTool = tool as string;
+      const shapeTool = currentTool as string;
       if (["line", "rect", "circle", "arrow", "connector", "frame"].includes(shapeTool)) {
         drawShape(ctx, {
           id: "", ownerId: "",
@@ -790,12 +794,12 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     ctx.restore();
 
     // Local laser trail (red)
-    if (tool === "laser" && laserTrailRef.current.length > 0) {
+    if (currentTool === "laser" && laserTrailRef.current.length > 0) {
       const now = Date.now();
       for (const p of laserTrailRef.current) {
         const alpha = Math.max(0, 1 - (now - p.time) / LASER_FADE_MS);
         const r = 6 * alpha + 2;
-        const sx = p.x * zoom + panOffset.x, sy = p.y * zoom + panOffset.y;
+        const sx = p.x * currentZoom + currentPan.x, sy = p.y * currentZoom + currentPan.y;
         ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(255, 30, 30, ${alpha * 0.9})`; ctx.fill();
         ctx.beginPath(); ctx.arc(sx, sy, r * 2.5, 0, Math.PI * 2);
@@ -809,7 +813,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       for (const p of trail) {
         const alpha = Math.max(0, 1 - (now - p.time) / LASER_FADE_MS);
         const r = 6 * alpha + 2;
-        const sx = p.x * zoom + panOffset.x, sy = p.y * zoom + panOffset.y;
+        const sx = p.x * currentZoom + currentPan.x, sy = p.y * currentZoom + currentPan.y;
         ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(30, 100, 255, ${alpha * 0.9})`; ctx.fill();
         ctx.beginPath(); ctx.arc(sx, sy, r * 2.5, 0, Math.PI * 2);
