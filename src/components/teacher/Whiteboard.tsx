@@ -1823,7 +1823,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
 
   const handleToolSelect = (id: Tool) => {
     setTool(id);
-    if (id === "image" && selectedImageIdx === null) {
+    if (id === "image") {
       setTimeout(() => fileInputRef.current?.click(), 50);
     }
   };
