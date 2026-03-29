@@ -527,6 +527,12 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
         render();
         break;
       }
+      case "clear_all": {
+        stateRef.current = emptyState();
+        loadedImagesRef.current.clear();
+        render();
+        break;
+      }
     }
     forceUpdate(n => n + 1);
   }, []);
