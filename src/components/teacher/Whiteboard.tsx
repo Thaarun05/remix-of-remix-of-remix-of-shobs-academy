@@ -1540,6 +1540,54 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     e.target.value = "";
   };
 
+  // Clipboard paste — snips / copied images
+  const addImageFromDataUrl = useCallback((dataUrl: string) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      const maxDim = 600;
+      if (w > maxDim || h > maxDim) { const scale = maxDim / Math.max(w, h); w *= scale; h *= scale; }
+      loadedImagesRef.current.set(dataUrl, img);
+      const canvas = canvasRef.current;
+      const dpr = window.devicePixelRatio || 1;
+      const viewW = (canvas?.width || 1920) / dpr, viewH = (canvas?.height || 1080) / dpr;
+      const cx = (-panOffset.x + viewW / 2) / zoom - w / 2;
+      const cy = (-panOffset.y + viewH / 2) / zoom - h / 2;
+      const item: ImageItemData = { id: uid(), ownerId: user?.id || "", x: cx, y: cy, width: w, height: h, dataUrl };
+      const newIdx = stateRef.current.images.length;
+      stateRef.current.images.push(item);
+      setSelectedImageIdx(newIdx);
+      pushAction("image", item.id, item);
+      if (activeSessionId) broadcast({ action: "image_add", data: item });
+      forceUpdate(n => n + 1);
+      render();
+    };
+    img.src = dataUrl;
+  }, [panOffset, zoom, user?.id, activeSessionId]);
+
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith("image/")) {
+          e.preventDefault();
+          const file = items[i].getAsFile();
+          if (!file) continue;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const dataUrl = ev.target?.result as string;
+            if (dataUrl) addImageFromDataUrl(dataUrl);
+          };
+          reader.readAsDataURL(file);
+          break;
+        }
+      }
+    };
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [addImageFromDataUrl]);
+
   // Zoom
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
