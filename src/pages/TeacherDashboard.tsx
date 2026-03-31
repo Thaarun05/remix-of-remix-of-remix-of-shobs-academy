@@ -1498,7 +1498,7 @@ const TeacherDashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Video className="h-4 w-4" />
-                  Active Google Meet Links
+                  Active Meeting Links
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
