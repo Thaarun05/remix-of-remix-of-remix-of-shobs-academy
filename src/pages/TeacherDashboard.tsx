@@ -117,6 +117,7 @@ interface AttendanceRecord {
 interface MeetLink {
   student_user_id: string;
   meet_link: string;
+  zoom_link?: string | null;
   student_name?: string;
   deleted_at?: string | null;
 }
