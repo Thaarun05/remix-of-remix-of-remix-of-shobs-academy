@@ -844,12 +844,12 @@ const TeacherDashboard = () => {
         recipient_id: editingMeet.student_user_id,
         sender_id: user.id,
         type: "meet",
-        title: "Google Meet Link Updated",
-        body: "Your Google Meet link has been updated.",
+        title: "Meeting Links Updated",
+        body: "Your meeting links have been updated.",
         entity_table: "meet_links",
       });
       
-      toast({ title: "Google Meet link updated", description: "The student has been notified." });
+      toast({ title: "Meeting links updated", description: "The student has been notified." });
       setEditMeetDialog(false);
       setEditingMeet(null);
       fetchData();
