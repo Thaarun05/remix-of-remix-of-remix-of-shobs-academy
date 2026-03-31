@@ -78,6 +78,7 @@ interface Assignment {
 
 interface MeetLink {
   meet_link: string;
+  zoom_link?: string | null;
 }
 
 interface StudentFee {
