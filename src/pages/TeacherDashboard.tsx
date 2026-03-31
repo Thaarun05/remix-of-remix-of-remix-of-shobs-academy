@@ -535,6 +535,7 @@ const TeacherDashboard = () => {
       const { error } = await supabase.from("meet_links").upsert({
         student_user_id: selectedStudent,
         meet_link: meetForm.meetLink,
+        zoom_link: meetForm.zoomLink || null,
         deleted_at: null,
         updated_at: new Date().toISOString(),
       });
