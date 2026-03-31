@@ -368,15 +368,15 @@ const StudentDashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Video className="h-5 w-5 text-student" />
-                Google Meet Link
+                Meeting Links
               </CardTitle>
-              <CardDescription>Your assigned Google Meet details</CardDescription>
+              <CardDescription>Your assigned meeting details</CardDescription>
             </CardHeader>
             <CardContent>
               {meetLink ? (
                 <div className="space-y-4">
                   <div className="p-4 rounded-lg bg-muted">
-                    <p className="text-sm text-muted-foreground">Meeting Link</p>
+                    <p className="text-sm text-muted-foreground">Google Meet Link</p>
                     <p className="font-mono text-foreground break-all">{meetLink.meet_link}</p>
                   </div>
                   <Button 
@@ -386,12 +386,28 @@ const StudentDashboard = () => {
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Join Google Meet
                   </Button>
+                  {meetLink.zoom_link && (
+                    <>
+                      <div className="p-4 rounded-lg bg-muted">
+                        <p className="text-sm text-muted-foreground">Zoom Link</p>
+                        <p className="font-mono text-foreground break-all">{meetLink.zoom_link}</p>
+                      </div>
+                      <Button 
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => window.open(meetLink.zoom_link!, "_blank")}
+                      >
+                        <Video className="h-4 w-4 mr-2" />
+                        Join Zoom
+                      </Button>
+                    </>
+                  )}
                 </div>
               ) : (
                 <EmptyState 
                   icon={Video}
-                  title="No Google Meet link assigned yet"
-                  description="Your teacher will add a Google Meet link for your classes soon."
+                  title="No meeting links assigned yet"
+                  description="Your teacher will add meeting links for your classes soon."
                 />
               )}
             </CardContent>
