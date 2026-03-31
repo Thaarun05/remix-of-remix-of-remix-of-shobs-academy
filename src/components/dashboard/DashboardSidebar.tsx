@@ -170,6 +170,7 @@ export const studentSidebarItems: SidebarItem[] = [
   { id: "schedule", label: "Schedule", icon: CalendarDays },
   { id: "attendance", label: "Attendance", icon: Calendar },
   { id: "google-meet", label: "Google Meet", icon: Video },
+  { id: "zoom", label: "Zoom", icon: Video },
   { id: "notes", label: "Notes", icon: FileText },
   { id: "whiteboards", label: "Whiteboards", icon: PenTool },
   { id: "assignments", label: "Assignments", icon: FileText },
