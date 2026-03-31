@@ -1410,12 +1410,12 @@ const TeacherDashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Plus className="h-5 w-5" />
-                  {selectedStudent ? "Create / Update Google Meet Link" : "Create New Google Meet Link"}
+                  {selectedStudent ? "Create / Update Meeting Links" : "Create New Meeting Links"}
                 </CardTitle>
                 <CardDescription>
                   {selectedStudent 
-                    ? `Setting Google Meet link for: ${students.find(s => s.user_id === selectedStudent)?.student_name || "Selected Student"}`
-                    : "Select a student above to create or update their Google Meet link"
+                    ? `Setting meeting links for: ${students.find(s => s.user_id === selectedStudent)?.student_name || "Selected Student"}`
+                    : "Select a student above to create or update their meeting links"
                   }
                 </CardDescription>
               </CardHeader>
@@ -1430,7 +1430,7 @@ const TeacherDashboard = () => {
                   <form onSubmit={handleUpdateMeet} className="space-y-4">
                     <div className="p-3 bg-teacher/10 rounded-lg border border-teacher/20 mb-4">
                       <p className="text-sm font-medium text-teacher">
-                        Creating link for: {students.find(s => s.user_id === selectedStudent)?.student_name}
+                        Creating links for: {students.find(s => s.user_id === selectedStudent)?.student_name}
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -1444,11 +1444,21 @@ const TeacherDashboard = () => {
                         required
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="zoomLink">Zoom Link (optional)</Label>
+                      <Input
+                        id="zoomLink"
+                        type="url"
+                        placeholder="https://zoom.us/j/xxxxxxxxx"
+                        value={meetForm.zoomLink}
+                        onChange={(e) => setMeetForm({ ...meetForm, zoomLink: e.target.value })}
+                      />
+                    </div>
                     <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={submitting}>
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                         <>
                           <Plus className="h-4 w-4 mr-2" />
-                          Save Google Meet Link
+                          Save Meeting Links
                         </>
                       )}
                     </Button>
