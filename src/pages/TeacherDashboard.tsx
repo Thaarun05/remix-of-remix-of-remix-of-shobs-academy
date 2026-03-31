@@ -1468,7 +1468,7 @@ const TeacherDashboard = () => {
                 {/* Quick Add for Students Without Links */}
                 {students.filter(s => !meetLinks.some(z => z.student_user_id === s.user_id)).length > 0 && (
                   <div className="mt-6 pt-6 border-t border-border">
-                    <p className="text-sm font-medium mb-3">Students without Meet links:</p>
+                    <p className="text-sm font-medium mb-3">Students without meeting links:</p>
                     <div className="space-y-2">
                       {students
                         .filter(s => !meetLinks.some(z => z.student_user_id === s.user_id))
