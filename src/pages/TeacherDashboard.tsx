@@ -819,6 +819,7 @@ const TeacherDashboard = () => {
     setEditingMeet(link);
     setEditMeetForm({
       meetLink: link.meet_link,
+      zoomLink: link.zoom_link || "",
     });
     setEditMeetDialog(true);
   };
