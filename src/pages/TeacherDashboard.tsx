@@ -214,6 +214,7 @@ const TeacherDashboard = () => {
   const [editingMeet, setEditingMeet] = useState<MeetLink | null>(null);
   const [editMeetForm, setEditMeetForm] = useState({
     meetLink: "",
+    zoomLink: "",
   });
 
   // File upload states
