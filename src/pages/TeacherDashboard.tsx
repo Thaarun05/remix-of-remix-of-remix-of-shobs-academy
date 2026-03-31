@@ -1503,7 +1503,7 @@ const TeacherDashboard = () => {
               </CardHeader>
               <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
                 {meetLinks.filter(link => students.some(s => s.user_id === link.student_user_id)).length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No Google Meet links set for your students</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">No meeting links set for your students</p>
                 ) : (
                   meetLinks
                     .filter(link => students.some(s => s.user_id === link.student_user_id))
@@ -1512,16 +1512,38 @@ const TeacherDashboard = () => {
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-foreground">{link.student_name}</p>
-                            <p className="text-xs text-muted-foreground mt-1 break-all">{link.meet_link}</p>
+                            <div className="mt-1 space-y-1">
+                              <p className="text-xs text-muted-foreground break-all">
+                                <span className="font-medium text-foreground">Google Meet:</span> {link.meet_link}
+                              </p>
+                              {link.zoom_link && (
+                                <p className="text-xs text-muted-foreground break-all">
+                                  <span className="font-medium text-foreground">Zoom:</span> {link.zoom_link}
+                                </p>
+                              )}
+                            </div>
                           </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
                           <Button
                             size="sm"
                             className="dashboard-btn dashboard-btn-teacher shrink-0"
                             onClick={() => window.open(link.meet_link, '_blank', 'noopener,noreferrer')}
                           >
                             <ExternalLink className="h-4 w-4 mr-1" />
-                            Join
+                            Google Meet
                           </Button>
+                          {link.zoom_link && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="shrink-0"
+                              onClick={() => window.open(link.zoom_link!, '_blank', 'noopener,noreferrer')}
+                            >
+                              <Video className="h-4 w-4 mr-1" />
+                              Zoom
+                            </Button>
+                          )}
                         </div>
                         
                         <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-border/50">
@@ -1529,7 +1551,7 @@ const TeacherDashboard = () => {
                             <Pencil className="h-3.5 w-3.5 mr-1" />
                             Edit
                           </Button>
-                          <Button size="sm" variant="outline" className="h-8 text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog("meet_links", link.student_user_id, `${link.student_name}'s Google Meet link`)}>
+                          <Button size="sm" variant="outline" className="h-8 text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog("meet_links", link.student_user_id, `${link.student_name}'s meeting links`)}>
                             <Trash2 className="h-3.5 w-3.5 mr-1" />
                             Delete
                           </Button>
