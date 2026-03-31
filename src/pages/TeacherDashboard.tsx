@@ -264,7 +264,7 @@ const TeacherDashboard = () => {
           .limit(20),
         supabase
           .from("meet_links")
-          .select("student_user_id, meet_link, deleted_at")
+          .select("student_user_id, meet_link, zoom_link, deleted_at")
           .is("deleted_at", null),
         supabase
           .from("student_fees")
