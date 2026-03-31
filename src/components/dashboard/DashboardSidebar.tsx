@@ -186,6 +186,7 @@ export const teacherSidebarItems: SidebarItem[] = [
   { id: "whiteboard", label: "Whiteboard", icon: PenTool },
   { id: "manage", label: "Manage", icon: ClipboardList },
   { id: "google-meet", label: "Google Meet", icon: Video },
+  { id: "zoom", label: "Zoom", icon: Video },
   { id: "salary", label: "My Salary", icon: DollarSign },
   { id: "messages", label: "Messages", icon: MessageSquare },
   { id: "profile", label: "Profile", icon: Settings },
