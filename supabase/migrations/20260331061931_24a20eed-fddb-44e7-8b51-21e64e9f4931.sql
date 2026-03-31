@@ -1,0 +1,1 @@
+ALTER TABLE public.meet_links ADD COLUMN zoom_link text;

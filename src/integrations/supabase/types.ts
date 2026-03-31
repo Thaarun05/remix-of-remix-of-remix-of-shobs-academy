@@ -223,18 +223,21 @@ export type Database = {
           meet_link: string
           student_user_id: string
           updated_at: string | null
+          zoom_link: string | null
         }
         Insert: {
           deleted_at?: string | null
           meet_link: string
           student_user_id: string
           updated_at?: string | null
+          zoom_link?: string | null
         }
         Update: {
           deleted_at?: string | null
           meet_link?: string
           student_user_id?: string
           updated_at?: string | null
+          zoom_link?: string | null
         }
         Relationships: []
       }

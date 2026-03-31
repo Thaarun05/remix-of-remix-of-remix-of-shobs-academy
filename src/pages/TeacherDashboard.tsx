@@ -117,6 +117,7 @@ interface AttendanceRecord {
 interface MeetLink {
   student_user_id: string;
   meet_link: string;
+  zoom_link?: string | null;
   student_name?: string;
   deleted_at?: string | null;
 }
@@ -163,6 +164,7 @@ const TeacherDashboard = () => {
   });
   const [meetForm, setMeetForm] = useState({
     meetLink: "",
+    zoomLink: "",
   });
   const [profileForm, setProfileForm] = useState({
     subjects: "",
@@ -212,6 +214,7 @@ const TeacherDashboard = () => {
   const [editingMeet, setEditingMeet] = useState<MeetLink | null>(null);
   const [editMeetForm, setEditMeetForm] = useState({
     meetLink: "",
+    zoomLink: "",
   });
 
   // File upload states
@@ -261,7 +264,7 @@ const TeacherDashboard = () => {
           .limit(20),
         supabase
           .from("meet_links")
-          .select("student_user_id, meet_link, deleted_at")
+          .select("student_user_id, meet_link, zoom_link, deleted_at")
           .is("deleted_at", null),
         supabase
           .from("student_fees")
@@ -532,6 +535,7 @@ const TeacherDashboard = () => {
       const { error } = await supabase.from("meet_links").upsert({
         student_user_id: selectedStudent,
         meet_link: meetForm.meetLink,
+        zoom_link: meetForm.zoomLink || null,
         deleted_at: null,
         updated_at: new Date().toISOString(),
       });
@@ -539,11 +543,11 @@ const TeacherDashboard = () => {
       if (error) throw error;
 
       toast({
-        title: "Google Meet link updated",
-        description: "The Google Meet link has been saved for the student.",
+        title: "Meeting links updated",
+        description: "The meeting links have been saved for the student.",
       });
 
-      setMeetForm({ meetLink: "" });
+      setMeetForm({ meetLink: "", zoomLink: "" });
       fetchData();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to save Google Meet link.";
@@ -816,6 +820,7 @@ const TeacherDashboard = () => {
     setEditingMeet(link);
     setEditMeetForm({
       meetLink: link.meet_link,
+      zoomLink: link.zoom_link || "",
     });
     setEditMeetDialog(true);
   };
@@ -829,6 +834,7 @@ const TeacherDashboard = () => {
         .from("meet_links")
         .update({
           meet_link: editMeetForm.meetLink,
+          zoom_link: editMeetForm.zoomLink || null,
         })
         .eq("student_user_id", editingMeet.student_user_id);
       
@@ -839,12 +845,12 @@ const TeacherDashboard = () => {
         recipient_id: editingMeet.student_user_id,
         sender_id: user.id,
         type: "meet",
-        title: "Google Meet Link Updated",
-        body: "Your Google Meet link has been updated.",
+        title: "Meeting Links Updated",
+        body: "Your meeting links have been updated.",
         entity_table: "meet_links",
       });
       
-      toast({ title: "Google Meet link updated", description: "The student has been notified." });
+      toast({ title: "Meeting links updated", description: "The student has been notified." });
       setEditMeetDialog(false);
       setEditingMeet(null);
       fetchData();
@@ -1404,12 +1410,12 @@ const TeacherDashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Plus className="h-5 w-5" />
-                  {selectedStudent ? "Create / Update Google Meet Link" : "Create New Google Meet Link"}
+                  {selectedStudent ? "Create / Update Meeting Links" : "Create New Meeting Links"}
                 </CardTitle>
                 <CardDescription>
                   {selectedStudent 
-                    ? `Setting Google Meet link for: ${students.find(s => s.user_id === selectedStudent)?.student_name || "Selected Student"}`
-                    : "Select a student above to create or update their Google Meet link"
+                    ? `Setting meeting links for: ${students.find(s => s.user_id === selectedStudent)?.student_name || "Selected Student"}`
+                    : "Select a student above to create or update their meeting links"
                   }
                 </CardDescription>
               </CardHeader>
@@ -1424,7 +1430,7 @@ const TeacherDashboard = () => {
                   <form onSubmit={handleUpdateMeet} className="space-y-4">
                     <div className="p-3 bg-teacher/10 rounded-lg border border-teacher/20 mb-4">
                       <p className="text-sm font-medium text-teacher">
-                        Creating link for: {students.find(s => s.user_id === selectedStudent)?.student_name}
+                        Creating links for: {students.find(s => s.user_id === selectedStudent)?.student_name}
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -1438,11 +1444,21 @@ const TeacherDashboard = () => {
                         required
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="zoomLink">Zoom Link (optional)</Label>
+                      <Input
+                        id="zoomLink"
+                        type="url"
+                        placeholder="https://zoom.us/j/xxxxxxxxx"
+                        value={meetForm.zoomLink}
+                        onChange={(e) => setMeetForm({ ...meetForm, zoomLink: e.target.value })}
+                      />
+                    </div>
                     <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={submitting}>
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                         <>
                           <Plus className="h-4 w-4 mr-2" />
-                          Save Google Meet Link
+                          Save Meeting Links
                         </>
                       )}
                     </Button>
@@ -1452,7 +1468,7 @@ const TeacherDashboard = () => {
                 {/* Quick Add for Students Without Links */}
                 {students.filter(s => !meetLinks.some(z => z.student_user_id === s.user_id)).length > 0 && (
                   <div className="mt-6 pt-6 border-t border-border">
-                    <p className="text-sm font-medium mb-3">Students without Meet links:</p>
+                    <p className="text-sm font-medium mb-3">Students without meeting links:</p>
                     <div className="space-y-2">
                       {students
                         .filter(s => !meetLinks.some(z => z.student_user_id === s.user_id))
@@ -1482,12 +1498,12 @@ const TeacherDashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Video className="h-4 w-4" />
-                  Active Google Meet Links
+                  Active Meeting Links
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
                 {meetLinks.filter(link => students.some(s => s.user_id === link.student_user_id)).length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No Google Meet links set for your students</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">No meeting links set for your students</p>
                 ) : (
                   meetLinks
                     .filter(link => students.some(s => s.user_id === link.student_user_id))
@@ -1496,16 +1512,38 @@ const TeacherDashboard = () => {
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-foreground">{link.student_name}</p>
-                            <p className="text-xs text-muted-foreground mt-1 break-all">{link.meet_link}</p>
+                            <div className="mt-1 space-y-1">
+                              <p className="text-xs text-muted-foreground break-all">
+                                <span className="font-medium text-foreground">Google Meet:</span> {link.meet_link}
+                              </p>
+                              {link.zoom_link && (
+                                <p className="text-xs text-muted-foreground break-all">
+                                  <span className="font-medium text-foreground">Zoom:</span> {link.zoom_link}
+                                </p>
+                              )}
+                            </div>
                           </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
                           <Button
                             size="sm"
                             className="dashboard-btn dashboard-btn-teacher shrink-0"
                             onClick={() => window.open(link.meet_link, '_blank', 'noopener,noreferrer')}
                           >
                             <ExternalLink className="h-4 w-4 mr-1" />
-                            Join
+                            Google Meet
                           </Button>
+                          {link.zoom_link && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="shrink-0"
+                              onClick={() => window.open(link.zoom_link!, '_blank', 'noopener,noreferrer')}
+                            >
+                              <Video className="h-4 w-4 mr-1" />
+                              Zoom
+                            </Button>
+                          )}
                         </div>
                         
                         <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-border/50">
@@ -1513,7 +1551,7 @@ const TeacherDashboard = () => {
                             <Pencil className="h-3.5 w-3.5 mr-1" />
                             Edit
                           </Button>
-                          <Button size="sm" variant="outline" className="h-8 text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog("meet_links", link.student_user_id, `${link.student_name}'s Google Meet link`)}>
+                          <Button size="sm" variant="outline" className="h-8 text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog("meet_links", link.student_user_id, `${link.student_name}'s meeting links`)}>
                             <Trash2 className="h-3.5 w-3.5 mr-1" />
                             Delete
                           </Button>
@@ -1755,12 +1793,12 @@ const TeacherDashboard = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Edit Google Meet Dialog */}
+      {/* Edit Meeting Links Dialog */}
       <Dialog open={editMeetDialog} onOpenChange={setEditMeetDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Google Meet Link</DialogTitle>
-            <DialogDescription>Update the Google Meet link for {editingMeet?.student_name}.</DialogDescription>
+            <DialogTitle>Edit Meeting Links</DialogTitle>
+            <DialogDescription>Update the meeting links for {editingMeet?.student_name}.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -1770,6 +1808,15 @@ const TeacherDashboard = () => {
                 placeholder="https://meet.google.com/xxx-xxxx-xxx" 
                 value={editMeetForm.meetLink} 
                 onChange={(e) => setEditMeetForm({ ...editMeetForm, meetLink: e.target.value })} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Zoom Link (optional)</Label>
+              <Input 
+                type="url" 
+                placeholder="https://zoom.us/j/xxxxxxxxx" 
+                value={editMeetForm.zoomLink} 
+                onChange={(e) => setEditMeetForm({ ...editMeetForm, zoomLink: e.target.value })} 
               />
             </div>
           </div>
