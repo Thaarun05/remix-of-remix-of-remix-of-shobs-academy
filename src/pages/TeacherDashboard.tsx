@@ -542,11 +542,11 @@ const TeacherDashboard = () => {
       if (error) throw error;
 
       toast({
-        title: "Google Meet link updated",
-        description: "The Google Meet link has been saved for the student.",
+        title: "Meeting links updated",
+        description: "The meeting links have been saved for the student.",
       });
 
-      setMeetForm({ meetLink: "" });
+      setMeetForm({ meetLink: "", zoomLink: "" });
       fetchData();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to save Google Meet link.";
