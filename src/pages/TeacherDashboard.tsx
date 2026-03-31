@@ -1793,12 +1793,12 @@ const TeacherDashboard = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Edit Google Meet Dialog */}
+      {/* Edit Meeting Links Dialog */}
       <Dialog open={editMeetDialog} onOpenChange={setEditMeetDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Google Meet Link</DialogTitle>
-            <DialogDescription>Update the Google Meet link for {editingMeet?.student_name}.</DialogDescription>
+            <DialogTitle>Edit Meeting Links</DialogTitle>
+            <DialogDescription>Update the meeting links for {editingMeet?.student_name}.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -1808,6 +1808,15 @@ const TeacherDashboard = () => {
                 placeholder="https://meet.google.com/xxx-xxxx-xxx" 
                 value={editMeetForm.meetLink} 
                 onChange={(e) => setEditMeetForm({ ...editMeetForm, meetLink: e.target.value })} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Zoom Link (optional)</Label>
+              <Input 
+                type="url" 
+                placeholder="https://zoom.us/j/xxxxxxxxx" 
+                value={editMeetForm.zoomLink} 
+                onChange={(e) => setEditMeetForm({ ...editMeetForm, zoomLink: e.target.value })} 
               />
             </div>
           </div>
