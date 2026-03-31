@@ -164,6 +164,7 @@ const TeacherDashboard = () => {
   });
   const [meetForm, setMeetForm] = useState({
     meetLink: "",
+    zoomLink: "",
   });
   const [profileForm, setProfileForm] = useState({
     subjects: "",
