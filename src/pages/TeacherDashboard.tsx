@@ -833,6 +833,7 @@ const TeacherDashboard = () => {
         .from("meet_links")
         .update({
           meet_link: editMeetForm.meetLink,
+          zoom_link: editMeetForm.zoomLink || null,
         })
         .eq("student_user_id", editingMeet.student_user_id);
       
