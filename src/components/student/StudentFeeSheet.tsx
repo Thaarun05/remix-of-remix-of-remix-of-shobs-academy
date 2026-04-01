@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { EmptyState } from "@/components/EmptyState";
-import { FileSpreadsheet, Loader2, DollarSign, IndianRupee } from "lucide-react";
+import { FileSpreadsheet, Loader2, DollarSign, IndianRupee, Download } from "lucide-react";
 import { format, endOfMonth } from "date-fns";
 
 interface FeeRecord {
