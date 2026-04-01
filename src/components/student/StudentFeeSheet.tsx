@@ -264,6 +264,7 @@ export const StudentFeeSheet = () => {
                 onClick={async () => {
                   const { generateFeePdf } = await import("@/lib/generateFeePdf");
                   generateFeePdf({
+                    invoiceId: selectedFee.id,
                     studentName: selectedFee.student_name || "Student",
                     month: selectedFee.month,
                     totalHours: selectedFee.total_hours ?? 0,
@@ -271,6 +272,7 @@ export const StudentFeeSheet = () => {
                     totalAmount: selectedFee.total_amount ?? 0,
                     attendance: attendanceRecords,
                     teacherName: selectedFee.teacher_name || undefined,
+                    createdAt: selectedFee.created_at || undefined,
                   });
                 }}
               >

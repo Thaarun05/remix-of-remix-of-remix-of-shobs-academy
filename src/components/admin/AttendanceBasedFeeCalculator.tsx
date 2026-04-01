@@ -319,12 +319,14 @@ export const AttendanceBasedFeeCalculator = () => {
     try {
       const { generateFeePdf } = await import("@/lib/generateFeePdf");
       generateFeePdf({
+        invoiceId: fee?.id ?? editingFeeId ?? undefined,
         studentName,
         month,
         totalHours: hours,
         feePerHour: feeRate,
         totalAmount: total,
         attendance: attendanceData,
+        createdAt: fee?.created_at ?? undefined,
       });
     } catch (err) {
       console.error("PDF generation failed:", err);
