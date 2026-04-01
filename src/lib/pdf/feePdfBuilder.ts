@@ -18,27 +18,27 @@ type PdfDocument = jsPDF & {
   };
 };
 
-type PdfColor = readonly [number, number, number];
+type PdfColor = [number, number, number];
 
 type InfoItem = {
   label: string;
   value: string;
 };
 
-const COLORS = {
-  accent: [99, 102, 241] as const,
-  accentSoft: [238, 242, 255] as const,
-  accentTint: [248, 250, 255] as const,
-  border: [199, 210, 254] as const,
-  text: [30, 41, 59] as const,
-  muted: [100, 116, 139] as const,
-  success: [22, 163, 74] as const,
-  danger: [220, 38, 38] as const,
-  warning: [180, 83, 9] as const,
-  warningBg: [255, 251, 235] as const,
-  warningBorder: [245, 158, 11] as const,
-  white: [255, 255, 255] as const,
-  rowAlt: [248, 250, 252] as const,
+const COLORS: Record<string, PdfColor> = {
+  accent: [99, 102, 241],
+  accentSoft: [238, 242, 255],
+  accentTint: [248, 250, 255],
+  border: [199, 210, 254],
+  text: [30, 41, 59],
+  muted: [100, 116, 139],
+  success: [22, 163, 74],
+  danger: [220, 38, 38],
+  warning: [180, 83, 9],
+  warningBg: [255, 251, 235],
+  warningBorder: [245, 158, 11],
+  white: [255, 255, 255],
+  rowAlt: [248, 250, 252],
 };
 
 const PAGE = {
