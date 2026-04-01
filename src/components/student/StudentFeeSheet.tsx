@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { EmptyState } from "@/components/EmptyState";
-import { FileSpreadsheet, Loader2, DollarSign, IndianRupee } from "lucide-react";
+import { FileSpreadsheet, Loader2, DollarSign, IndianRupee, Download } from "lucide-react";
 import { format, endOfMonth } from "date-fns";
 
 interface FeeRecord {
@@ -257,7 +257,27 @@ export const StudentFeeSheet = () => {
               {selectedFee.total_hours ?? 0} hours × {formatINR(selectedFee.fee_per_hour ?? 0)}/hr = <span className="font-semibold text-foreground">{formatINR(selectedFee.total_amount ?? 0)}</span>
             </div>
 
-
+            {/* Download PDF */}
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const { generateFeePdf } = await import("@/lib/generateFeePdf");
+                  generateFeePdf({
+                    studentName: selectedFee.student_name || "Student",
+                    month: selectedFee.month,
+                    totalHours: selectedFee.total_hours ?? 0,
+                    feePerHour: selectedFee.fee_per_hour ?? 0,
+                    totalAmount: selectedFee.total_amount ?? 0,
+                    attendance: attendanceRecords,
+                    teacherName: selectedFee.teacher_name || undefined,
+                  });
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF Invoice
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
