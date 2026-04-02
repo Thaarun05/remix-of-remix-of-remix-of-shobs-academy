@@ -1059,6 +1059,7 @@ const TeacherDashboard = () => {
                             <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                             <th className="px-4 py-3 text-left font-medium text-muted-foreground">Hours</th>
                             <th className="px-4 py-3 text-left font-medium text-muted-foreground">Notes</th>
+                            <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1072,6 +1073,16 @@ const TeacherDashboard = () => {
                               </td>
                               <td className="px-4 py-3">{record.hours ? `${record.hours}h` : "—"}</td>
                               <td className="px-4 py-3 text-muted-foreground">{record.topic || "—"}</td>
+                              <td className="px-4 py-3 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditAttendance(record)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => openDeleteDialog("attendance_records", record.id, `${students.find(s => s.user_id === record.student_user_id)?.student_name || "student"}'s attendance`)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
