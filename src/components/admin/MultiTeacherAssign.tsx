@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,42 +27,75 @@ export function MultiTeacherAssign({ teachers, value, onChange, idPrefix = "ta" 
   const [mode, setMode] = useState<"one" | "many">(value.length > 1 ? "many" : "one");
   const [count, setCount] = useState<number>(value.length > 1 ? value.length : 2);
 
-  // Slots array of length = count, filled with selected ids in order
-  const slots = useMemo(() => {
-    const arr = Array.from({ length: count }, (_, i) => value[i] || "");
-    return arr;
-  }, [count, value]);
+  // Internal slot positions (length = count). Empty slot = "".
+  // Preserves slot index when a teacher is removed so a new selection refills it.
+  const [slots, setSlots] = useState<string[]>(() =>
+    Array.from({ length: Math.max(count, value.length) }, (_, i) => value[i] || "")
+  );
+
+  const lastEmittedRef = useRef<string>("");
+  const emit = (next: string[]) => {
+    const compact = next.filter(Boolean);
+    const key = compact.join(",");
+    if (key !== lastEmittedRef.current) {
+      lastEmittedRef.current = key;
+      onChange(compact);
+    }
+  };
+
+  // Sync slots when external value changes (e.g. loading existing assignments)
+  useEffect(() => {
+    const compactSlots = slots.filter(Boolean).join(",");
+    const compactValue = value.join(",");
+    if (compactSlots !== compactValue) {
+      setSlots((prev) => {
+        const len = Math.max(count, value.length, prev.length);
+        return Array.from({ length: len }, (_, i) => value[i] || "");
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   const handleModeChange = (m: "one" | "many") => {
     setMode(m);
     if (m === "one") {
-      onChange(value[0] ? [value[0]] : []);
+      const first = slots.find(Boolean) || value[0] || "";
+      setSlots([first]);
+      emit(first ? [first] : []);
     } else {
-      // keep existing or grow to count
-      const next = Array.from({ length: count }, (_, i) => value[i] || "").filter(Boolean);
-      onChange(next);
+      setSlots((prev) => Array.from({ length: count }, (_, i) => prev[i] || value[i] || ""));
     }
   };
 
   const handleCountChange = (n: number) => {
     const safe = Math.max(1, Math.min(20, isNaN(n) ? 1 : n));
     setCount(safe);
-    onChange(value.slice(0, safe));
+    setSlots((prev) => {
+      const next = Array.from({ length: safe }, (_, i) => prev[i] || "");
+      emit(next);
+      return next;
+    });
   };
 
   const fillNextSlot = (teacherId: string) => {
-    if (value.includes(teacherId)) return; // no duplicates
-    if (value.length >= count) return;
-    onChange([...value, teacherId]);
+    if (slots.includes(teacherId)) return; // no duplicates
+    const emptyIdx = slots.findIndex((s) => !s);
+    if (emptyIdx === -1) return;
+    const next = [...slots];
+    next[emptyIdx] = teacherId;
+    setSlots(next);
+    emit(next);
   };
 
   const removeSlot = (idx: number) => {
-    const next = [...value];
-    next.splice(idx, 1);
-    onChange(next);
+    const next = [...slots];
+    next[idx] = ""; // clear in place; refilled on next selection
+    setSlots(next);
+    emit(next);
   };
 
-  const allFilled = mode === "many" && value.length === count && count > 0;
+  const filledCount = slots.filter(Boolean).length;
+  const allFilled = mode === "many" && filledCount === count && count > 0;
 
   return (
     <div className="space-y-3">
@@ -154,8 +187,8 @@ export function MultiTeacherAssign({ teachers, value, onChange, idPrefix = "ta" 
                 <p className="text-sm text-muted-foreground">No teachers available.</p>
               )}
               {teachers.map((t) => {
-                const used = value.includes(t.user_id);
-                const disabled = used || value.length >= count;
+                const used = slots.includes(t.user_id);
+                const disabled = used || filledCount >= count;
                 return (
                   <Button
                     key={t.user_id}
