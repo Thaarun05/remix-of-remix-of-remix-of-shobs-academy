@@ -117,7 +117,7 @@ const createStudentSchema = z.object({
   fullName: z.string().max(100, "Full name is too long").optional(),
   phone: z.string().max(20, "Phone is too long").optional(),
   grade: z.string().max(50, "Grade is too long").optional(),
-  assignedTeacherId: z.string().uuid("Please select a teacher"),
+  assignedTeacherIds: z.array(z.string().uuid()).min(1, "Please assign at least one teacher"),
 });
 
 const AdminDashboard = () => {
@@ -163,7 +163,7 @@ const AdminDashboard = () => {
     fullName: "",
     phone: "",
     grade: "",
-    assignedTeacherId: "",
+    assignedTeacherIds: [] as string[],
   });
 
   useEffect(() => {
@@ -453,7 +453,7 @@ const AdminDashboard = () => {
           fullName: validated.fullName,
           phone: validated.phone,
           grade: validated.grade,
-          assignedTeacherId: validated.assignedTeacherId,
+          assignedTeacherIds: validated.assignedTeacherIds,
         },
       });
 
@@ -473,7 +473,7 @@ const AdminDashboard = () => {
         fullName: "",
         phone: "",
         grade: "",
-        assignedTeacherId: "",
+        assignedTeacherIds: [],
       });
 
       fetchData();
