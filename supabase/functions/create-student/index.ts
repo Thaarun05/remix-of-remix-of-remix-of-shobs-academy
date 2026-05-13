@@ -14,6 +14,7 @@ interface CreateStudentRequest {
   phone?: string;
   grade?: string;
   assignedTeacherId?: string;
+  assignedTeacherIds?: string[];
 }
 
 serve(async (req) => {
@@ -135,18 +136,37 @@ serve(async (req) => {
     }
 
     // Create student_profiles entry with assigned teacher
+    const teacherIds: string[] = Array.isArray(body.assignedTeacherIds) && body.assignedTeacherIds.length > 0
+      ? body.assignedTeacherIds.filter((t) => !!t)
+      : (body.assignedTeacherId ? [body.assignedTeacherId] : []);
+    const primaryTeacher = teacherIds[0] || null;
+
     const { error: studentProfileError } = await supabaseAdmin
       .from("student_profiles")
       .insert({
         user_id: newUser.user.id,
         student_name: body.studentName,
         grade: body.grade || null,
-        assigned_teacher_id: body.assignedTeacherId || null,
+        assigned_teacher_id: primaryTeacher,
       });
 
     if (studentProfileError) {
       console.log("Error creating student_profiles:", studentProfileError);
       // Non-fatal error, profile is already created
+    }
+
+    // Insert all teacher assignments into join table
+    if (teacherIds.length > 0) {
+      const rows = teacherIds.map((tid) => ({
+        student_user_id: newUser.user.id,
+        teacher_user_id: tid,
+      }));
+      const { error: staError } = await supabaseAdmin
+        .from("student_teacher_assignments")
+        .insert(rows);
+      if (staError) {
+        console.log("Error inserting student_teacher_assignments:", staError);
+      }
     }
 
     console.log("Student created successfully:", newUser.user.email);
