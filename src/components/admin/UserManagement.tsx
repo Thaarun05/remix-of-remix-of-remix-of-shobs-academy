@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/EmptyState";
+import { MultiTeacherAssign } from "@/components/admin/MultiTeacherAssign";
 import { 
   Users, 
   UserPlus,
@@ -80,7 +81,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
     fullName: "",
     phone: "",
     grade: "",
-    assignedTeacherId: "",
+    assignedTeacherIds: [] as string[],
   });
 
   const [addTeacherForm, setAddTeacherForm] = useState({
@@ -100,7 +101,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
     fullName: "",
     phone: "",
     grade: "",
-    assignedTeacherId: "",
+    assignedTeacherIds: [] as string[],
   });
 
   const teachers = profiles.filter(p => p.role === "teacher");
@@ -155,6 +156,16 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
       });
     } else if (profile.role === "student") {
       const studentData = await fetchStudentProfile(profile.user_id);
+      // Load all teacher assignments from join table
+      const { data: assignments } = await supabase
+        .from("student_teacher_assignments")
+        .select("teacher_user_id, created_at")
+        .eq("student_user_id", profile.user_id)
+        .order("created_at", { ascending: true });
+      let teacherIds: string[] = (assignments || []).map((r: any) => r.teacher_user_id);
+      if (teacherIds.length === 0 && studentData?.assigned_teacher_id) {
+        teacherIds = [studentData.assigned_teacher_id];
+      }
       setEditStudentForm({
         email: "",
         password: "",
@@ -162,7 +173,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
         fullName: profile.full_name || "",
         phone: profile.phone || "",
         grade: studentData?.grade || "",
-        assignedTeacherId: studentData?.assigned_teacher_id || "",
+        assignedTeacherIds: teacherIds,
       });
     }
     
@@ -260,7 +271,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
         phone: editStudentForm.phone,
         studentName: editStudentForm.studentName,
         grade: editStudentForm.grade,
-        assignedTeacherId: editStudentForm.assignedTeacherId,
+        assignedTeacherIds: editStudentForm.assignedTeacherIds,
       };
 
       // Only include email/password if provided
@@ -351,7 +362,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
         throw new Error("Email, password, and student name are required");
       }
 
-      if (!addStudentForm.assignedTeacherId) {
+      if (!addStudentForm.assignedTeacherIds || addStudentForm.assignedTeacherIds.length === 0) {
         throw new Error("Please assign a teacher");
       }
 
@@ -363,7 +374,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
           fullName: addStudentForm.fullName,
           phone: addStudentForm.phone,
           grade: addStudentForm.grade,
-          assignedTeacherId: addStudentForm.assignedTeacherId,
+          assignedTeacherIds: addStudentForm.assignedTeacherIds,
         },
       });
 
@@ -382,7 +393,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
         fullName: "",
         phone: "",
         grade: "",
-        assignedTeacherId: "",
+        assignedTeacherIds: [],
       });
       setIsAddDialogOpen(false);
       onRefresh();
