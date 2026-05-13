@@ -16,6 +16,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { adminSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { AttendanceBasedFeeCalculator } from "@/components/admin/AttendanceBasedFeeCalculator";
 import { UserManagement } from "@/components/admin/UserManagement";
+import { MultiTeacherAssign } from "@/components/admin/MultiTeacherAssign";
 import { 
   Users, 
   GraduationCap,
@@ -954,24 +955,14 @@ const AdminDashboard = () => {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="student-teacher">Assign Teacher *</Label>
-                  <Select
-                    value={studentForm.assignedTeacherId}
-                    onValueChange={(value) => setStudentForm({ ...studentForm, assignedTeacherId: value })}
-                  >
-                    <SelectTrigger id="student-teacher">
-                      <SelectValue placeholder="Select a teacher" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {profiles.filter(p => p.role === "teacher").map((teacher) => (
-                        <SelectItem key={teacher.user_id} value={teacher.user_id}>
-                          {teacher.full_name || "Unnamed Teacher"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <MultiTeacherAssign
+                  teachers={profiles
+                    .filter((p) => p.role === "teacher")
+                    .map((t) => ({ user_id: t.user_id, full_name: t.full_name }))}
+                  value={studentForm.assignedTeacherIds}
+                  onChange={(ids) => setStudentForm({ ...studentForm, assignedTeacherIds: ids })}
+                  idPrefix="student-teacher"
+                />
                 <Button type="submit" className="w-full dashboard-btn dashboard-btn-admin" disabled={submitting}>
                   {submitting ? (
                     <><Loader2 className="h-4 w-4 animate-spin" />Creating...</>
