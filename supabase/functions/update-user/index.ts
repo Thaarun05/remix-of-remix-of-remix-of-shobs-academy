@@ -20,6 +20,7 @@ interface UpdateUserRequest {
   studentName?: string;
   grade?: string;
   assignedTeacherId?: string;
+  assignedTeacherIds?: string[];
 }
 
 serve(async (req) => {
@@ -197,7 +198,17 @@ serve(async (req) => {
       const studentUpdates: { student_name?: string; grade?: string | null; assigned_teacher_id?: string | null } = {};
       if (body.studentName !== undefined) studentUpdates.student_name = body.studentName;
       if (body.grade !== undefined) studentUpdates.grade = body.grade || null;
-      if (body.assignedTeacherId !== undefined) studentUpdates.assigned_teacher_id = body.assignedTeacherId || null;
+
+      // Resolve teacher list (multi or legacy single)
+      let teacherIds: string[] | undefined;
+      if (Array.isArray(body.assignedTeacherIds)) {
+        teacherIds = body.assignedTeacherIds.filter((t) => !!t);
+      } else if (body.assignedTeacherId !== undefined) {
+        teacherIds = body.assignedTeacherId ? [body.assignedTeacherId] : [];
+      }
+      if (teacherIds !== undefined) {
+        studentUpdates.assigned_teacher_id = teacherIds[0] || null;
+      }
 
       if (Object.keys(studentUpdates).length > 0) {
         // Check if student_profiles entry exists
@@ -231,6 +242,25 @@ serve(async (req) => {
           }
         }
         console.log("Student profile updated successfully");
+      }
+
+      // Sync join table when teachers were provided
+      if (teacherIds !== undefined) {
+        const { error: delError } = await supabaseAdmin
+          .from("student_teacher_assignments")
+          .delete()
+          .eq("student_user_id", body.userId);
+        if (delError) console.log("Error clearing assignments:", delError);
+        if (teacherIds.length > 0) {
+          const rows = teacherIds.map((tid) => ({
+            student_user_id: body.userId,
+            teacher_user_id: tid,
+          }));
+          const { error: insErr } = await supabaseAdmin
+            .from("student_teacher_assignments")
+            .insert(rows);
+          if (insErr) console.log("Error inserting assignments:", insErr);
+        }
       }
     }
 

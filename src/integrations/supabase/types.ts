@@ -575,6 +575,27 @@ export type Database = {
         }
         Relationships: []
       }
+      student_teacher_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          student_user_id: string
+          teacher_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          student_user_id: string
+          teacher_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          student_user_id?: string
+          teacher_user_id?: string
+        }
+        Relationships: []
+      }
       teacher_profiles: {
         Row: {
           availability: string | null
