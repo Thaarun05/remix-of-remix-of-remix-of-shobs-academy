@@ -662,24 +662,12 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-student-teacher">Assign Teacher *</Label>
-              <Select
-                value={editStudentForm.assignedTeacherId}
-                onValueChange={(value) => setEditStudentForm({ ...editStudentForm, assignedTeacherId: value })}
-              >
-                <SelectTrigger id="edit-student-teacher">
-                  <SelectValue placeholder="Select a teacher" />
-                </SelectTrigger>
-                <SelectContent>
-                  {teachers.map((teacher) => (
-                    <SelectItem key={teacher.user_id} value={teacher.user_id}>
-                      {teacher.full_name || "Unnamed Teacher"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <MultiTeacherAssign
+              teachers={teachers}
+              value={editStudentForm.assignedTeacherIds}
+              onChange={(ids) => setEditStudentForm({ ...editStudentForm, assignedTeacherIds: ids })}
+              idPrefix="edit-student-teacher"
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
@@ -884,24 +872,12 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="add-student-teacher">Assign Teacher *</Label>
-                  <Select
-                    value={addStudentForm.assignedTeacherId}
-                    onValueChange={(value) => setAddStudentForm({ ...addStudentForm, assignedTeacherId: value })}
-                  >
-                    <SelectTrigger id="add-student-teacher">
-                      <SelectValue placeholder="Select a teacher" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {teachers.map((teacher) => (
-                        <SelectItem key={teacher.user_id} value={teacher.user_id}>
-                          {teacher.full_name || "Unnamed Teacher"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <MultiTeacherAssign
+                  teachers={teachers}
+                  value={addStudentForm.assignedTeacherIds}
+                  onChange={(ids) => setAddStudentForm({ ...addStudentForm, assignedTeacherIds: ids })}
+                  idPrefix="add-student-teacher"
+                />
               </>
             )}
           </div>
