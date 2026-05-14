@@ -220,24 +220,24 @@ export type Database = {
       meet_links: {
         Row: {
           deleted_at: string | null
-          meet_link: string
           student_user_id: string
+          teacher_user_id: string
           updated_at: string | null
-          zoom_link: string | null
+          zoom_link: string
         }
         Insert: {
           deleted_at?: string | null
-          meet_link: string
           student_user_id: string
+          teacher_user_id: string
           updated_at?: string | null
-          zoom_link?: string | null
+          zoom_link: string
         }
         Update: {
           deleted_at?: string | null
-          meet_link?: string
           student_user_id?: string
+          teacher_user_id?: string
           updated_at?: string | null
-          zoom_link?: string | null
+          zoom_link?: string
         }
         Relationships: []
       }
