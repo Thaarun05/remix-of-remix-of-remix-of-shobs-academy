@@ -76,9 +76,10 @@ interface Assignment {
   submission_attachments: FileInfo[];
 }
 
-interface MeetLink {
-  meet_link: string;
-  zoom_link?: string | null;
+interface ZoomLink {
+  teacher_user_id: string;
+  zoom_link: string;
+  teacher_name: string;
 }
 
 interface StudentFee {
@@ -102,7 +103,7 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [meetLink, setMeetLink] = useState<MeetLink | null>(null);
+  const [zoomLinks, setZoomLinks] = useState<ZoomLink[]>([]);
   const [fees, setFees] = useState<StudentFee[]>([]);
   const [activeTab, setActiveTab] = useState("schedule");
   const [feeDialogOpen, setFeeDialogOpen] = useState(false);
@@ -140,10 +141,9 @@ const StudentDashboard = () => {
           .order("due_date", { ascending: true }),
         supabase
           .from("meet_links")
-          .select("meet_link, zoom_link")
+          .select("teacher_user_id, zoom_link")
           .eq("student_user_id", user.id)
-          .is("deleted_at", null)
-          .maybeSingle(),
+          .is("deleted_at", null),
         supabase
           .from("student_fees")
           .select("*")
@@ -158,7 +158,23 @@ const StudentDashboard = () => {
         attachments: (a.attachments as unknown as FileInfo[]) || [],
         submission_attachments: (a.submission_attachments as unknown as FileInfo[]) || [],
       })));
-      setMeetLink(zoomRes.data);
+      const rows = (zoomRes.data || []) as Array<{ teacher_user_id: string; zoom_link: string }>;
+      const teacherIds = Array.from(new Set(rows.map((r) => r.teacher_user_id)));
+      let nameMap = new Map<string, string>();
+      if (teacherIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", teacherIds);
+        nameMap = new Map((profs || []).map((p: any) => [p.user_id, p.full_name || "Unknown Teacher"]));
+      }
+      setZoomLinks(
+        rows.map((r) => ({
+          teacher_user_id: r.teacher_user_id,
+          zoom_link: r.zoom_link,
+          teacher_name: nameMap.get(r.teacher_user_id) || "Unknown Teacher",
+        }))
+      );
       setFees(feesRes.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
