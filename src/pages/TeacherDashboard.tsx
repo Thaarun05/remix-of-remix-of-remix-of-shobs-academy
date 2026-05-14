@@ -116,7 +116,7 @@ interface AttendanceRecord {
 
 interface MeetLink {
   student_user_id: string;
-  meet_link: string;
+  teacher_user_id: string;
   zoom_link?: string | null;
   student_name?: string;
   deleted_at?: string | null;
@@ -163,7 +163,6 @@ const TeacherDashboard = () => {
     dueDate: "",
   });
   const [meetForm, setMeetForm] = useState({
-    meetLink: "",
     zoomLink: "",
   });
   const [profileForm, setProfileForm] = useState({
@@ -213,7 +212,6 @@ const TeacherDashboard = () => {
   const [editMeetDialog, setEditMeetDialog] = useState(false);
   const [editingMeet, setEditingMeet] = useState<MeetLink | null>(null);
   const [editMeetForm, setEditMeetForm] = useState({
-    meetLink: "",
     zoomLink: "",
   });
 
@@ -264,7 +262,8 @@ const TeacherDashboard = () => {
           .limit(20),
         supabase
           .from("meet_links")
-          .select("student_user_id, meet_link, zoom_link, deleted_at")
+          .select("student_user_id, teacher_user_id, zoom_link, deleted_at")
+          .eq("teacher_user_id", user.id)
           .is("deleted_at", null),
         supabase
           .from("student_fees")
@@ -526,37 +525,6 @@ const TeacherDashboard = () => {
     }
   };
 
-  const handleUpdateMeet = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !selectedStudent) return;
-    setSubmitting(true);
-
-    try {
-      const { error } = await supabase.from("meet_links").upsert({
-        student_user_id: selectedStudent,
-        meet_link: meetForm.meetLink,
-        zoom_link: meetForm.zoomLink || null,
-        deleted_at: null,
-        updated_at: new Date().toISOString(),
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Meeting links updated",
-        description: "The meeting links have been saved for the student.",
-      });
-
-      setMeetForm({ meetLink: "", zoomLink: "" });
-      fetchData();
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to save Google Meet link.";
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -693,13 +661,17 @@ const TeacherDashboard = () => {
   
   const handleSoftDelete = async (table: string, id: string) => {
     try {
-      // Meet links use student_user_id as the key, not id
-      const column = table === "meet_links" ? "student_user_id" : "id";
-      
-      const { error } = await supabase
+      let query = supabase
         .from(table as any)
-        .update({ deleted_at: new Date().toISOString() })
-        .eq(column, id);
+        .update({ deleted_at: new Date().toISOString() });
+      if (table === "meet_links") {
+        // id format: "studentId|teacherId"
+        const [studentId, teacherId] = id.split("|");
+        query = query.eq("student_user_id", studentId).eq("teacher_user_id", teacherId);
+      } else {
+        query = query.eq("id", id);
+      }
+      const { error } = await query;
       
       if (error) throw error;
       toast({ title: "Deleted", description: "Item removed successfully." });
@@ -819,7 +791,6 @@ const TeacherDashboard = () => {
   const openEditMeet = (link: MeetLink) => {
     setEditingMeet(link);
     setEditMeetForm({
-      meetLink: link.meet_link,
       zoomLink: link.zoom_link || "",
     });
     setEditMeetDialog(true);
@@ -833,24 +804,24 @@ const TeacherDashboard = () => {
       const { error } = await supabase
         .from("meet_links")
         .update({
-          meet_link: editMeetForm.meetLink,
-          zoom_link: editMeetForm.zoomLink || null,
+          zoom_link: editMeetForm.zoomLink,
         })
-        .eq("student_user_id", editingMeet.student_user_id);
+        .eq("student_user_id", editingMeet.student_user_id)
+        .eq("teacher_user_id", user.id);
       
       if (error) throw error;
       
-      // Notify student about updated Meet link
+      // Notify student about updated Zoom link
       await supabase.from("notifications").insert({
         recipient_id: editingMeet.student_user_id,
         sender_id: user.id,
-        type: "meet",
-        title: "Meeting Links Updated",
-        body: "Your meeting links have been updated.",
+        type: "zoom",
+        title: "Zoom Link Updated",
+        body: "Your teacher updated their Zoom link.",
         entity_table: "meet_links",
       });
       
-      toast({ title: "Meeting links updated", description: "The student has been notified." });
+      toast({ title: "Zoom link updated", description: "The student has been notified." });
       setEditMeetDialog(false);
       setEditingMeet(null);
       fetchData();
