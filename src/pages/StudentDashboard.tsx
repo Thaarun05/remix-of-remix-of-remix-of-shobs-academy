@@ -76,9 +76,10 @@ interface Assignment {
   submission_attachments: FileInfo[];
 }
 
-interface MeetLink {
-  meet_link: string;
-  zoom_link?: string | null;
+interface ZoomLink {
+  teacher_user_id: string;
+  zoom_link: string;
+  teacher_name: string;
 }
 
 interface StudentFee {
@@ -102,7 +103,7 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [meetLink, setMeetLink] = useState<MeetLink | null>(null);
+  const [zoomLinks, setZoomLinks] = useState<ZoomLink[]>([]);
   const [fees, setFees] = useState<StudentFee[]>([]);
   const [activeTab, setActiveTab] = useState("schedule");
   const [feeDialogOpen, setFeeDialogOpen] = useState(false);
@@ -140,10 +141,9 @@ const StudentDashboard = () => {
           .order("due_date", { ascending: true }),
         supabase
           .from("meet_links")
-          .select("meet_link, zoom_link")
+          .select("teacher_user_id, zoom_link")
           .eq("student_user_id", user.id)
-          .is("deleted_at", null)
-          .maybeSingle(),
+          .is("deleted_at", null),
         supabase
           .from("student_fees")
           .select("*")
@@ -158,7 +158,23 @@ const StudentDashboard = () => {
         attachments: (a.attachments as unknown as FileInfo[]) || [],
         submission_attachments: (a.submission_attachments as unknown as FileInfo[]) || [],
       })));
-      setMeetLink(zoomRes.data);
+      const rows = (zoomRes.data || []) as Array<{ teacher_user_id: string; zoom_link: string }>;
+      const teacherIds = Array.from(new Set(rows.map((r) => r.teacher_user_id)));
+      let nameMap = new Map<string, string>();
+      if (teacherIds.length > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", teacherIds);
+        nameMap = new Map((profs || []).map((p: any) => [p.user_id, p.full_name || "Unknown Teacher"]));
+      }
+      setZoomLinks(
+        rows.map((r) => ({
+          teacher_user_id: r.teacher_user_id,
+          zoom_link: r.zoom_link,
+          teacher_name: nameMap.get(r.teacher_user_id) || "Unknown Teacher",
+        }))
+      );
       setFees(feesRes.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -363,71 +379,49 @@ const StudentDashboard = () => {
           <StudentAttendanceHistory attendance={attendance} />
         )}
 
-        {activeTab === "google-meet" && (
-          <Card className="max-w-lg dashboard-list-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Video className="h-5 w-5 text-student" />
-                Google Meet Link
-              </CardTitle>
-              <CardDescription>Your assigned Google Meet details</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {meetLink?.meet_link ? (
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-muted">
-                    <p className="text-sm text-muted-foreground">Google Meet Link</p>
-                    <p className="font-mono text-foreground break-all">{meetLink.meet_link}</p>
-                  </div>
-                  <Button 
-                    className="w-full dashboard-btn dashboard-btn-student"
-                    onClick={() => window.open(meetLink.meet_link, "_blank")}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Join Google Meet
-                  </Button>
-                </div>
-              ) : (
-                <EmptyState 
-                  icon={Video}
-                  title="No Google Meet link assigned yet"
-                  description="Your teacher will add a Google Meet link for your classes soon."
-                />
-              )}
-            </CardContent>
-          </Card>
-        )}
-
         {activeTab === "zoom" && (
-          <Card className="max-w-lg dashboard-list-card">
+          <Card className="max-w-2xl dashboard-list-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Video className="h-5 w-5 text-student" />
-                Zoom Link
+                Zoom Meetings
               </CardTitle>
-              <CardDescription>Your assigned Zoom details</CardDescription>
+              <CardDescription>
+                Zoom links uploaded by each of your teachers
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {meetLink?.zoom_link ? (
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-muted">
-                    <p className="text-sm text-muted-foreground">Zoom Link</p>
-                    <p className="font-mono text-foreground break-all">{meetLink.zoom_link}</p>
-                  </div>
-                  <Button 
-                    className="w-full dashboard-btn dashboard-btn-student"
-                    onClick={() => window.open(meetLink.zoom_link!, "_blank")}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Join Zoom
-                  </Button>
-                </div>
-              ) : (
-                <EmptyState 
+              {zoomLinks.length === 0 ? (
+                <EmptyState
                   icon={Video}
-                  title="No Zoom link assigned yet"
-                  description="Your teacher will add a Zoom link for your classes soon."
+                  title="No Zoom links assigned yet"
+                  description="Your teachers will add their Zoom links for your classes soon."
                 />
+              ) : (
+                <div className="space-y-4">
+                  {zoomLinks.map((z) => (
+                    <div
+                      key={z.teacher_user_id}
+                      className="p-4 rounded-lg border border-border bg-card space-y-3"
+                    >
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          Uploaded by: <span className="font-medium text-foreground">{z.teacher_name}</span>
+                        </p>
+                        <p className="font-mono text-sm text-foreground break-all mt-1">
+                          {z.zoom_link}
+                        </p>
+                      </div>
+                      <Button
+                        className="w-full dashboard-btn dashboard-btn-student"
+                        onClick={() => window.open(z.zoom_link, "_blank")}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Join Zoom
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>

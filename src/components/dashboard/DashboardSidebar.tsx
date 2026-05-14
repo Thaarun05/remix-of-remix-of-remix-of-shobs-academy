@@ -169,7 +169,6 @@ export function DashboardSidebar({ items, activeItem, onItemClick, roleColor }: 
 export const studentSidebarItems: SidebarItem[] = [
   { id: "schedule", label: "Schedule", icon: CalendarDays },
   { id: "attendance", label: "Attendance", icon: Calendar },
-  { id: "google-meet", label: "Google Meet", icon: Video },
   { id: "zoom", label: "Zoom", icon: Video },
   { id: "notes", label: "Notes", icon: FileText },
   { id: "whiteboards", label: "Whiteboards", icon: PenTool },
@@ -185,7 +184,6 @@ export const teacherSidebarItems: SidebarItem[] = [
   { id: "notes", label: "Notes", icon: FileText },
   { id: "whiteboard", label: "Whiteboard", icon: PenTool },
   { id: "manage", label: "Manage", icon: ClipboardList },
-  { id: "google-meet", label: "Google Meet", icon: Video },
   { id: "zoom", label: "Zoom", icon: Video },
   { id: "salary", label: "My Salary", icon: DollarSign },
   { id: "messages", label: "Messages", icon: MessageSquare },
