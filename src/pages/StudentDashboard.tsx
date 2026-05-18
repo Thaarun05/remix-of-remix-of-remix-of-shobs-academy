@@ -80,6 +80,7 @@ interface ZoomLink {
   teacher_user_id: string;
   zoom_link: string;
   teacher_name: string;
+  class_label: string | null;
 }
 
 interface StudentFee {
