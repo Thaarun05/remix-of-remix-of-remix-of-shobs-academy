@@ -1428,7 +1428,7 @@ const TeacherDashboard = () => {
                       }, { onConflict: "student_user_id,teacher_user_id" });
                       if (error) throw error;
                       toast({ title: "Success", description: "Zoom link saved!" });
-                      setMeetForm({ ...meetForm, zoomLink: "" });
+                      setMeetForm({ ...meetForm, zoomLink: "", classLabel: "" });
                       fetchData();
                     } catch (error: unknown) {
                       toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to save link", variant: "destructive" });
