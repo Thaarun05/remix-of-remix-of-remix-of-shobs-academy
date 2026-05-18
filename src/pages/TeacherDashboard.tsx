@@ -273,10 +273,14 @@ const TeacherDashboard = () => {
           .limit(10)
       ]);
 
-      setStudents(studentsRes.data || []);
+      const studentsList: Student[] = ((studentsRes.data || []) as any[])
+        .map((r) => r.student_profiles)
+        .filter(Boolean)
+        .sort((a, b) => (a.student_name || "").localeCompare(b.student_name || ""));
+      setStudents(studentsList);
       setSalaries(salaryRes.data || []);
-      
-      const studentsMap = new Map(studentsRes.data?.map(s => [s.user_id, s.student_name]) || []);
+
+      const studentsMap = new Map(studentsList.map((s) => [s.user_id, s.student_name]));
       const assignmentsWithNames = (assignmentsRes.data || []).map(a => ({
         ...a,
         attachments: (a.attachments as unknown as FileInfo[]) || [],
