@@ -1903,6 +1903,46 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     return canvas.toDataURL("image/png");
   };
 
+  // CHANGE 2: Live Share — auto-publish current board to all assigned students
+  const toggleLiveShare = async () => {
+    if (!user) return;
+    if (liveShareOn) { setLiveShareOn(false); toast({ title: "Live Share OFF" }); return; }
+    try {
+      let boardId = currentBoardId;
+      const payload = { title, image_data: JSON.stringify(stateRef.current), updated_at: new Date().toISOString() };
+      if (boardId) {
+        await wb().update(payload as any).eq("id", boardId);
+      } else {
+        const { data, error } = await wb().insert({ teacher_user_id: user.id, ...payload } as any).select("id").single();
+        if (error) throw error;
+        boardId = (data as any).id;
+        setCurrentBoardId(boardId);
+      }
+      const { data: assigned } = await supabase
+        .from("student_profiles").select("user_id").eq("assigned_teacher_id", user.id);
+      const studentIds = (assigned || []).map((r: any) => r.user_id);
+      if (studentIds.length === 0) {
+        toast({ title: "Live Share", description: "No assigned students.", variant: "destructive" });
+        return;
+      }
+      const thumbnail = getThumbnail();
+      const shares = studentIds.map((sid) => ({
+        whiteboard_id: boardId, student_user_id: sid, teacher_user_id: user.id,
+        title, thumbnail_data: thumbnail,
+      }));
+      await supabase.from("whiteboard_shares" as any).insert(shares as any);
+      const sessions = studentIds.map((sid) => ({
+        whiteboard_id: boardId, student_user_id: sid, teacher_user_id: user.id,
+        canvas_state: JSON.stringify(stateRef.current),
+      }));
+      await sessionsTable().insert(sessions as any);
+      setLiveShareOn(true);
+      toast({ title: "🔴 Live Share ON", description: `Auto-shared with ${studentIds.length} student(s)` });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
   const canUndo = myActionsRef.current.length > 0;
   const canRedo = myRedoRef.current.length > 0;
 
