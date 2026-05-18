@@ -219,6 +219,7 @@ export type Database = {
       }
       meet_links: {
         Row: {
+          class_label: string | null
           deleted_at: string | null
           student_user_id: string
           teacher_user_id: string
@@ -226,6 +227,7 @@ export type Database = {
           zoom_link: string
         }
         Insert: {
+          class_label?: string | null
           deleted_at?: string | null
           student_user_id: string
           teacher_user_id: string
@@ -233,6 +235,7 @@ export type Database = {
           zoom_link: string
         }
         Update: {
+          class_label?: string | null
           deleted_at?: string | null
           student_user_id?: string
           teacher_user_id?: string
