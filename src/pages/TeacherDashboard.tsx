@@ -1512,6 +1512,7 @@ const TeacherDashboard = () => {
                 ) : (
                   meetLinks
                     .filter(link => students.some(s => s.user_id === link.student_user_id) && link.zoom_link)
+                    .sort((a, b) => (a.student_name || "").localeCompare(b.student_name || ""))
                     .map((link) => (
                       <div key={link.student_user_id} className="p-4 rounded-xl border border-border hover:border-teacher/30 transition-all hover:shadow-md bg-card">
                         <div className="flex items-start justify-between gap-3 mb-3">
