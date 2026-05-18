@@ -15,6 +15,7 @@ import {
   ArrowUpRight, Spline,
   StickyNote, Hash, Table2, ImagePlus,
   ChevronDown, Hand, Crosshair, ZoomIn, ZoomOut, ArrowLeft,
+  Eye, EyeOff, Radio, GraduationCap, Plus,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -256,6 +257,22 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   const globalChannelRef = useRef<RealtimeChannel | null>(null);
   const [globalOnlineStudents, setGlobalOnlineStudents] = useState<{ user_id: string; name: string }[]>([]);
 
+  // === Zoom-style mode toggles ===
+  // Teacher: allow incoming student strokes to render
+  const [studentDrawingEnabled, setStudentDrawingEnabled] = useState(false);
+  const studentDrawingEnabledRef = useRef(false);
+  useEffect(() => { studentDrawingEnabledRef.current = studentDrawingEnabled; }, [studentDrawingEnabled]);
+  // Teacher: auto-publish current board to all assigned students
+  const [liveShareOn, setLiveShareOn] = useState(false);
+  // Student: follow teacher's pan/zoom
+  const [followTeacher, setFollowTeacher] = useState(true);
+  const followTeacherRef = useRef(true);
+  useEffect(() => { followTeacherRef.current = followTeacher; }, [followTeacher]);
+  // Teacher: simplified toolbar
+  const [teachingMode, setTeachingMode] = useState(false);
+  const modeRef = useRef(mode);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+
   // Keep refs in sync with state for use in render callback
   useEffect(() => { panOffsetRef.current = panOffset; }, [panOffset]);
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
@@ -496,14 +513,49 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     channelRef.current?.send({
       type: "broadcast",
       event: "draw",
-      payload: { ...payload, senderId: user?.id },
+      payload: { ...payload, senderId: user?.id, senderRole: mode },
     });
-  }, [user]);
+  }, [user, mode]);
+
+  // CHANGE 3: Teacher broadcasts pan/zoom so students can follow
+  useEffect(() => {
+    if (mode !== "teacher" || !activeSessionId) return;
+    const t = setTimeout(() => {
+      channelRef.current?.send({
+        type: "broadcast",
+        event: "draw",
+        payload: { action: "view", pan: panOffset, zoom, senderId: user?.id, senderRole: "teacher" },
+      });
+    }, 50);
+    return () => clearTimeout(t);
+  }, [panOffset, zoom, mode, activeSessionId, user]);
 
   // Handle remote events
   const handleRemoteEvent = useCallback((payload: any) => {
     const s = stateRef.current;
+    // CHANGE 1: Teacher ignores student drawing when toggle is OFF
+    if (
+      modeRef.current === "teacher" &&
+      !studentDrawingEnabledRef.current &&
+      payload.senderRole === "student"
+    ) {
+      const blocked = new Set([
+        "stroke_progress", "stroke_complete",
+        "shape_add", "text_add", "sticky_add", "table_add", "image_add",
+        "image_update", "sticky_update", "text_update", "shape_update", "table_update",
+        "undo", "redo", "delete_item", "laser",
+      ]);
+      if (blocked.has(payload.action)) return;
+    }
     switch (payload.action) {
+      case "view": {
+        // CHANGE 3: Student follows teacher's pan/zoom when toggle is ON
+        if (modeRef.current === "student" && followTeacherRef.current && payload.senderRole === "teacher") {
+          setPanOffset(payload.pan);
+          setZoom(payload.zoom);
+        }
+        break;
+      }
       case "stroke_progress": {
         let rs = remoteStrokesRef.current.get(payload.strokeId);
         if (!rs) {
@@ -1851,6 +1903,46 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     return canvas.toDataURL("image/png");
   };
 
+  // CHANGE 2: Live Share — auto-publish current board to all assigned students
+  const toggleLiveShare = async () => {
+    if (!user) return;
+    if (liveShareOn) { setLiveShareOn(false); toast({ title: "Live Share OFF" }); return; }
+    try {
+      let boardId = currentBoardId;
+      const payload = { title, image_data: JSON.stringify(stateRef.current), updated_at: new Date().toISOString() };
+      if (boardId) {
+        await wb().update(payload as any).eq("id", boardId);
+      } else {
+        const { data, error } = await wb().insert({ teacher_user_id: user.id, ...payload } as any).select("id").single();
+        if (error) throw error;
+        boardId = (data as any).id;
+        setCurrentBoardId(boardId);
+      }
+      const { data: assigned } = await supabase
+        .from("student_profiles").select("user_id").eq("assigned_teacher_id", user.id);
+      const studentIds = (assigned || []).map((r: any) => r.user_id);
+      if (studentIds.length === 0) {
+        toast({ title: "Live Share", description: "No assigned students.", variant: "destructive" });
+        return;
+      }
+      const thumbnail = getThumbnail();
+      const shares = studentIds.map((sid) => ({
+        whiteboard_id: boardId, student_user_id: sid, teacher_user_id: user.id,
+        title, thumbnail_data: thumbnail,
+      }));
+      await supabase.from("whiteboard_shares" as any).insert(shares as any);
+      const sessions = studentIds.map((sid) => ({
+        whiteboard_id: boardId, student_user_id: sid, teacher_user_id: user.id,
+        canvas_state: JSON.stringify(stateRef.current),
+      }));
+      await sessionsTable().insert(sessions as any);
+      setLiveShareOn(true);
+      toast({ title: "🔴 Live Share ON", description: `Auto-shared with ${studentIds.length} student(s)` });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
   const canUndo = myActionsRef.current.length > 0;
   const canRedo = myRedoRef.current.length > 0;
 
@@ -1974,6 +2066,58 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
             </Button>
           )}
 
+          {/* CHANGE 2: Live Share toggle (teacher only) */}
+          {mode === "teacher" && (
+            <Button
+              variant={liveShareOn ? "teacher" : "outline"}
+              size="sm"
+              onClick={toggleLiveShare}
+              title="Auto-share current board with all assigned students"
+            >
+              <Radio className={cn("h-4 w-4", liveShareOn && "animate-pulse")} />
+              Live Share: {liveShareOn ? "ON" : "OFF"}
+            </Button>
+          )}
+
+          {/* CHANGE 1: Student Drawing toggle (teacher only, during live session) */}
+          {mode === "teacher" && activeSessionId && (
+            <Button
+              variant={studentDrawingEnabled ? "teacher" : "outline"}
+              size="sm"
+              onClick={() => setStudentDrawingEnabled((v) => !v)}
+              title="Allow students to annotate this board"
+            >
+              {studentDrawingEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              Student Drawing: {studentDrawingEnabled ? "ON" : "OFF"}
+            </Button>
+          )}
+
+          {/* CHANGE 4: Teaching Mode toggle (teacher only) */}
+          {mode === "teacher" && (
+            <Button
+              variant={teachingMode ? "teacher" : "outline"}
+              size="sm"
+              onClick={() => setTeachingMode((v) => !v)}
+              title="Simplified toolbar for teaching"
+            >
+              <GraduationCap className="h-4 w-4" />
+              Teaching Mode: {teachingMode ? "ON" : "OFF"}
+            </Button>
+          )}
+
+          {/* CHANGE 3: Follow Teacher toggle (student only, during live session) */}
+          {mode === "student" && activeSessionId && (
+            <Button
+              variant={followTeacher ? "student" : "outline"}
+              size="sm"
+              onClick={() => setFollowTeacher((v) => !v)}
+              title="Automatically match the teacher's view"
+            >
+              {followTeacher ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              Follow Teacher: {followTeacher ? "ON" : "OFF"}
+            </Button>
+          )}
+
           {activeSessionId && (
             <span className="px-2 py-1 rounded-full bg-green-500/10 text-green-600 text-xs font-bold animate-pulse">● LIVE</span>
           )}
@@ -2071,43 +2215,90 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
           <ToolBtn id="move" icon={Hand} label="Move / Pan" />
           <ToolBtn id="pen" icon={Pencil} label="Pen" />
 
-          <DropdownMenu>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <button className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center transition-all relative",
-                    activeShapeTool
-                      ? `bg-${roleAccent}/10 border-2 border-${roleAccent} text-${roleAccent} shadow-sm`
-                      : "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}>
-                    <ShapeIcon className="h-[18px] w-[18px]" />
-                    <ChevronDown className="h-2.5 w-2.5 absolute bottom-1 right-1 opacity-60" />
-                  </button>
-                </DropdownMenuTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="text-xs">Shapes</TooltipContent>
-            </Tooltip>
-            <DropdownMenuContent side="right" align="start" className="min-w-[140px]">
-              {shapeTools.map((s) => (
-                <DropdownMenuItem key={s.id} onClick={() => setTool(s.id)} className="gap-2">
-                  <s.icon className="h-4 w-4" />{s.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {!teachingMode && (
+            <>
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <button className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all relative",
+                        activeShapeTool
+                          ? `bg-${roleAccent}/10 border-2 border-${roleAccent} text-${roleAccent} shadow-sm`
+                          : "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}>
+                        <ShapeIcon className="h-[18px] w-[18px]" />
+                        <ChevronDown className="h-2.5 w-2.5 absolute bottom-1 right-1 opacity-60" />
+                      </button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">Shapes</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent side="right" align="start" className="min-w-[140px]">
+                  {shapeTools.map((s) => (
+                    <DropdownMenuItem key={s.id} onClick={() => setTool(s.id)} className="gap-2">
+                      <s.icon className="h-4 w-4" />{s.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-          <ToolBtn id="connector" icon={Spline} label="Connector" />
-          <ToolBtn id="text" icon={Type} label="Text" />
-          <ToolBtn id="sticky" icon={StickyNote} label="Sticky Note" />
-          <ToolBtn id="frame" icon={Hash} label="Frame" />
-          <ToolBtn id="table" icon={Table2} label="Table (3×3)" />
-          <ToolBtn id="image" icon={ImagePlus} label="Image Upload" />
+              <ToolBtn id="connector" icon={Spline} label="Connector" />
+              <ToolBtn id="text" icon={Type} label="Text" />
+              <ToolBtn id="sticky" icon={StickyNote} label="Sticky Note" />
+              <ToolBtn id="frame" icon={Hash} label="Frame" />
+              <ToolBtn id="table" icon={Table2} label="Table (3×3)" />
+              <ToolBtn id="image" icon={ImagePlus} label="Image Upload" />
 
-          <div className="w-7 h-px bg-border my-1.5" />
+              <div className="w-7 h-px bg-border my-1.5" />
+            </>
+          )}
 
           <ToolBtn id="laser" icon={Crosshair} label="Laser Pointer" />
           <ToolBtn id="eraser" icon={Eraser} label="Eraser" />
+
+          {teachingMode && mode === "teacher" && (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={undo}
+                    disabled={!canUndo}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center transition-all bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+                  >
+                    <Undo2 className="h-[18px] w-[18px]" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">Undo</TooltipContent>
+              </Tooltip>
+
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <button className="w-10 h-10 rounded-xl flex items-center justify-center transition-all bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground">
+                        <Plus className="h-[18px] w-[18px]" />
+                      </button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">More tools</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent side="right" align="start" className="min-w-[160px]">
+                  {shapeTools.map((s) => (
+                    <DropdownMenuItem key={s.id} onClick={() => setTool(s.id)} className="gap-2">
+                      <s.icon className="h-4 w-4" />{s.label}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuItem onClick={() => setTool("connector")} className="gap-2"><Spline className="h-4 w-4" />Connector</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTool("text")} className="gap-2"><Type className="h-4 w-4" />Text</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTool("sticky")} className="gap-2"><StickyNote className="h-4 w-4" />Sticky Note</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTool("frame")} className="gap-2"><Hash className="h-4 w-4" />Frame</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTool("table")} className="gap-2"><Table2 className="h-4 w-4" />Table (3×3)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleToolSelect("image")} className="gap-2"><ImagePlus className="h-4 w-4" />Image Upload</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
 
           <div className="w-7 h-px bg-border my-1.5" />
 
