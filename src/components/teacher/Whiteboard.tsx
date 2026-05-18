@@ -257,6 +257,22 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
   const globalChannelRef = useRef<RealtimeChannel | null>(null);
   const [globalOnlineStudents, setGlobalOnlineStudents] = useState<{ user_id: string; name: string }[]>([]);
 
+  // === Zoom-style mode toggles ===
+  // Teacher: allow incoming student strokes to render
+  const [studentDrawingEnabled, setStudentDrawingEnabled] = useState(false);
+  const studentDrawingEnabledRef = useRef(false);
+  useEffect(() => { studentDrawingEnabledRef.current = studentDrawingEnabled; }, [studentDrawingEnabled]);
+  // Teacher: auto-publish current board to all assigned students
+  const [liveShareOn, setLiveShareOn] = useState(false);
+  // Student: follow teacher's pan/zoom
+  const [followTeacher, setFollowTeacher] = useState(true);
+  const followTeacherRef = useRef(true);
+  useEffect(() => { followTeacherRef.current = followTeacher; }, [followTeacher]);
+  // Teacher: simplified toolbar
+  const [teachingMode, setTeachingMode] = useState(false);
+  const modeRef = useRef(mode);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+
   // Keep refs in sync with state for use in render callback
   useEffect(() => { panOffsetRef.current = panOffset; }, [panOffset]);
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
