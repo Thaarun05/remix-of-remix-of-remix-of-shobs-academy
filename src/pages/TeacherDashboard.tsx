@@ -1478,6 +1478,7 @@ const TeacherDashboard = () => {
                     <div className="space-y-2">
                       {students
                         .filter(s => !meetLinks.some(z => z.student_user_id === s.user_id && z.zoom_link))
+                        .sort((a, b) => (a.student_name || "").localeCompare(b.student_name || ""))
                         .map(student => (
                           <div key={student.user_id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
                             <span className="text-sm">{student.student_name}</span>
@@ -1512,6 +1513,7 @@ const TeacherDashboard = () => {
                 ) : (
                   meetLinks
                     .filter(link => students.some(s => s.user_id === link.student_user_id) && link.zoom_link)
+                    .sort((a, b) => (a.student_name || "").localeCompare(b.student_name || ""))
                     .map((link) => (
                       <div key={link.student_user_id} className="p-4 rounded-xl border border-border hover:border-teacher/30 transition-all hover:shadow-md bg-card">
                         <div className="flex items-start justify-between gap-3 mb-3">
