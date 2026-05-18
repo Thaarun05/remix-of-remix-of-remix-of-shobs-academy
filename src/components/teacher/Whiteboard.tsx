@@ -517,6 +517,19 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     });
   }, [user, mode]);
 
+  // CHANGE 3: Teacher broadcasts pan/zoom so students can follow
+  useEffect(() => {
+    if (mode !== "teacher" || !activeSessionId) return;
+    const t = setTimeout(() => {
+      channelRef.current?.send({
+        type: "broadcast",
+        event: "draw",
+        payload: { action: "view", pan: panOffset, zoom, senderId: user?.id, senderRole: "teacher" },
+      });
+    }, 50);
+    return () => clearTimeout(t);
+  }, [panOffset, zoom, mode, activeSessionId, user]);
+
   // Handle remote events
   const handleRemoteEvent = useCallback((payload: any) => {
     const s = stateRef.current;
