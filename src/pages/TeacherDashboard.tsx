@@ -1478,6 +1478,7 @@ const TeacherDashboard = () => {
                     <div className="space-y-2">
                       {students
                         .filter(s => !meetLinks.some(z => z.student_user_id === s.user_id && z.zoom_link))
+                        .sort((a, b) => (a.student_name || "").localeCompare(b.student_name || ""))
                         .map(student => (
                           <div key={student.user_id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
                             <span className="text-sm">{student.student_name}</span>
