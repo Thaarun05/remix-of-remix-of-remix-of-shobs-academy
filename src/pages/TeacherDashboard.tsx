@@ -1441,6 +1441,15 @@ const TeacherDashboard = () => {
                       </p>
                     </div>
                     <div className="space-y-2">
+                      <Label htmlFor="classLabel">Class Label</Label>
+                      <Input
+                        id="classLabel"
+                        placeholder="e.g. Mathematics, Science"
+                        value={meetForm.classLabel}
+                        onChange={(e) => setMeetForm({ ...meetForm, classLabel: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="zoomLink">Zoom URL *</Label>
                       <Input
                         id="zoomLink"
