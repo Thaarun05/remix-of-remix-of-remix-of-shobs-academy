@@ -1422,6 +1422,7 @@ const TeacherDashboard = () => {
                         student_user_id: selectedStudent,
                         teacher_user_id: user.id,
                         zoom_link: meetForm.zoomLink,
+                        class_label: meetForm.classLabel || null,
                         deleted_at: null,
                         updated_at: new Date().toISOString(),
                       }, { onConflict: "student_user_id,teacher_user_id" });
