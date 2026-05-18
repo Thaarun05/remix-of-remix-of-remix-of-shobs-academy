@@ -513,14 +513,36 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
     channelRef.current?.send({
       type: "broadcast",
       event: "draw",
-      payload: { ...payload, senderId: user?.id },
+      payload: { ...payload, senderId: user?.id, senderRole: mode },
     });
-  }, [user]);
+  }, [user, mode]);
 
   // Handle remote events
   const handleRemoteEvent = useCallback((payload: any) => {
     const s = stateRef.current;
+    // CHANGE 1: Teacher ignores student drawing when toggle is OFF
+    if (
+      modeRef.current === "teacher" &&
+      !studentDrawingEnabledRef.current &&
+      payload.senderRole === "student"
+    ) {
+      const blocked = new Set([
+        "stroke_progress", "stroke_complete",
+        "shape_add", "text_add", "sticky_add", "table_add", "image_add",
+        "image_update", "sticky_update", "text_update", "shape_update", "table_update",
+        "undo", "redo", "delete_item", "laser",
+      ]);
+      if (blocked.has(payload.action)) return;
+    }
     switch (payload.action) {
+      case "view": {
+        // CHANGE 3: Student follows teacher's pan/zoom when toggle is ON
+        if (modeRef.current === "student" && followTeacherRef.current && payload.senderRole === "teacher") {
+          setPanOffset(payload.pan);
+          setZoom(payload.zoom);
+        }
+        break;
+      }
       case "stroke_progress": {
         let rs = remoteStrokesRef.current.get(payload.strokeId);
         if (!rs) {
