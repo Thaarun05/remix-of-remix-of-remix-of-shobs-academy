@@ -2066,6 +2066,58 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
             </Button>
           )}
 
+          {/* CHANGE 2: Live Share toggle (teacher only) */}
+          {mode === "teacher" && (
+            <Button
+              variant={liveShareOn ? "teacher" : "outline"}
+              size="sm"
+              onClick={toggleLiveShare}
+              title="Auto-share current board with all assigned students"
+            >
+              <Radio className={cn("h-4 w-4", liveShareOn && "animate-pulse")} />
+              Live Share: {liveShareOn ? "ON" : "OFF"}
+            </Button>
+          )}
+
+          {/* CHANGE 1: Student Drawing toggle (teacher only, during live session) */}
+          {mode === "teacher" && activeSessionId && (
+            <Button
+              variant={studentDrawingEnabled ? "teacher" : "outline"}
+              size="sm"
+              onClick={() => setStudentDrawingEnabled((v) => !v)}
+              title="Allow students to annotate this board"
+            >
+              {studentDrawingEnabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              Student Drawing: {studentDrawingEnabled ? "ON" : "OFF"}
+            </Button>
+          )}
+
+          {/* CHANGE 4: Teaching Mode toggle (teacher only) */}
+          {mode === "teacher" && (
+            <Button
+              variant={teachingMode ? "teacher" : "outline"}
+              size="sm"
+              onClick={() => setTeachingMode((v) => !v)}
+              title="Simplified toolbar for teaching"
+            >
+              <GraduationCap className="h-4 w-4" />
+              Teaching Mode: {teachingMode ? "ON" : "OFF"}
+            </Button>
+          )}
+
+          {/* CHANGE 3: Follow Teacher toggle (student only, during live session) */}
+          {mode === "student" && activeSessionId && (
+            <Button
+              variant={followTeacher ? "student" : "outline"}
+              size="sm"
+              onClick={() => setFollowTeacher((v) => !v)}
+              title="Automatically match the teacher's view"
+            >
+              {followTeacher ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              Follow Teacher: {followTeacher ? "ON" : "OFF"}
+            </Button>
+          )}
+
           {activeSessionId && (
             <span className="px-2 py-1 rounded-full bg-green-500/10 text-green-600 text-xs font-bold animate-pulse">● LIVE</span>
           )}
