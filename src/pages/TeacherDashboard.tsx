@@ -232,10 +232,9 @@ const TeacherDashboard = () => {
     try {
       const [studentsRes, profileRes, assignmentsRes, salaryRes, attendanceRes, zoomRes, feesRes] = await Promise.all([
         supabase
-          .from("student_profiles")
-          .select("user_id, student_name, grade")
-          .eq("assigned_teacher_id", user.id)
-          .order("student_name"),
+          .from("student_teacher_assignments")
+          .select("student_user_id, student_profiles!inner(user_id, student_name, grade)")
+          .eq("teacher_user_id", user.id),
         supabase
           .from("teacher_profiles")
           .select("subjects, availability, bio")
