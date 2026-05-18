@@ -407,7 +407,10 @@ const StudentDashboard = () => {
                       className="p-4 rounded-lg border border-border bg-card space-y-3"
                     >
                       <div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="font-semibold text-foreground">
+                          {z.class_label || "Class Link"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
                           Uploaded by: <span className="font-medium text-foreground">{z.teacher_name}</span>
                         </p>
                         <p className="font-mono text-sm text-foreground break-all mt-1">
