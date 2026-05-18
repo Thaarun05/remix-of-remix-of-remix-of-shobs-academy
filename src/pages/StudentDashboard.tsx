@@ -80,6 +80,7 @@ interface ZoomLink {
   teacher_user_id: string;
   zoom_link: string;
   teacher_name: string;
+  class_label: string | null;
 }
 
 interface StudentFee {
@@ -141,7 +142,7 @@ const StudentDashboard = () => {
           .order("due_date", { ascending: true }),
         supabase
           .from("meet_links")
-          .select("teacher_user_id, zoom_link")
+          .select("teacher_user_id, zoom_link, class_label")
           .eq("student_user_id", user.id)
           .is("deleted_at", null),
         supabase
@@ -158,7 +159,7 @@ const StudentDashboard = () => {
         attachments: (a.attachments as unknown as FileInfo[]) || [],
         submission_attachments: (a.submission_attachments as unknown as FileInfo[]) || [],
       })));
-      const rows = (zoomRes.data || []) as Array<{ teacher_user_id: string; zoom_link: string }>;
+      const rows = (zoomRes.data || []) as Array<{ teacher_user_id: string; zoom_link: string; class_label: string | null }>;
       const teacherIds = Array.from(new Set(rows.map((r) => r.teacher_user_id)));
       let nameMap = new Map<string, string>();
       if (teacherIds.length > 0) {
@@ -173,6 +174,7 @@ const StudentDashboard = () => {
           teacher_user_id: r.teacher_user_id,
           zoom_link: r.zoom_link,
           teacher_name: nameMap.get(r.teacher_user_id) || "Unknown Teacher",
+          class_label: r.class_label,
         }))
       );
       setFees(feesRes.data || []);
@@ -405,7 +407,10 @@ const StudentDashboard = () => {
                       className="p-4 rounded-lg border border-border bg-card space-y-3"
                     >
                       <div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="font-semibold text-foreground">
+                          {z.class_label || "Class Link"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
                           Uploaded by: <span className="font-medium text-foreground">{z.teacher_name}</span>
                         </p>
                         <p className="font-mono text-sm text-foreground break-all mt-1">

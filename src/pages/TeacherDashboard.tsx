@@ -164,6 +164,7 @@ const TeacherDashboard = () => {
   });
   const [meetForm, setMeetForm] = useState({
     zoomLink: "",
+    classLabel: "",
   });
   const [profileForm, setProfileForm] = useState({
     subjects: "",
@@ -1421,12 +1422,13 @@ const TeacherDashboard = () => {
                         student_user_id: selectedStudent,
                         teacher_user_id: user.id,
                         zoom_link: meetForm.zoomLink,
+                        class_label: meetForm.classLabel || null,
                         deleted_at: null,
                         updated_at: new Date().toISOString(),
                       }, { onConflict: "student_user_id,teacher_user_id" });
                       if (error) throw error;
                       toast({ title: "Success", description: "Zoom link saved!" });
-                      setMeetForm({ ...meetForm, zoomLink: "" });
+                      setMeetForm({ ...meetForm, zoomLink: "", classLabel: "" });
                       fetchData();
                     } catch (error: unknown) {
                       toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to save link", variant: "destructive" });
@@ -1438,6 +1440,15 @@ const TeacherDashboard = () => {
                       <p className="text-sm font-medium text-teacher">
                         Creating link for: {students.find(s => s.user_id === selectedStudent)?.student_name}
                       </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="classLabel">Class Label</Label>
+                      <Input
+                        id="classLabel"
+                        placeholder="e.g. Mathematics, Science"
+                        value={meetForm.classLabel}
+                        onChange={(e) => setMeetForm({ ...meetForm, classLabel: e.target.value })}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="zoomLink">Zoom URL *</Label>
