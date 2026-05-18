@@ -2215,43 +2215,90 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
           <ToolBtn id="move" icon={Hand} label="Move / Pan" />
           <ToolBtn id="pen" icon={Pencil} label="Pen" />
 
-          <DropdownMenu>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <button className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center transition-all relative",
-                    activeShapeTool
-                      ? `bg-${roleAccent}/10 border-2 border-${roleAccent} text-${roleAccent} shadow-sm`
-                      : "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}>
-                    <ShapeIcon className="h-[18px] w-[18px]" />
-                    <ChevronDown className="h-2.5 w-2.5 absolute bottom-1 right-1 opacity-60" />
-                  </button>
-                </DropdownMenuTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="text-xs">Shapes</TooltipContent>
-            </Tooltip>
-            <DropdownMenuContent side="right" align="start" className="min-w-[140px]">
-              {shapeTools.map((s) => (
-                <DropdownMenuItem key={s.id} onClick={() => setTool(s.id)} className="gap-2">
-                  <s.icon className="h-4 w-4" />{s.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {!teachingMode && (
+            <>
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <button className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all relative",
+                        activeShapeTool
+                          ? `bg-${roleAccent}/10 border-2 border-${roleAccent} text-${roleAccent} shadow-sm`
+                          : "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}>
+                        <ShapeIcon className="h-[18px] w-[18px]" />
+                        <ChevronDown className="h-2.5 w-2.5 absolute bottom-1 right-1 opacity-60" />
+                      </button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">Shapes</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent side="right" align="start" className="min-w-[140px]">
+                  {shapeTools.map((s) => (
+                    <DropdownMenuItem key={s.id} onClick={() => setTool(s.id)} className="gap-2">
+                      <s.icon className="h-4 w-4" />{s.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-          <ToolBtn id="connector" icon={Spline} label="Connector" />
-          <ToolBtn id="text" icon={Type} label="Text" />
-          <ToolBtn id="sticky" icon={StickyNote} label="Sticky Note" />
-          <ToolBtn id="frame" icon={Hash} label="Frame" />
-          <ToolBtn id="table" icon={Table2} label="Table (3×3)" />
-          <ToolBtn id="image" icon={ImagePlus} label="Image Upload" />
+              <ToolBtn id="connector" icon={Spline} label="Connector" />
+              <ToolBtn id="text" icon={Type} label="Text" />
+              <ToolBtn id="sticky" icon={StickyNote} label="Sticky Note" />
+              <ToolBtn id="frame" icon={Hash} label="Frame" />
+              <ToolBtn id="table" icon={Table2} label="Table (3×3)" />
+              <ToolBtn id="image" icon={ImagePlus} label="Image Upload" />
 
-          <div className="w-7 h-px bg-border my-1.5" />
+              <div className="w-7 h-px bg-border my-1.5" />
+            </>
+          )}
 
           <ToolBtn id="laser" icon={Crosshair} label="Laser Pointer" />
           <ToolBtn id="eraser" icon={Eraser} label="Eraser" />
+
+          {teachingMode && mode === "teacher" && (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={undo}
+                    disabled={!canUndo}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center transition-all bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+                  >
+                    <Undo2 className="h-[18px] w-[18px]" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">Undo</TooltipContent>
+              </Tooltip>
+
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <button className="w-10 h-10 rounded-xl flex items-center justify-center transition-all bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground">
+                        <Plus className="h-[18px] w-[18px]" />
+                      </button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">More tools</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent side="right" align="start" className="min-w-[160px]">
+                  {shapeTools.map((s) => (
+                    <DropdownMenuItem key={s.id} onClick={() => setTool(s.id)} className="gap-2">
+                      <s.icon className="h-4 w-4" />{s.label}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuItem onClick={() => setTool("connector")} className="gap-2"><Spline className="h-4 w-4" />Connector</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTool("text")} className="gap-2"><Type className="h-4 w-4" />Text</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTool("sticky")} className="gap-2"><StickyNote className="h-4 w-4" />Sticky Note</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTool("frame")} className="gap-2"><Hash className="h-4 w-4" />Frame</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setTool("table")} className="gap-2"><Table2 className="h-4 w-4" />Table (3×3)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleToolSelect("image")} className="gap-2"><ImagePlus className="h-4 w-4" />Image Upload</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
 
           <div className="w-7 h-px bg-border my-1.5" />
 
