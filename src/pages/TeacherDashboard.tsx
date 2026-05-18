@@ -232,10 +232,9 @@ const TeacherDashboard = () => {
     try {
       const [studentsRes, profileRes, assignmentsRes, salaryRes, attendanceRes, zoomRes, feesRes] = await Promise.all([
         supabase
-          .from("student_profiles")
-          .select("user_id, student_name, grade")
-          .eq("assigned_teacher_id", user.id)
-          .order("student_name"),
+          .from("student_teacher_assignments")
+          .select("student_user_id, student_profiles!inner(user_id, student_name, grade)")
+          .eq("teacher_user_id", user.id),
         supabase
           .from("teacher_profiles")
           .select("subjects, availability, bio")
@@ -274,10 +273,14 @@ const TeacherDashboard = () => {
           .limit(10)
       ]);
 
-      setStudents(studentsRes.data || []);
+      const studentsList: Student[] = ((studentsRes.data || []) as any[])
+        .map((r) => r.student_profiles)
+        .filter(Boolean)
+        .sort((a, b) => (a.student_name || "").localeCompare(b.student_name || ""));
+      setStudents(studentsList);
       setSalaries(salaryRes.data || []);
-      
-      const studentsMap = new Map(studentsRes.data?.map(s => [s.user_id, s.student_name]) || []);
+
+      const studentsMap = new Map(studentsList.map((s) => [s.user_id, s.student_name]));
       const assignmentsWithNames = (assignmentsRes.data || []).map(a => ({
         ...a,
         attachments: (a.attachments as unknown as FileInfo[]) || [],
