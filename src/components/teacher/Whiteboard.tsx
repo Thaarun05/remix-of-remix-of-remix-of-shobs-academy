@@ -15,6 +15,7 @@ import {
   ArrowUpRight, Spline,
   StickyNote, Hash, Table2, ImagePlus,
   ChevronDown, Hand, Crosshair, ZoomIn, ZoomOut, ArrowLeft,
+  Eye, EyeOff, Radio, GraduationCap, Plus,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
