@@ -690,29 +690,29 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          month: string
           reviewed_at: string | null
           status: string
           submitted_at: string
           teacher_user_id: string
+          work_date: string
         }
         Insert: {
           created_at?: string
           id?: string
-          month: string
           reviewed_at?: string | null
           status?: string
           submitted_at?: string
           teacher_user_id: string
+          work_date: string
         }
         Update: {
           created_at?: string
           id?: string
-          month?: string
           reviewed_at?: string | null
           status?: string
           submitted_at?: string
           teacher_user_id?: string
+          work_date?: string
         }
         Relationships: []
       }
