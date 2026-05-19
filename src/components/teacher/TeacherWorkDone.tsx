@@ -210,11 +210,18 @@ export function TeacherWorkDone() {
   const handleSubmit = async () => {
     if (!user || !selectedDate) return;
     setSubmitting(true);
-    const { error } = await supabase.from("teacher_work_submissions").insert({
-      teacher_user_id: user.id,
-      work_date: selectedDate,
-      status: "pending",
-    } as any);
+    const { error } = await supabase
+      .from("teacher_work_submissions")
+      .upsert(
+        {
+          teacher_user_id: user.id,
+          work_date: selectedDate,
+          status: "pending",
+          submitted_at: new Date().toISOString(),
+          reviewed_at: null,
+        } as any,
+        { onConflict: "teacher_user_id,work_date" }
+      );
     setSubmitting(false);
     setConfirmOpen(false);
     if (error) {
