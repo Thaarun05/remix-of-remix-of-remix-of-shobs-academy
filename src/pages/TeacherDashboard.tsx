@@ -15,6 +15,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { FileDownload, SubmissionFiles } from "@/components/FileDownload";
 import { TeacherCalendar } from "@/components/TeacherCalendar";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
+import { AdminTeacherMessaging } from "@/components/messaging/AdminTeacherMessaging";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StartConversationButton } from "@/components/messaging/StartConversationButton";
 import { TeacherNotes } from "@/components/teacher/TeacherNotes";
 import { Whiteboard as WhiteboardComponent } from "@/components/teacher/Whiteboard";
@@ -1557,8 +1559,18 @@ const TeacherDashboard = () => {
 
         {activeTab === "messages" && (
           <div>
-            <h3 className="text-lg font-semibold mb-4">My Students</h3>
-            <MessagingPanel userRole="teacher" preselectedConversationId={selectedConversationId} />
+            <Tabs defaultValue="students" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="students">My Students</TabsTrigger>
+                <TabsTrigger value="admin">Admin Messages</TabsTrigger>
+              </TabsList>
+              <TabsContent value="students">
+                <MessagingPanel userRole="teacher" preselectedConversationId={selectedConversationId} />
+              </TabsContent>
+              <TabsContent value="admin">
+                <AdminTeacherMessaging userRole="teacher" />
+              </TabsContent>
+            </Tabs>
           </div>
         )}
 

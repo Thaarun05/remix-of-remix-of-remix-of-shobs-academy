@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_teacher_conversations: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          id: string
+          teacher_user_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          teacher_user_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          teacher_user_id?: string
+        }
+        Relationships: []
+      }
+      admin_teacher_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          read_at: string | null
+          receiver_user_id: string
+          sender_user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          receiver_user_id: string
+          sender_user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          receiver_user_id?: string
+          sender_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_teacher_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "admin_teacher_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignments: {
         Row: {
           attachments: Json | null
@@ -829,6 +888,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_admin_teacher_conv_participant: {
+        Args: { _conv_id: string; _user_id: string }
         Returns: boolean
       }
       is_conversation_participant: {
