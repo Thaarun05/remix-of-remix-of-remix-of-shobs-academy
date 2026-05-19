@@ -210,11 +210,18 @@ export function TeacherWorkDone() {
   const handleSubmit = async () => {
     if (!user || !selectedDate) return;
     setSubmitting(true);
-    const { error } = await supabase.from("teacher_work_submissions").insert({
-      teacher_user_id: user.id,
-      work_date: selectedDate,
-      status: "pending",
-    } as any);
+    const { error } = await supabase
+      .from("teacher_work_submissions")
+      .upsert(
+        {
+          teacher_user_id: user.id,
+          work_date: selectedDate,
+          status: "pending",
+          submitted_at: new Date().toISOString(),
+          reviewed_at: null,
+        } as any,
+        { onConflict: "teacher_user_id,work_date" }
+      );
     setSubmitting(false);
     setConfirmOpen(false);
     if (error) {
@@ -338,12 +345,15 @@ export function TeacherWorkDone() {
                   <Input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
                 </div>
               </div>
-              <Button onClick={handleSave} variant="teacher" disabled={!!selectedSubmissionStatus}>Save Entry</Button>
+              <Button onClick={handleSave} variant="teacher">Save Entry</Button>
             </div>
 
             <div className="pt-4 border-t flex items-center justify-between flex-wrap gap-3">
               <div>
                 <p className="text-sm font-medium">Daily submission</p>
+                <p className="text-xs text-muted-foreground italic mt-0.5">
+                  * After you complete all classes for the day, please submit this to the admin.
+                </p>
                 {selectedSubmissionStatus ? (
                   <Badge variant={selectedSubmissionStatus === "approved" ? "default" : "secondary"} className="mt-1">
                     {selectedSubmissionStatus === "approved" ? "Approved" : "Submitted — Pending Review"}
@@ -352,11 +362,10 @@ export function TeacherWorkDone() {
                   <p className="text-xs text-muted-foreground mt-1">Not yet submitted for {selectedDate}</p>
                 )}
               </div>
-              {!selectedSubmissionStatus && (
-                <Button onClick={() => setConfirmOpen(true)} variant="teacher" disabled={selectedEntries.length === 0}>
-                  <Send className="h-4 w-4" /> Submit to Admin
-                </Button>
-              )}
+              <Button onClick={() => setConfirmOpen(true)} variant="teacher" disabled={selectedEntries.length === 0}>
+                <Send className="h-4 w-4" />
+                {selectedSubmissionStatus ? "Send Once More" : "Submit to Admin"}
+              </Button>
             </div>
           </CardContent>
         </Card>
