@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/EmptyState";
-import { ClipboardList, Loader2, CheckCircle2 } from "lucide-react";
+import { ClipboardList, Loader2, CheckCircle2, Trash2, RotateCcw } from "lucide-react";
 
 interface Row {
   id: string;
@@ -62,6 +62,33 @@ export function WorkSubmissions() {
     load();
   };
 
+  const revert = async (id: string) => {
+    const { error } = await supabase
+      .from("teacher_work_submissions")
+      .update({ status: "pending", reviewed_at: null } as any)
+      .eq("id", id);
+    if (error) {
+      toast({ title: "Failed to update", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Reverted to pending" });
+    load();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Delete this submission?")) return;
+    const { error } = await supabase
+      .from("teacher_work_submissions")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Submission deleted" });
+    load();
+  };
+
   return (
     <Card className="dashboard-list-card">
       <CardHeader>
@@ -98,11 +125,20 @@ export function WorkSubmissions() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    {r.status !== "approved" && (
-                      <Button size="sm" onClick={() => approve(r.id)}>
-                        <CheckCircle2 className="h-4 w-4" /> Approve
+                    <div className="flex justify-end gap-2">
+                      {r.status !== "approved" ? (
+                        <Button size="sm" onClick={() => approve(r.id)}>
+                          <CheckCircle2 className="h-4 w-4" /> Approve
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => revert(r.id)}>
+                          <RotateCcw className="h-4 w-4" /> Edit
+                        </Button>
+                      )}
+                      <Button size="sm" variant="destructive" onClick={() => remove(r.id)}>
+                        <Trash2 className="h-4 w-4" /> Delete
                       </Button>
-                    )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
