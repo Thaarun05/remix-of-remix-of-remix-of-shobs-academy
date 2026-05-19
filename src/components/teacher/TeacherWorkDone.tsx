@@ -338,7 +338,7 @@ export function TeacherWorkDone() {
                   <Input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
                 </div>
               </div>
-              <Button onClick={handleSave} variant="teacher" disabled={!!selectedSubmissionStatus}>Save Entry</Button>
+              <Button onClick={handleSave} variant="teacher">Save Entry</Button>
             </div>
 
             <div className="pt-4 border-t flex items-center justify-between flex-wrap gap-3">
