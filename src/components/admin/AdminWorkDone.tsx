@@ -44,6 +44,7 @@ export function AdminWorkDone() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [yearEntries, setYearEntries] = useState<WorkEntry[]>([]);
+  const [yearSubmissions, setYearSubmissions] = useState<Submission[]>([]);
   const [monthEntries, setMonthEntries] = useState<WorkEntry[]>([]);
   const [monthSubmissions, setMonthSubmissions] = useState<Submission[]>([]);
   const [loadingYear, setLoadingYear] = useState(false);
@@ -70,12 +71,19 @@ export function AdminWorkDone() {
     setLoadingYear(true);
     const start = `${year}-01-01`;
     const end = `${year}-12-31`;
-    const { data } = await supabase
-      .from("attendance_records")
-      .select("id, date, student_user_id, teacher_user_id, start_time, end_time, topic, hours")
-      .gte("date", start).lte("date", end)
-      .is("deleted_at", null);
-    setYearEntries(((data || []) as unknown) as WorkEntry[]);
+    const [recsRes, subRes] = await Promise.all([
+      supabase
+        .from("attendance_records")
+        .select("id, date, student_user_id, teacher_user_id, start_time, end_time, topic, hours")
+        .gte("date", start).lte("date", end)
+        .is("deleted_at", null),
+      supabase
+        .from("teacher_work_submissions")
+        .select("id, teacher_user_id, work_date, status, submitted_at")
+        .gte("work_date", start).lte("work_date", end),
+    ]);
+    setYearEntries(((recsRes.data || []) as unknown) as WorkEntry[]);
+    setYearSubmissions(((subRes.data || []) as unknown) as Submission[]);
     setLoadingYear(false);
   };
   useEffect(() => { loadYear(); /* eslint-disable-next-line */ }, [year]);
@@ -107,14 +115,35 @@ export function AdminWorkDone() {
     // eslint-disable-next-line
   }, [year, selectedMonth, view]);
 
-  const filteredYearEntries = useMemo(
-    () => teacherFilter === ALL ? yearEntries : yearEntries.filter(e => e.teacher_user_id === teacherFilter),
-    [yearEntries, teacherFilter]
-  );
-  const filteredMonthEntries = useMemo(
-    () => teacherFilter === ALL ? monthEntries : monthEntries.filter(e => e.teacher_user_id === teacherFilter),
-    [monthEntries, teacherFilter]
-  );
+  // Only show entries from teachers who have submitted for that month.
+  // Key = `${teacher_user_id}|YYYY-MM`
+  const submittedKeysYear = useMemo(() => {
+    const s = new Set<string>();
+    for (const sub of yearSubmissions) s.add(`${sub.teacher_user_id}|${sub.work_date.slice(0, 7)}`);
+    return s;
+  }, [yearSubmissions]);
+
+  const submittedTeacherIdsThisMonth = useMemo(() => {
+    const s = new Set<string>();
+    for (const sub of monthSubmissions) s.add(sub.teacher_user_id);
+    return s;
+  }, [monthSubmissions]);
+
+  const filteredYearEntries = useMemo(() => {
+    const onlySubmitted = yearEntries.filter(e =>
+      submittedKeysYear.has(`${e.teacher_user_id}|${e.date.slice(0, 7)}`)
+    );
+    return teacherFilter === ALL
+      ? onlySubmitted
+      : onlySubmitted.filter(e => e.teacher_user_id === teacherFilter);
+  }, [yearEntries, submittedKeysYear, teacherFilter]);
+
+  const filteredMonthEntries = useMemo(() => {
+    const onlySubmitted = monthEntries.filter(e => submittedTeacherIdsThisMonth.has(e.teacher_user_id));
+    return teacherFilter === ALL
+      ? onlySubmitted
+      : onlySubmitted.filter(e => e.teacher_user_id === teacherFilter);
+  }, [monthEntries, submittedTeacherIdsThisMonth, teacherFilter]);
 
   const monthCounts = useMemo(() => {
     const arr = new Array(12).fill(0);
