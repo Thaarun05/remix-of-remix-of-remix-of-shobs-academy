@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/EmptyState";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
+import { AdminTeacherMessaging } from "@/components/messaging/AdminTeacherMessaging";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { adminSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { AttendanceBasedFeeCalculator } from "@/components/admin/AttendanceBasedFeeCalculator";
@@ -978,7 +980,18 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === "messages" && (
-          <MessagingPanel userRole="admin" />
+          <Tabs defaultValue="conversations" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="conversations">Conversations</TabsTrigger>
+              <TabsTrigger value="teachers">Teacher Messages</TabsTrigger>
+            </TabsList>
+            <TabsContent value="conversations">
+              <MessagingPanel userRole="admin" />
+            </TabsContent>
+            <TabsContent value="teachers">
+              <AdminTeacherMessaging userRole="admin" />
+            </TabsContent>
+          </Tabs>
         )}
 
         {activeTab === "all-users" && (
