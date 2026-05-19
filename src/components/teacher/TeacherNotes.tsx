@@ -103,11 +103,35 @@ export function TeacherNotes() {
 
   const fetchAssignedStudents = async () => {
     if (!user) return;
-    const { data } = await supabase
+    // Primary mapping via assigned_teacher_id
+    const { data: primary } = await supabase
       .from("student_profiles")
       .select("user_id, student_name")
       .eq("assigned_teacher_id", user.id);
-    setAssignedStudents(data || []);
+
+    // Additional mapping via multi-teacher junction table
+    const { data: links } = await supabase
+      .from("student_teacher_assignments")
+      .select("student_user_id")
+      .eq("teacher_user_id", user.id);
+
+    const extraIds = (links || [])
+      .map((l: any) => l.student_user_id)
+      .filter((id: string) => !(primary || []).some((p: any) => p.user_id === id));
+
+    let extra: AssignedStudent[] = [];
+    if (extraIds.length) {
+      const { data } = await supabase
+        .from("student_profiles")
+        .select("user_id, student_name")
+        .in("user_id", extraIds);
+      extra = data || [];
+    }
+
+    const merged = [...(primary || []), ...extra].sort((a, b) =>
+      a.student_name.localeCompare(b.student_name)
+    );
+    setAssignedStudents(merged);
   };
 
   const fetchNotes = async () => {
