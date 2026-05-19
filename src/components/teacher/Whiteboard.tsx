@@ -1027,12 +1027,32 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
 
   const fetchStudents = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("student_profiles")
-      .select("user_id, student_name")
-      .eq("assigned_teacher_id", user.id)
-      .order("student_name");
-    setStudents(data || []);
+    const [primaryRes, assignmentsRes] = await Promise.all([
+      supabase
+        .from("student_profiles")
+        .select("user_id, student_name")
+        .eq("assigned_teacher_id", user.id),
+      supabase
+        .from("student_teacher_assignments")
+        .select("student_user_id")
+        .eq("teacher_user_id", user.id),
+    ]);
+    const map = new Map<string, { user_id: string; student_name: string }>();
+    (primaryRes.data || []).forEach((s: any) => map.set(s.user_id, s));
+    const extraIds = (assignmentsRes.data || [])
+      .map((r: any) => r.student_user_id)
+      .filter((id: string) => !map.has(id));
+    if (extraIds.length > 0) {
+      const { data: extra } = await supabase
+        .from("student_profiles")
+        .select("user_id, student_name")
+        .in("user_id", extraIds);
+      (extra || []).forEach((s: any) => map.set(s.user_id, s));
+    }
+    const merged = Array.from(map.values()).sort((a, b) =>
+      (a.student_name || "").localeCompare(b.student_name || "")
+    );
+    setStudents(merged);
   };
 
   const fetchSentWhiteboards = async (studentId: string) => {
@@ -1918,9 +1938,14 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
         boardId = (data as any).id;
         setCurrentBoardId(boardId);
       }
-      const { data: assigned } = await supabase
-        .from("student_profiles").select("user_id").eq("assigned_teacher_id", user.id);
-      const studentIds = (assigned || []).map((r: any) => r.user_id);
+      const [primaryAssigned, junctionAssigned] = await Promise.all([
+        supabase.from("student_profiles").select("user_id").eq("assigned_teacher_id", user.id),
+        supabase.from("student_teacher_assignments").select("student_user_id").eq("teacher_user_id", user.id),
+      ]);
+      const idSet = new Set<string>();
+      (primaryAssigned.data || []).forEach((r: any) => idSet.add(r.user_id));
+      (junctionAssigned.data || []).forEach((r: any) => idSet.add(r.student_user_id));
+      const studentIds = Array.from(idSet);
       if (studentIds.length === 0) {
         toast({ title: "Live Share", description: "No assigned students.", variant: "destructive" });
         return;
