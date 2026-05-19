@@ -180,6 +180,7 @@ export const studentSidebarItems: SidebarItem[] = [
 export const teacherSidebarItems: SidebarItem[] = [
   { id: "calendar", label: "Calendar", icon: CalendarDays },
   { id: "attendance", label: "Attendance", icon: Calendar },
+  { id: "work-done", label: "Work Done", icon: CalendarCheck },
   { id: "assignments", label: "Assignments", icon: FileText },
   { id: "notes", label: "Notes", icon: FileText },
   { id: "whiteboard", label: "Whiteboard", icon: PenTool },
