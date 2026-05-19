@@ -61,7 +61,7 @@ export function TeacherWorkDone() {
   const [entries, setEntries] = useState<WorkEntry[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [submission, setSubmission] = useState<{ status: string } | null>(null);
+  const [submissions, setSubmissions] = useState<Map<string, string>>(new Map());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -72,7 +72,6 @@ export function TeacherWorkDone() {
     topic: "",
   });
 
-  const monthKey = `${cursor.getFullYear()}-${pad(cursor.getMonth() + 1)}`;
   const firstDay = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
   const lastDay = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
 
@@ -102,7 +101,7 @@ export function TeacherWorkDone() {
     setLoading(true);
     const start = toISODate(cursor.getFullYear(), cursor.getMonth(), 1);
     const end = toISODate(cursor.getFullYear(), cursor.getMonth(), lastDay.getDate());
-    const [{ data: recs }, { data: subs }] = await Promise.all([
+    const [recsRes, subsRes] = await Promise.all([
       supabase
         .from("attendance_records")
         .select("id, date, student_user_id, start_time, end_time, topic, hours")
@@ -112,17 +111,19 @@ export function TeacherWorkDone() {
         .is("deleted_at", null),
       supabase
         .from("teacher_work_submissions")
-        .select("status")
+        .select("work_date, status")
         .eq("teacher_user_id", user.id)
-        .eq("month", monthKey)
-        .maybeSingle(),
+        .gte("work_date", start)
+        .lte("work_date", end),
     ]);
-    setEntries((recs || []) as WorkEntry[]);
-    setSubmission(subs ? { status: (subs as any).status } : null);
+    setEntries(((recsRes.data || []) as unknown) as WorkEntry[]);
+    const subMap = new Map<string, string>();
+    ((subsRes.data || []) as any[]).forEach((s) => subMap.set(s.work_date, s.status));
+    setSubmissions(subMap);
     setLoading(false);
   };
 
-  useEffect(() => { loadMonth(); /* eslint-disable-next-line */ }, [user, monthKey]);
+  useEffect(() => { loadMonth(); /* eslint-disable-next-line */ }, [user, cursor]);
 
   // Build weeks (Mon-Sun)
   const weeks = useMemo(() => {
@@ -207,11 +208,11 @@ export function TeacherWorkDone() {
   };
 
   const handleSubmit = async () => {
-    if (!user) return;
+    if (!user || !selectedDate) return;
     setSubmitting(true);
     const { error } = await supabase.from("teacher_work_submissions").insert({
       teacher_user_id: user.id,
-      month: monthKey,
+      work_date: selectedDate,
       status: "pending",
     } as any);
     setSubmitting(false);
@@ -220,11 +221,12 @@ export function TeacherWorkDone() {
       toast({ title: "Failed to submit", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Submitted to admin" });
+    toast({ title: "Day submitted to admin" });
     loadMonth();
   };
 
   const selectedEntries = selectedDate ? (entriesByDate.get(selectedDate) || []) : [];
+  const selectedSubmissionStatus = selectedDate ? submissions.get(selectedDate) : undefined;
 
   return (
     <div className="space-y-6">
@@ -336,38 +338,36 @@ export function TeacherWorkDone() {
                   <Input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
                 </div>
               </div>
-              <Button onClick={handleSave} variant="teacher">Save Entry</Button>
+              <Button onClick={handleSave} variant="teacher" disabled={!!selectedSubmissionStatus}>Save Entry</Button>
+            </div>
+
+            <div className="pt-4 border-t flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <p className="text-sm font-medium">Daily submission</p>
+                {selectedSubmissionStatus ? (
+                  <Badge variant={selectedSubmissionStatus === "approved" ? "default" : "secondary"} className="mt-1">
+                    {selectedSubmissionStatus === "approved" ? "Approved" : "Submitted — Pending Review"}
+                  </Badge>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">Not yet submitted for {selectedDate}</p>
+                )}
+              </div>
+              {!selectedSubmissionStatus && (
+                <Button onClick={() => setConfirmOpen(true)} variant="teacher" disabled={selectedEntries.length === 0}>
+                  <Send className="h-4 w-4" /> Submit to Admin
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
-
-      <Card>
-        <CardContent className="pt-6 flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <p className="text-sm font-medium">Monthly submission</p>
-            {submission ? (
-              <Badge variant={submission.status === "approved" ? "default" : "secondary"} className="mt-1">
-                {submission.status === "approved" ? "Approved" : "Submitted — Pending Review"}
-              </Badge>
-            ) : (
-              <p className="text-xs text-muted-foreground mt-1">Not yet submitted for {MONTH_NAMES[cursor.getMonth()]} {cursor.getFullYear()}</p>
-            )}
-          </div>
-          {!submission && (
-            <Button onClick={() => setConfirmOpen(true)} variant="teacher">
-              <Send className="h-4 w-4" /> Submit to Admin
-            </Button>
-          )}
-        </CardContent>
-      </Card>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Submit work log?</AlertDialogTitle>
             <AlertDialogDescription>
-              Submit {MONTH_NAMES[cursor.getMonth()]} work log to admin for review?
+              Submit work log for {selectedDate} to admin for review?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
