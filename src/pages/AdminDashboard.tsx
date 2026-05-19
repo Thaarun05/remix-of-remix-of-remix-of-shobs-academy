@@ -18,6 +18,7 @@ import { AttendanceBasedFeeCalculator } from "@/components/admin/AttendanceBased
 import { UserManagement } from "@/components/admin/UserManagement";
 import { MultiTeacherAssign } from "@/components/admin/MultiTeacherAssign";
 import { WorkSubmissions } from "@/components/admin/WorkSubmissions";
+import { AdminWorkDone } from "@/components/admin/AdminWorkDone";
 import { 
   Users, 
   GraduationCap,
@@ -1110,6 +1111,10 @@ const AdminDashboard = () => {
 
         {activeTab === "work-submissions" && (
           <WorkSubmissions />
+        )}
+
+        {activeTab === "work-done" && (
+          <AdminWorkDone />
         )}
 
         {activeTab === "fees" && (
