@@ -70,8 +70,10 @@ export type Database = {
           created_at: string | null
           date: string
           deleted_at: string | null
+          end_time: string | null
           hours: number | null
           id: string
+          start_time: string | null
           status: string
           student_user_id: string
           teacher_user_id: string
@@ -81,8 +83,10 @@ export type Database = {
           created_at?: string | null
           date: string
           deleted_at?: string | null
+          end_time?: string | null
           hours?: number | null
           id?: string
+          start_time?: string | null
           status: string
           student_user_id: string
           teacher_user_id: string
@@ -92,8 +96,10 @@ export type Database = {
           created_at?: string | null
           date?: string
           deleted_at?: string | null
+          end_time?: string | null
           hours?: number | null
           id?: string
+          start_time?: string | null
           status?: string
           student_user_id?: string
           teacher_user_id?: string
@@ -677,6 +683,36 @@ export type Database = {
           teacher_id?: string
           teacher_name?: string | null
           total_hours?: number | null
+        }
+        Relationships: []
+      }
+      teacher_work_submissions: {
+        Row: {
+          created_at: string
+          id: string
+          month: string
+          reviewed_at: string | null
+          status: string
+          submitted_at: string
+          teacher_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: string
+          reviewed_at?: string | null
+          status?: string
+          submitted_at?: string
+          teacher_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: string
+          reviewed_at?: string | null
+          status?: string
+          submitted_at?: string
+          teacher_user_id?: string
         }
         Relationships: []
       }

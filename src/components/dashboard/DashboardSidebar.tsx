@@ -180,6 +180,7 @@ export const studentSidebarItems: SidebarItem[] = [
 export const teacherSidebarItems: SidebarItem[] = [
   { id: "calendar", label: "Calendar", icon: CalendarDays },
   { id: "attendance", label: "Attendance", icon: Calendar },
+  { id: "work-done", label: "Work Done", icon: CalendarCheck },
   { id: "assignments", label: "Assignments", icon: FileText },
   { id: "notes", label: "Notes", icon: FileText },
   { id: "whiteboard", label: "Whiteboard", icon: PenTool },
@@ -197,6 +198,7 @@ export const adminSidebarItems: SidebarItem[] = [
   { id: "fee-sheet", label: "Fee Sheet", icon: FileSpreadsheet },
   { id: "fees", label: "Student Fees (Old)", icon: Receipt },
   { id: "salary", label: "Teacher Salary", icon: DollarSign },
+  { id: "work-submissions", label: "Work Submissions", icon: ClipboardList },
   { id: "messages", label: "Messages", icon: MessageSquare },
   { id: "all-users", label: "All Users", icon: Users },
 ];

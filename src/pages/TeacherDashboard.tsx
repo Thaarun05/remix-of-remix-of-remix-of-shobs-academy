@@ -18,6 +18,7 @@ import { MessagingPanel } from "@/components/messaging/MessagingPanel";
 import { StartConversationButton } from "@/components/messaging/StartConversationButton";
 import { TeacherNotes } from "@/components/teacher/TeacherNotes";
 import { Whiteboard as WhiteboardComponent } from "@/components/teacher/Whiteboard";
+import { TeacherWorkDone } from "@/components/teacher/TeacherWorkDone";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { teacherSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { 
@@ -907,7 +908,7 @@ const TeacherDashboard = () => {
       </div>
 
       {/* Student Selector - shown on relevant tabs */}
-      {activeTab !== "profile" && activeTab !== "manage" && activeTab !== "messages" && (
+      {activeTab !== "profile" && activeTab !== "manage" && activeTab !== "messages" && activeTab !== "work-done" && (
         <Card className="mb-6 dashboard-list-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Select Student</CardTitle>
@@ -1172,6 +1173,10 @@ const TeacherDashboard = () => {
 
         {activeTab === "notes" && (
           <TeacherNotes />
+        )}
+
+        {activeTab === "work-done" && (
+          <TeacherWorkDone />
         )}
 
         {activeTab === "whiteboard" && (
