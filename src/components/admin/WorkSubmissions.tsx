@@ -11,7 +11,7 @@ import { ClipboardList, Loader2, CheckCircle2 } from "lucide-react";
 interface Row {
   id: string;
   teacher_user_id: string;
-  month: string;
+  work_date: string;
   submitted_at: string;
   status: string;
   teacher_name?: string;
@@ -26,14 +26,14 @@ export function WorkSubmissions() {
     setLoading(true);
     const { data: subs, error } = await supabase
       .from("teacher_work_submissions")
-      .select("id, teacher_user_id, month, submitted_at, status")
+      .select("id, teacher_user_id, work_date, submitted_at, status")
       .order("submitted_at", { ascending: false });
     if (error) {
       toast({ title: "Failed to load", description: error.message, variant: "destructive" });
       setLoading(false);
       return;
     }
-    const list = (subs || []) as Row[];
+    const list = ((subs || []) as unknown) as Row[];
     const ids = Array.from(new Set(list.map(r => r.teacher_user_id)));
     if (ids.length > 0) {
       const { data: profs } = await supabase
@@ -80,7 +80,7 @@ export function WorkSubmissions() {
             <TableHeader>
               <TableRow>
                 <TableHead>Teacher</TableHead>
-                <TableHead>Month</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead>Submitted</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Action</TableHead>
@@ -90,7 +90,7 @@ export function WorkSubmissions() {
               {rows.map(r => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.teacher_name}</TableCell>
-                  <TableCell>{r.month}</TableCell>
+                  <TableCell>{r.work_date}</TableCell>
                   <TableCell>{new Date(r.submitted_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Badge variant={r.status === "approved" ? "default" : "secondary"}>
