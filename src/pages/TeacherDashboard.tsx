@@ -1175,6 +1175,10 @@ const TeacherDashboard = () => {
           <TeacherNotes />
         )}
 
+        {activeTab === "work-done" && (
+          <TeacherWorkDone />
+        )}
+
         {activeTab === "whiteboard" && (
           <WhiteboardComponent />
         )}
