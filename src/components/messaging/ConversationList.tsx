@@ -42,70 +42,60 @@ export const ConversationList = ({
     setLoading(true);
 
     try {
-      // For admin, get all conversations; for others, filter by their participation
-      let query = supabase
+      const { data: convData, error } = await supabase
         .from("conversations")
         .select("id, student_user_id, teacher_user_id, created_at")
         .order("created_at", { ascending: false });
-
-      const { data: convData, error } = await query;
-
       if (error) throw error;
+      const convs = convData || [];
 
-      // Get the other user's name for each conversation
-      const enrichedConversations: Conversation[] = [];
-      
-      for (const conv of convData || []) {
-        let otherUserId: string;
+      // Batch fetch all profiles + unread messages in parallel
+      const studentIds = Array.from(new Set(convs.map((c) => c.student_user_id)));
+      const teacherIds = Array.from(new Set(convs.map((c) => c.teacher_user_id)));
+      const convIds = convs.map((c) => c.id);
+
+      const [studentsRes, teachersRes, unreadRes] = await Promise.all([
+        studentIds.length
+          ? supabase.from("student_profiles").select("user_id, student_name").in("user_id", studentIds)
+          : Promise.resolve({ data: [] as any[] }),
+        teacherIds.length
+          ? supabase.from("profiles").select("user_id, full_name").in("user_id", teacherIds)
+          : Promise.resolve({ data: [] as any[] }),
+        convIds.length
+          ? supabase
+              .from("messages")
+              .select("conversation_id")
+              .in("conversation_id", convIds)
+              .is("read_at", null)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+
+      const studentNameMap = new Map(
+        (studentsRes.data || []).map((s: any) => [s.user_id, s.student_name])
+      );
+      const teacherNameMap = new Map(
+        (teachersRes.data || []).map((t: any) => [t.user_id, t.full_name])
+      );
+      const unreadMap = new Map<string, number>();
+      for (const m of (unreadRes.data || []) as any[]) {
+        unreadMap.set(m.conversation_id, (unreadMap.get(m.conversation_id) || 0) + 1);
+      }
+
+      const enrichedConversations: Conversation[] = convs.map((conv) => {
         let otherUserName = "Unknown";
-
         if (userRole === "admin") {
-          // For admin, show both users in the conversation
-          const { data: studentProfile } = await supabase
-            .from("student_profiles")
-            .select("student_name")
-            .eq("user_id", conv.student_user_id)
-            .maybeSingle();
-          
-          const { data: teacherProfile } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("user_id", conv.teacher_user_id)
-            .maybeSingle();
-
-          otherUserName = `${studentProfile?.student_name || "Student"} ↔ ${teacherProfile?.full_name || "Teacher"}`;
-          otherUserId = conv.student_user_id; // For admin, we pick one
+          otherUserName = `${studentNameMap.get(conv.student_user_id) || "Student"} ↔ ${teacherNameMap.get(conv.teacher_user_id) || "Teacher"}`;
         } else if (userRole === "student") {
-          otherUserId = conv.teacher_user_id;
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("user_id", otherUserId)
-            .maybeSingle();
-          otherUserName = profile?.full_name || "Teacher";
+          otherUserName = teacherNameMap.get(conv.teacher_user_id) || "Teacher";
         } else {
-          otherUserId = conv.student_user_id;
-          const { data: studentProfile } = await supabase
-            .from("student_profiles")
-            .select("student_name")
-            .eq("user_id", otherUserId)
-            .maybeSingle();
-          otherUserName = studentProfile?.student_name || "Student";
+          otherUserName = studentNameMap.get(conv.student_user_id) || "Student";
         }
-
-        // Get unread count (for admin show all unread, for others filter by receiver)
-        const { count } = await supabase
-          .from("messages")
-          .select("*", { count: "exact", head: true })
-          .eq("conversation_id", conv.id)
-          .is("read_at", null);
-
-        enrichedConversations.push({
+        return {
           ...conv,
           other_user_name: otherUserName,
-          unread_count: count || 0,
-        });
-      }
+          unread_count: unreadMap.get(conv.id) || 0,
+        };
+      });
 
       setConversations(enrichedConversations);
       onConversationsLoaded?.(enrichedConversations);

@@ -57,38 +57,42 @@ export const AdminTeacherMessaging = ({ userRole }: Props) => {
           .select("id, teacher_user_id")
           .eq("admin_user_id", user.id);
         const convMap = new Map((convs || []).map((c) => [c.teacher_user_id, c.id]));
-
-        const enriched: Peer[] = await Promise.all(
-          (teachers || []).map(async (t) => {
-            const cid = convMap.get(t.user_id) ?? null;
-            let unread = 0;
-            let preview = "";
-            if (cid) {
-              const { count } = await supabase
+        const cids = Array.from(convMap.values());
+        const [unreadRes, msgsRes] = await Promise.all([
+          cids.length
+            ? supabase
                 .from("admin_teacher_messages")
-                .select("*", { count: "exact", head: true })
-                .eq("conversation_id", cid)
+                .select("conversation_id")
+                .in("conversation_id", cids)
                 .eq("receiver_user_id", user.id)
-                .is("read_at", null);
-              unread = count || 0;
-              const { data: last } = await supabase
+                .is("read_at", null)
+            : Promise.resolve({ data: [] as any[] }),
+          cids.length
+            ? supabase
                 .from("admin_teacher_messages")
-                .select("content")
-                .eq("conversation_id", cid)
+                .select("conversation_id, content, created_at")
+                .in("conversation_id", cids)
                 .order("created_at", { ascending: false })
-                .limit(1)
-                .maybeSingle();
-              preview = last?.content || "";
-            }
-            return {
-              user_id: t.user_id,
-              name: t.full_name || "Teacher",
-              conversation_id: cid,
-              unread,
-              last_preview: preview,
-            };
-          })
-        );
+            : Promise.resolve({ data: [] as any[] }),
+        ]);
+        const unreadMap = new Map<string, number>();
+        for (const m of (unreadRes.data || []) as any[]) {
+          unreadMap.set(m.conversation_id, (unreadMap.get(m.conversation_id) || 0) + 1);
+        }
+        const previewMap = new Map<string, string>();
+        for (const m of (msgsRes.data || []) as any[]) {
+          if (!previewMap.has(m.conversation_id)) previewMap.set(m.conversation_id, m.content);
+        }
+        const enriched: Peer[] = (teachers || []).map((t) => {
+          const cid = convMap.get(t.user_id) ?? null;
+          return {
+            user_id: t.user_id,
+            name: t.full_name || "Teacher",
+            conversation_id: cid,
+            unread: cid ? unreadMap.get(cid) || 0 : 0,
+            last_preview: cid ? previewMap.get(cid) || "" : "",
+          };
+        });
         setPeers(enriched);
       } else {
         // teacher: list conversations + admin info
@@ -96,39 +100,45 @@ export const AdminTeacherMessaging = ({ userRole }: Props) => {
           .from("admin_teacher_conversations")
           .select("id, admin_user_id")
           .eq("teacher_user_id", user.id);
-        const adminIds = (convs || []).map((c) => c.admin_user_id);
-        const { data: admins } = adminIds.length
-          ? await supabase
-              .from("profiles")
-              .select("user_id, full_name")
-              .in("user_id", adminIds)
-          : { data: [] as any[] };
-        const nameMap = new Map((admins || []).map((a: any) => [a.user_id, a.full_name]));
-
-        const enriched: Peer[] = await Promise.all(
-          (convs || []).map(async (c) => {
-            const { count } = await supabase
-              .from("admin_teacher_messages")
-              .select("*", { count: "exact", head: true })
-              .eq("conversation_id", c.id)
-              .eq("receiver_user_id", user.id)
-              .is("read_at", null);
-            const { data: last } = await supabase
-              .from("admin_teacher_messages")
-              .select("content")
-              .eq("conversation_id", c.id)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            return {
-              user_id: c.admin_user_id,
-              name: nameMap.get(c.admin_user_id) || "Admin",
-              conversation_id: c.id,
-              unread: count || 0,
-              last_preview: last?.content || "",
-            };
-          })
-        );
+        const convList = convs || [];
+        const adminIds = convList.map((c) => c.admin_user_id);
+        const cids = convList.map((c) => c.id);
+        const [adminsRes, unreadRes, msgsRes] = await Promise.all([
+          adminIds.length
+            ? supabase.from("profiles").select("user_id, full_name").in("user_id", adminIds)
+            : Promise.resolve({ data: [] as any[] }),
+          cids.length
+            ? supabase
+                .from("admin_teacher_messages")
+                .select("conversation_id")
+                .in("conversation_id", cids)
+                .eq("receiver_user_id", user.id)
+                .is("read_at", null)
+            : Promise.resolve({ data: [] as any[] }),
+          cids.length
+            ? supabase
+                .from("admin_teacher_messages")
+                .select("conversation_id, content, created_at")
+                .in("conversation_id", cids)
+                .order("created_at", { ascending: false })
+            : Promise.resolve({ data: [] as any[] }),
+        ]);
+        const nameMap = new Map((adminsRes.data || []).map((a: any) => [a.user_id, a.full_name]));
+        const unreadMap = new Map<string, number>();
+        for (const m of (unreadRes.data || []) as any[]) {
+          unreadMap.set(m.conversation_id, (unreadMap.get(m.conversation_id) || 0) + 1);
+        }
+        const previewMap = new Map<string, string>();
+        for (const m of (msgsRes.data || []) as any[]) {
+          if (!previewMap.has(m.conversation_id)) previewMap.set(m.conversation_id, m.content);
+        }
+        const enriched: Peer[] = convList.map((c) => ({
+          user_id: c.admin_user_id,
+          name: nameMap.get(c.admin_user_id) || "Admin",
+          conversation_id: c.id,
+          unread: unreadMap.get(c.id) || 0,
+          last_preview: previewMap.get(c.id) || "",
+        }));
         setPeers(enriched);
       }
     } finally {
