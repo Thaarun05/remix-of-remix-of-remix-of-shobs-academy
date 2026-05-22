@@ -703,6 +703,45 @@ export type Database = {
         }
         Relationships: []
       }
+      teacher_resources: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          storage_path: string
+          title: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          file_name: string
+          file_size: number
+          file_type: string
+          id?: string
+          storage_path: string
+          title: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          storage_path?: string
+          title?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       teacher_salary: {
         Row: {
           amount: number | null
