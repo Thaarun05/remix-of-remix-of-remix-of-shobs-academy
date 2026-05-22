@@ -20,7 +20,8 @@ import {
   DollarSign,
   Receipt,
   FileSpreadsheet,
-  PenTool
+  PenTool,
+  FolderOpen
 } from "lucide-react";
 
 type RoleColor = "student" | "teacher" | "admin";
@@ -184,6 +185,7 @@ export const teacherSidebarItems: SidebarItem[] = [
   { id: "assignments", label: "Assignments", icon: FileText },
   { id: "notes", label: "Notes", icon: FileText },
   { id: "whiteboard", label: "Whiteboard", icon: PenTool },
+  { id: "resources", label: "Resources", icon: FolderOpen },
   { id: "manage", label: "Manage", icon: ClipboardList },
   { id: "zoom", label: "Zoom", icon: Video },
   { id: "salary", label: "My Salary", icon: DollarSign },
