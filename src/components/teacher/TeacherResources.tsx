@@ -103,6 +103,7 @@ export function TeacherResources() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [resources, setResources] = useState<Resource[]>([]);
+  const [allTeachers, setAllTeachers] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -117,8 +118,22 @@ export function TeacherResources() {
   const canUpload = role === "teacher";
 
   useEffect(() => {
-    if (canAccess) fetchResources();
+    if (canAccess) {
+      fetchResources();
+      fetchTeachers();
+    }
   }, [user, role]);
+
+  const fetchTeachers = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .eq("role", "teacher");
+    const list = (data || [])
+      .map((p: any) => ({ id: p.user_id, name: p.full_name || "Unnamed" }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    setAllTeachers(list);
+  };
 
   const fetchResources = async () => {
     setLoading(true);
@@ -250,15 +265,7 @@ export function TeacherResources() {
     }
   };
 
-  const teacherOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    resources.forEach((r) => {
-      if (!map.has(r.uploaded_by)) map.set(r.uploaded_by, r.uploader_name || "Unknown");
-    });
-    return Array.from(map.entries())
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [resources]);
+  const teacherOptions = allTeachers;
 
   const filtered = resources.filter((r) =>
     filterTeacher === "all" ? true : r.uploaded_by === filterTeacher
