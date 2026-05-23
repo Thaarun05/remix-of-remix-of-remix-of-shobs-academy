@@ -712,6 +712,8 @@ export type Database = {
           notes: string | null
           recording_url: string
           status: string
+          student_name: string | null
+          student_user_id: string | null
           teacher_id: string
           teacher_name: string | null
           title: string
@@ -725,6 +727,8 @@ export type Database = {
           notes?: string | null
           recording_url: string
           status?: string
+          student_name?: string | null
+          student_user_id?: string | null
           teacher_id: string
           teacher_name?: string | null
           title: string
@@ -738,6 +742,8 @@ export type Database = {
           notes?: string | null
           recording_url?: string
           status?: string
+          student_name?: string | null
+          student_user_id?: string | null
           teacher_id?: string
           teacher_name?: string | null
           title?: string
