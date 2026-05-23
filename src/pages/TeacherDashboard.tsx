@@ -23,6 +23,7 @@ import { Whiteboard as WhiteboardComponent } from "@/components/teacher/Whiteboa
 import { TeacherWorkDone } from "@/components/teacher/TeacherWorkDone";
 import { TeacherResources } from "@/components/teacher/TeacherResources";
 import { TeacherRecordings } from "@/components/teacher/TeacherRecordings";
+import { TeacherWorksheetBuilder } from "@/components/teacher/TeacherWorksheetBuilder";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { teacherSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { 
@@ -1192,6 +1193,7 @@ const TeacherDashboard = () => {
         )}
 
         {activeTab === "recordings" && <TeacherRecordings />}
+        {activeTab === "worksheet-builder" && <TeacherWorksheetBuilder />}
 
         {activeTab === "assignments" && (
           <Card className="max-w-lg dashboard-list-card">
