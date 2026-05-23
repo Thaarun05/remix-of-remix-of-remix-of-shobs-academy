@@ -68,6 +68,20 @@ const ALLOWED_MIMES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 
+const CLASS_OPTIONS = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`);
+const SUBJECT_OPTIONS = [
+  "Math",
+  "Science",
+  "English",
+  "Social Studies",
+  "Hindi",
+  "Computer Science",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "Other",
+];
+
 function getKind(fileName: string, fileType: string): "pdf" | "ppt" | "doc" | "other" {
   const ext = fileName.split(".").pop()?.toLowerCase() || "";
   if (ext === "pdf" || fileType.includes("pdf")) return "pdf";
