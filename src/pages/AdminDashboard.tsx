@@ -21,6 +21,7 @@ import { UserManagement } from "@/components/admin/UserManagement";
 import { MultiTeacherAssign } from "@/components/admin/MultiTeacherAssign";
 import { WorkSubmissions } from "@/components/admin/WorkSubmissions";
 import { AdminWorkDone } from "@/components/admin/AdminWorkDone";
+import { TeacherResources } from "@/components/teacher/TeacherResources";
 import { 
   Users, 
   GraduationCap,
