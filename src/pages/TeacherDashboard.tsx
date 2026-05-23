@@ -1,53 +1,23 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense, useMemo } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { EmptyState } from "@/components/EmptyState";
-import { FileDownload, SubmissionFiles } from "@/components/FileDownload";
-import { TeacherCalendar } from "@/components/TeacherCalendar";
-import { MessagingPanel } from "@/components/messaging/MessagingPanel";
-import { AdminTeacherMessaging } from "@/components/messaging/AdminTeacherMessaging";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StartConversationButton } from "@/components/messaging/StartConversationButton";
-import { TeacherNotes } from "@/components/teacher/TeacherNotes";
-import { Whiteboard as WhiteboardComponent } from "@/components/teacher/Whiteboard";
-import { TeacherWorkDone } from "@/components/teacher/TeacherWorkDone";
-import { TeacherResources } from "@/components/teacher/TeacherResources";
-import { TeacherRecordings } from "@/components/teacher/TeacherRecordings";
-import { TeacherWorksheetBuilder } from "@/components/teacher/TeacherWorksheetBuilder";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { teacherSidebarItems } from "@/components/dashboard/DashboardSidebar";
-import { 
-  Calendar, 
-  Video, 
-  FileText, 
-  User,
-  Loader2,
-  Plus,
-  Search,
-  Upload,
-  X,
-  File,
-  ClipboardList,
+import {
   CheckCircle2,
   Clock,
+  FileText,
   GraduationCap,
-  DollarSign,
-  Calculator,
-  Send,
-  Eye,
-  ExternalLink,
-  Trash2,
-  Pencil
+  Loader2,
+  Search,
 } from "lucide-react";
 import {
   Dialog,
@@ -67,76 +37,32 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import type {
+  AssignmentWithFiles,
+  AttendanceRecord,
+  FileInfo,
+  MeetLink,
+  Student,
+  StudentFee,
+  TabContext,
+  TeacherSalary,
+} from "@/components/teacher/tabs/types";
 
-interface Student {
-  user_id: string;
-  student_name: string;
-  grade: string | null;
-}
-
-interface FileInfo {
-  file_name: string;
-  storage_path: string;
-  uploaded_by_role: "teacher" | "student";
-  uploaded_at: string;
-}
-
-interface AssignmentWithFiles {
-  id: string;
-  title: string;
-  subject: string | null;
-  description: string | null;
-  due_date: string | null;
-  status: string;
-  created_at: string;
-  student_user_id: string;
-  has_attachments: boolean;
-  attachments: FileInfo[];
-  submission_attachments: FileInfo[];
-  student_name?: string;
-}
-
-interface TeacherSalary {
-  id: string;
-  created_at: string;
-  teacher_name: string | null;
-  num_classes: number | null;
-  total_hours: number | null;
-  salary_per_hour: number | null;
-  amount: number | null;
-  status: string | null;
-  note: string | null;
-  deleted_at?: string | null;
-}
-
-interface AttendanceRecord {
-  id: string;
-  date: string;
-  status: string;
-  hours: number | null;
-  topic: string | null;
-  student_user_id: string;
-  student_name?: string;
-  deleted_at?: string | null;
-}
-
-interface MeetLink {
-  student_user_id: string;
-  teacher_user_id: string;
-  zoom_link?: string | null;
-  student_name?: string;
-  deleted_at?: string | null;
-}
-
-interface StudentFee {
-  id: string;
-  created_at: string;
-  month: string;
-  student_name: string | null;
-  total_amount: number | null;
-  status: string | null;
-  deleted_at?: string | null;
-}
+const CalendarTab = lazy(() => import("@/components/teacher/tabs/CalendarTab"));
+const AttendanceTab = lazy(() => import("@/components/teacher/tabs/AttendanceTab"));
+const NotesTab = lazy(() => import("@/components/teacher/tabs/NotesTab"));
+const WorkDoneTab = lazy(() => import("@/components/teacher/tabs/WorkDoneTab"));
+const WhiteboardTab = lazy(() => import("@/components/teacher/tabs/WhiteboardTab"));
+const ResourcesTab = lazy(() => import("@/components/teacher/tabs/ResourcesTab"));
+const RecordingsTab = lazy(() => import("@/components/teacher/tabs/RecordingsTab"));
+const WorksheetBuilderTab = lazy(() => import("@/components/teacher/tabs/WorksheetBuilderTab"));
+const AssignmentsTab = lazy(() => import("@/components/teacher/tabs/AssignmentsTab"));
+const ManageAssignmentsTab = lazy(() => import("@/components/teacher/tabs/ManageAssignmentsTab"));
+const ZoomTab = lazy(() => import("@/components/teacher/tabs/ZoomTab"));
+const MessagingTab = lazy(() => import("@/components/teacher/tabs/MessagingTab"));
+const ProfileTab = lazy(() => import("@/components/teacher/tabs/ProfileTab"));
+const FeesTab = lazy(() => import("@/components/teacher/tabs/FeesTab"));
+const SalaryTab = lazy(() => import("@/components/teacher/tabs/SalaryTab"));
 
 const TeacherDashboard = () => {
   const { user } = useAuth();
