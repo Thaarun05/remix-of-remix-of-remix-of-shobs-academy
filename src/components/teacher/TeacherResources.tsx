@@ -52,6 +52,8 @@ interface Resource {
   storage_path: string;
   uploaded_by: string;
   created_at: string;
+  class_label?: string | null;
+  subject?: string | null;
   uploader_name?: string;
 }
 
@@ -109,8 +111,10 @@ export function TeacherResources() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [form, setForm] = useState({ title: "", description: "" });
+  const [form, setForm] = useState({ title: "", description: "", class_label: "", subject: "" });
   const [filterTeacher, setFilterTeacher] = useState("all");
+  const [filterClass, setFilterClass] = useState("all");
+  const [filterSubject, setFilterSubject] = useState("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState<Resource | null>(null);
 
@@ -211,6 +215,8 @@ export function TeacherResources() {
       const { error: insErr } = await (supabase as any).from("teacher_resources").insert({
         title: form.title.trim(),
         description: form.description.trim() || null,
+        class_label: form.class_label.trim() || null,
+        subject: form.subject.trim() || null,
         file_name: selectedFile.name,
         file_type: selectedFile.type || "",
         file_size: selectedFile.size,
@@ -221,7 +227,7 @@ export function TeacherResources() {
 
       setUploadProgress(100);
       toast({ title: "Resource uploaded", description: `"${form.title}" is now in the library.` });
-      setForm({ title: "", description: "" });
+      setForm({ title: "", description: "", class_label: "", subject: "" });
       setSelectedFile(null);
       fetchResources();
     } catch (err: unknown) {
@@ -267,9 +273,36 @@ export function TeacherResources() {
 
   const teacherOptions = allTeachers;
 
-  const filtered = resources.filter((r) =>
-    filterTeacher === "all" ? true : r.uploaded_by === filterTeacher
+  const classOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          resources
+            .map((r) => (r.class_label || "").trim())
+            .filter((v) => v.length > 0)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [resources]
   );
+
+  const subjectOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          resources
+            .map((r) => (r.subject || "").trim())
+            .filter((v) => v.length > 0)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [resources]
+  );
+
+  const filtered = resources.filter((r) => {
+    if (filterTeacher !== "all" && r.uploaded_by !== filterTeacher) return false;
+    if (filterClass !== "all" && (r.class_label || "").trim() !== filterClass) return false;
+    if (filterSubject !== "all" && (r.subject || "").trim() !== filterSubject) return false;
+    return true;
+  });
 
   if (!canAccess) {
     return (
@@ -313,6 +346,26 @@ export function TeacherResources() {
                   maxLength={1000}
                   rows={3}
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Class</Label>
+                  <Input
+                    placeholder="e.g. Grade 8"
+                    value={form.class_label}
+                    onChange={(e) => setForm({ ...form, class_label: e.target.value })}
+                    maxLength={50}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subject</Label>
+                  <Input
+                    placeholder="e.g. Math"
+                    value={form.subject}
+                    onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                    maxLength={50}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>File * (PDF, PPT, DOC — max 50MB)</Label>
@@ -385,6 +438,28 @@ export function TeacherResources() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={filterClass} onValueChange={setFilterClass}>
+                <SelectTrigger className="w-[160px] h-8">
+                  <SelectValue placeholder="Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {classOptions.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterSubject} onValueChange={setFilterSubject}>
+                <SelectTrigger className="w-[160px] h-8">
+                  <SelectValue placeholder="Subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Subjects</SelectItem>
+                  {subjectOptions.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardDescription>
         </CardHeader>
@@ -415,6 +490,16 @@ export function TeacherResources() {
                           <p className="font-medium">{r.title}</p>
                           {r.description && (
                             <p className="text-xs text-muted-foreground line-clamp-2">{r.description}</p>
+                          )}
+                          {(r.class_label || r.subject) && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {r.class_label && (
+                                <Badge variant="outline" className="text-[10px] py-0">{r.class_label}</Badge>
+                              )}
+                              {r.subject && (
+                                <Badge variant="outline" className="text-[10px] py-0">{r.subject}</Badge>
+                              )}
+                            </div>
                           )}
                           <p className="text-xs text-muted-foreground mt-1">
                             {r.file_name} · {formatSize(r.file_size)}
