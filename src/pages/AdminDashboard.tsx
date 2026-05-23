@@ -995,6 +995,8 @@ const AdminDashboard = () => {
           </Tabs>
         )}
 
+        {activeTab === "resources" && <TeacherResources />}
+
         {activeTab === "all-users" && (
           <UserManagement profiles={profiles} onRefresh={fetchData} />
         )}
