@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +21,10 @@ interface Submission {
   notes: string | null;
   status: string;
   created_at: string;
+  student_name: string | null;
 }
+
+interface Student { user_id: string; student_name: string; }
 
 const isValidUrl = (s: string) => {
   try { const u = new URL(s); return u.protocol === "http:" || u.protocol === "https:"; } catch { return false; }
@@ -29,17 +33,18 @@ const isValidUrl = (s: string) => {
 export function TeacherRecordings() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [form, setForm] = useState({ recording_url: "", title: "", class_date: "", topic: "", notes: "" });
+  const [form, setForm] = useState({ recording_url: "", title: "", class_date: "", topic: "", notes: "", student_user_id: "" });
   const [submitting, setSubmitting] = useState(false);
   const [items, setItems] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [students, setStudents] = useState<Student[]>([]);
 
   const load = async () => {
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase
       .from("teacher_recording_submissions" as any)
-      .select("id, title, recording_url, class_date, topic, notes, status, created_at")
+      .select("id, title, recording_url, class_date, topic, notes, status, created_at, student_name")
       .eq("teacher_id", user.id)
       .order("created_at", { ascending: false });
     if (error) {
@@ -50,7 +55,22 @@ export function TeacherRecordings() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [user?.id]);
+  const loadStudents = async () => {
+    if (!user) return;
+    const { data: assigns } = await supabase
+      .from("student_teacher_assignments")
+      .select("student_user_id")
+      .eq("teacher_user_id", user.id);
+    const ids = (assigns || []).map((a: any) => a.student_user_id);
+    if (ids.length === 0) { setStudents([]); return; }
+    const { data: profs } = await supabase
+      .from("student_profiles")
+      .select("user_id, student_name")
+      .in("user_id", ids);
+    setStudents((profs as Student[]) || []);
+  };
+
+  useEffect(() => { load(); loadStudents(); }, [user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,10 +83,13 @@ export function TeacherRecordings() {
     try {
       const { data: profile } = await supabase
         .from("profiles").select("full_name").eq("user_id", user.id).single();
+      const student = students.find(s => s.user_id === form.student_user_id);
 
       const { error } = await supabase.from("teacher_recording_submissions" as any).insert({
         teacher_id: user.id,
         teacher_name: profile?.full_name || null,
+        student_user_id: form.student_user_id || null,
+        student_name: student?.student_name || null,
         recording_url: form.recording_url.trim(),
         title: form.title.trim(),
         class_date: form.class_date || null,
@@ -84,14 +107,14 @@ export function TeacherRecordings() {
             sender_id: user.id,
             type: "recording",
             title: "New class recording submitted",
-            body: `${profile?.full_name || "A teacher"} submitted a recording: ${form.title}`,
+            body: `${profile?.full_name || "A teacher"} submitted a recording${student?.student_name ? ` for ${student.student_name}` : ""}: ${form.title}`,
             entity_table: "teacher_recording_submissions",
           });
         }
       }
 
       toast({ title: "Submitted", description: "Recording sent to admin for review." });
-      setForm({ recording_url: "", title: "", class_date: "", topic: "", notes: "" });
+      setForm({ recording_url: "", title: "", class_date: "", topic: "", notes: "", student_user_id: "" });
       load();
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -109,6 +132,17 @@ export function TeacherRecordings() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Student</Label>
+              <Select value={form.student_user_id} onValueChange={(v) => setForm({ ...form, student_user_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Select a student (optional)" /></SelectTrigger>
+                <SelectContent>
+                  {students.map(s => (
+                    <SelectItem key={s.user_id} value={s.user_id}>{s.student_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label>Recording URL *</Label>
               <Input type="url" placeholder="https://..." value={form.recording_url} onChange={(e) => setForm({ ...form, recording_url: e.target.value })} required />
@@ -151,6 +185,7 @@ export function TeacherRecordings() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{it.title}</p>
                   <p className="text-xs text-muted-foreground">
+                    {it.student_name ? `${it.student_name} • ` : ""}
                     {it.class_date || new Date(it.created_at).toLocaleDateString()}
                     {it.topic ? ` • ${it.topic}` : ""}
                   </p>
