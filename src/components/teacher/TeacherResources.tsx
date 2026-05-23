@@ -347,6 +347,26 @@ export function TeacherResources() {
                   rows={3}
                 />
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label>Class</Label>
+                  <Input
+                    placeholder="e.g. Grade 8"
+                    value={form.class_label}
+                    onChange={(e) => setForm({ ...form, class_label: e.target.value })}
+                    maxLength={50}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Subject</Label>
+                  <Input
+                    placeholder="e.g. Math"
+                    value={form.subject}
+                    onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                    maxLength={50}
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label>File * (PDF, PPT, DOC — max 50MB)</Label>
                 <div className="flex items-center gap-2">
