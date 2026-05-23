@@ -68,6 +68,20 @@ const ALLOWED_MIMES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 
+const CLASS_OPTIONS = Array.from({ length: 12 }, (_, i) => `Class ${i + 1}`);
+const SUBJECT_OPTIONS = [
+  "Math",
+  "Science",
+  "English",
+  "Social Studies",
+  "Hindi",
+  "Computer Science",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "Other",
+];
+
 function getKind(fileName: string, fileType: string): "pdf" | "ppt" | "doc" | "other" {
   const ext = fileName.split(".").pop()?.toLowerCase() || "";
   if (ext === "pdf" || fileType.includes("pdf")) return "pdf";
@@ -273,29 +287,8 @@ export function TeacherResources() {
 
   const teacherOptions = allTeachers;
 
-  const classOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          resources
-            .map((r) => (r.class_label || "").trim())
-            .filter((v) => v.length > 0)
-        )
-      ).sort((a, b) => a.localeCompare(b)),
-    [resources]
-  );
-
-  const subjectOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          resources
-            .map((r) => (r.subject || "").trim())
-            .filter((v) => v.length > 0)
-        )
-      ).sort((a, b) => a.localeCompare(b)),
-    [resources]
-  );
+  const classOptions = CLASS_OPTIONS;
+  const subjectOptions = SUBJECT_OPTIONS;
 
   const filtered = resources.filter((r) => {
     if (filterTeacher !== "all" && r.uploaded_by !== filterTeacher) return false;
@@ -350,21 +343,31 @@ export function TeacherResources() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-2">
                   <Label>Class</Label>
-                  <Input
-                    placeholder="e.g. Grade 8"
+                  <Select
                     value={form.class_label}
-                    onChange={(e) => setForm({ ...form, class_label: e.target.value })}
-                    maxLength={50}
-                  />
+                    onValueChange={(v) => setForm({ ...form, class_label: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
+                    <SelectContent>
+                      {CLASS_OPTIONS.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Subject</Label>
-                  <Input
-                    placeholder="e.g. Math"
+                  <Select
                     value={form.subject}
-                    onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                    maxLength={50}
-                  />
+                    onValueChange={(v) => setForm({ ...form, subject: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select subject" /></SelectTrigger>
+                    <SelectContent>
+                      {SUBJECT_OPTIONS.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="space-y-2">
