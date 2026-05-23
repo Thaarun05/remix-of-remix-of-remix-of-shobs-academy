@@ -904,7 +904,6 @@ const TeacherDashboard = () => {
       )}
 
       {/* Tab Content */}
-      {/* Tab Content */}
       <div className="dashboard-section">
         <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-teacher" /></div>}>
           {activeTab === "calendar" && <CalendarTab ctx={ctx} />}
