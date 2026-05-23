@@ -22,7 +22,8 @@ import {
   FileSpreadsheet,
   PenTool,
   FolderOpen,
-  Film
+  Film,
+  Sparkles
 } from "lucide-react";
 
 type RoleColor = "student" | "teacher" | "admin";
@@ -188,6 +189,7 @@ export const teacherSidebarItems: SidebarItem[] = [
   { id: "whiteboard", label: "Whiteboard", icon: PenTool },
   { id: "resources", label: "Resources", icon: FolderOpen },
   { id: "recordings", label: "Recorded Classes", icon: Film },
+  { id: "worksheet-builder", label: "Worksheet Builder", icon: Sparkles },
   { id: "manage", label: "Manage", icon: ClipboardList },
   { id: "zoom", label: "Zoom", icon: Video },
   { id: "salary", label: "My Salary", icon: DollarSign },
