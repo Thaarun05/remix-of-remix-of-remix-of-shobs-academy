@@ -703,6 +703,48 @@ export type Database = {
         }
         Relationships: []
       }
+      teacher_recording_submissions: {
+        Row: {
+          admin_viewed_at: string | null
+          class_date: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          recording_url: string
+          status: string
+          teacher_id: string
+          teacher_name: string | null
+          title: string
+          topic: string | null
+        }
+        Insert: {
+          admin_viewed_at?: string | null
+          class_date?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recording_url: string
+          status?: string
+          teacher_id: string
+          teacher_name?: string | null
+          title: string
+          topic?: string | null
+        }
+        Update: {
+          admin_viewed_at?: string | null
+          class_date?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recording_url?: string
+          status?: string
+          teacher_id?: string
+          teacher_name?: string | null
+          title?: string
+          topic?: string | null
+        }
+        Relationships: []
+      }
       teacher_resources: {
         Row: {
           class_label: string | null
