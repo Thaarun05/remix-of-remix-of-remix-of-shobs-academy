@@ -22,6 +22,7 @@ import { TeacherNotes } from "@/components/teacher/TeacherNotes";
 import { Whiteboard as WhiteboardComponent } from "@/components/teacher/Whiteboard";
 import { TeacherWorkDone } from "@/components/teacher/TeacherWorkDone";
 import { TeacherResources } from "@/components/teacher/TeacherResources";
+import { TeacherRecordings } from "@/components/teacher/TeacherRecordings";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { teacherSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { 
