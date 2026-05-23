@@ -13,6 +13,7 @@ interface Row {
   id: string;
   teacher_id: string;
   teacher_name: string | null;
+  student_name: string | null;
   title: string;
   recording_url: string;
   class_date: string | null;
@@ -82,6 +83,7 @@ export function AdminRecordingSubmissions() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Teacher</TableHead>
+                    <TableHead>Student</TableHead>
                     <TableHead>Title</TableHead>
                     <TableHead>Class Date</TableHead>
                     <TableHead>Topic</TableHead>
@@ -95,6 +97,7 @@ export function AdminRecordingSubmissions() {
                   {filtered.map(r => (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">{r.teacher_name || "Unknown"}</TableCell>
+                      <TableCell>{r.student_name || "—"}</TableCell>
                       <TableCell>{r.title}</TableCell>
                       <TableCell>{r.class_date || "—"}</TableCell>
                       <TableCell>{r.topic || "—"}</TableCell>
