@@ -438,6 +438,28 @@ export function TeacherResources() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={filterClass} onValueChange={setFilterClass}>
+                <SelectTrigger className="w-[160px] h-8">
+                  <SelectValue placeholder="Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {classOptions.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterSubject} onValueChange={setFilterSubject}>
+                <SelectTrigger className="w-[160px] h-8">
+                  <SelectValue placeholder="Subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Subjects</SelectItem>
+                  {subjectOptions.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardDescription>
         </CardHeader>
