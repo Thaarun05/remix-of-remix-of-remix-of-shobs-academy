@@ -7,10 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Sparkles, Printer, RefreshCw } from "lucide-react";
+import { Loader2, Sparkles, Download, RefreshCw, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import shobsLogo from "@/assets/shobs-academy-logo.png";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 interface Question {
   number: number;
@@ -37,6 +39,7 @@ const QUESTION_TYPES = [
 export function TeacherWorksheetBuilder() {
   const { toast } = useToast();
   const previewRef = useRef<HTMLDivElement>(null);
+  const docRef = useRef<HTMLDivElement>(null);
 
   const [subject, setSubject] = useState("");
   const [grade, setGrade] = useState("");
@@ -45,8 +48,11 @@ export function TeacherWorksheetBuilder() {
   const [difficulty, setDifficulty] = useState("Medium");
   const [types, setTypes] = useState<string[]>(["mcq", "short_answer"]);
   const [objective, setObjective] = useState("");
+  const [timeAllowed, setTimeAllowed] = useState("");
+  const [totalMarks, setTotalMarks] = useState("");
   const [includeAnswerKey, setIncludeAnswerKey] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
 
   const toggleType = (id: string) => {
@@ -82,18 +88,48 @@ export function TeacherWorksheetBuilder() {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    if (!docRef.current || downloading) return;
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(docRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      const safeTitle = (worksheet?.worksheet_title || "worksheet").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+      pdf.save(`shobs-academy-${safeTitle}.pdf`);
+      toast({ title: "Download started", description: "Your worksheet PDF has been saved." });
+    } catch (e: any) {
+      toast({ title: "Download failed", description: e?.message ?? "Could not generate PDF.", variant: "destructive" });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const today = new Date().toLocaleDateString();
 
   return (
     <div className="space-y-6">
       <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          .worksheet-print-area, .worksheet-print-area * { visibility: visible !important; }
-          .worksheet-print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
-          .no-print { display: none !important; }
-          .page-break { page-break-before: always; }
-        }
         .worksheet-doc {
           background: white;
           color: #111;
@@ -104,12 +140,19 @@ export function TeacherWorksheetBuilder() {
         .worksheet-doc h1, .worksheet-doc h2, .worksheet-doc h3, .worksheet-doc p { color: #111; }
       `}</style>
 
-      <Card className="form-panel no-print">
+      <Card className="form-panel">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-teacher" /> AI Worksheet Builder</CardTitle>
           <CardDescription>Generate a fully branded Shobs Academy worksheet, ready to print.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+            <p className="text-amber-900 dark:text-amber-200">
+              <strong>*</strong> Please do not change tabs or close your system while the worksheet is being created. Generation can take up to 30 seconds.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Subject</Label>
@@ -140,6 +183,14 @@ export function TeacherWorksheetBuilder() {
                   {["Easy", "Medium", "Hard"].map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Time allowed (optional)</Label>
+              <Input value={timeAllowed} onChange={(e) => setTimeAllowed(e.target.value)} placeholder="e.g. 45 minutes" />
+            </div>
+            <div>
+              <Label>Total marks (optional)</Label>
+              <Input value={totalMarks} onChange={(e) => setTotalMarks(e.target.value)} placeholder="e.g. 50" />
             </div>
           </div>
 
@@ -174,8 +225,8 @@ export function TeacherWorksheetBuilder() {
                 <Button variant="outline" onClick={handleGenerate} disabled={loading}>
                   <RefreshCw className="h-4 w-4" /> Regenerate
                 </Button>
-                <Button variant="outline" onClick={() => window.print()}>
-                  <Printer className="h-4 w-4" /> Download PDF
+                <Button variant="outline" onClick={handleDownloadPDF} disabled={downloading || loading}>
+                  {downloading ? <><Loader2 className="h-4 w-4 animate-spin" /> Preparing PDF...</> : <><Download className="h-4 w-4" /> Download PDF</>}
                 </Button>
               </>
             )}
@@ -186,10 +237,10 @@ export function TeacherWorksheetBuilder() {
       </Card>
 
       {worksheet && (
-        <div ref={previewRef} className="worksheet-print-area">
+        <div ref={previewRef}>
           <Card className="overflow-hidden">
             <CardContent className="p-0">
-              <div className="worksheet-doc">
+              <div ref={docRef} className="worksheet-doc">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-6">
                   <img src={shobsLogo} alt="Shobs Academy" className="h-16 w-auto" />
@@ -204,6 +255,8 @@ export function TeacherWorksheetBuilder() {
                   <span>Name: __________________________</span>
                   <span>Date: ________________</span>
                   <span>Grade: ____________</span>
+                  {timeAllowed && <span>Time: {timeAllowed}</span>}
+                  {totalMarks && <span>Total Marks: {totalMarks}</span>}
                 </div>
 
                 {/* Instructions */}
@@ -237,7 +290,7 @@ export function TeacherWorksheetBuilder() {
 
                 {/* Answer key */}
                 {includeAnswerKey && (
-                  <div className="page-break mt-12 pt-6 border-t-2 border-black">
+                  <div className="mt-12 pt-6 border-t-2 border-black">
                     <h2 className="font-bold text-lg mb-4">ANSWER KEY — TEACHER ONLY</h2>
                     <ol className="space-y-2 list-none p-0">
                       {worksheet.questions.map((q) => (
