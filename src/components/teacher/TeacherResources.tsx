@@ -52,6 +52,8 @@ interface Resource {
   storage_path: string;
   uploaded_by: string;
   created_at: string;
+  class_label?: string | null;
+  subject?: string | null;
   uploader_name?: string;
 }
 
@@ -109,8 +111,10 @@ export function TeacherResources() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [form, setForm] = useState({ title: "", description: "" });
+  const [form, setForm] = useState({ title: "", description: "", class_label: "", subject: "" });
   const [filterTeacher, setFilterTeacher] = useState("all");
+  const [filterClass, setFilterClass] = useState("all");
+  const [filterSubject, setFilterSubject] = useState("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState<Resource | null>(null);
 
@@ -211,6 +215,8 @@ export function TeacherResources() {
       const { error: insErr } = await (supabase as any).from("teacher_resources").insert({
         title: form.title.trim(),
         description: form.description.trim() || null,
+        class_label: form.class_label.trim() || null,
+        subject: form.subject.trim() || null,
         file_name: selectedFile.name,
         file_type: selectedFile.type || "",
         file_size: selectedFile.size,
@@ -221,7 +227,7 @@ export function TeacherResources() {
 
       setUploadProgress(100);
       toast({ title: "Resource uploaded", description: `"${form.title}" is now in the library.` });
-      setForm({ title: "", description: "" });
+      setForm({ title: "", description: "", class_label: "", subject: "" });
       setSelectedFile(null);
       fetchResources();
     } catch (err: unknown) {
@@ -267,9 +273,36 @@ export function TeacherResources() {
 
   const teacherOptions = allTeachers;
 
-  const filtered = resources.filter((r) =>
-    filterTeacher === "all" ? true : r.uploaded_by === filterTeacher
+  const classOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          resources
+            .map((r) => (r.class_label || "").trim())
+            .filter((v) => v.length > 0)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [resources]
   );
+
+  const subjectOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          resources
+            .map((r) => (r.subject || "").trim())
+            .filter((v) => v.length > 0)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [resources]
+  );
+
+  const filtered = resources.filter((r) => {
+    if (filterTeacher !== "all" && r.uploaded_by !== filterTeacher) return false;
+    if (filterClass !== "all" && (r.class_label || "").trim() !== filterClass) return false;
+    if (filterSubject !== "all" && (r.subject || "").trim() !== filterSubject) return false;
+    return true;
+  });
 
   if (!canAccess) {
     return (
