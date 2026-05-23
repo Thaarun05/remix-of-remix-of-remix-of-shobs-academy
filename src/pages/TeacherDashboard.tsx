@@ -804,6 +804,28 @@ const TeacherDashboard = () => {
     setActiveTab("messages");
   };
 
+  const ctx: TabContext = {
+    students, assignments, attendanceRecords, meetLinks, recentFees, salaries,
+    selectedStudent, setSelectedStudent, selectedConversationId,
+    attendanceForm, setAttendanceForm,
+    assignmentForm, setAssignmentForm,
+    meetForm, setMeetForm,
+    profileForm, setProfileForm,
+    feeForm, setFeeForm,
+    submitting, setSubmitting,
+    uploading, uploadProgress, pendingFiles, setPendingFiles,
+    fileInputRef, handleFileSelect, removePendingFile,
+    filterMonth, setFilterMonth, filterStudent, setFilterStudent,
+    filteredAttendance, setFilteredAttendance, filterLoading,
+    manageFilterStudent, setManageFilterStudent,
+    manageFilterSubject, setManageFilterSubject,
+    handleAddAttendance, handleAddAssignment, handleUpdateProfile,
+    handleSendFeeToAdmin, handleSalaryResponse, handleSoftDelete,
+    handleMarkAssignmentViewed, openDeleteDialog, openEditAttendance, openEditMeet,
+    isOverdue, fetchData,
+    MONTHS,
+  };
+
   if (loading) {
     return (
       <DashboardLayout 
