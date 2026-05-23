@@ -1,53 +1,23 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense, useMemo } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { EmptyState } from "@/components/EmptyState";
-import { FileDownload, SubmissionFiles } from "@/components/FileDownload";
-import { TeacherCalendar } from "@/components/TeacherCalendar";
-import { MessagingPanel } from "@/components/messaging/MessagingPanel";
-import { AdminTeacherMessaging } from "@/components/messaging/AdminTeacherMessaging";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StartConversationButton } from "@/components/messaging/StartConversationButton";
-import { TeacherNotes } from "@/components/teacher/TeacherNotes";
-import { Whiteboard as WhiteboardComponent } from "@/components/teacher/Whiteboard";
-import { TeacherWorkDone } from "@/components/teacher/TeacherWorkDone";
-import { TeacherResources } from "@/components/teacher/TeacherResources";
-import { TeacherRecordings } from "@/components/teacher/TeacherRecordings";
-import { TeacherWorksheetBuilder } from "@/components/teacher/TeacherWorksheetBuilder";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { teacherSidebarItems } from "@/components/dashboard/DashboardSidebar";
-import { 
-  Calendar, 
-  Video, 
-  FileText, 
-  User,
-  Loader2,
-  Plus,
-  Search,
-  Upload,
-  X,
-  File,
-  ClipboardList,
+import {
   CheckCircle2,
   Clock,
+  FileText,
   GraduationCap,
-  DollarSign,
-  Calculator,
-  Send,
-  Eye,
-  ExternalLink,
-  Trash2,
-  Pencil
+  Loader2,
+  Search,
 } from "lucide-react";
 import {
   Dialog,
@@ -67,76 +37,32 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import type {
+  AssignmentWithFiles,
+  AttendanceRecord,
+  FileInfo,
+  MeetLink,
+  Student,
+  StudentFee,
+  TabContext,
+  TeacherSalary,
+} from "@/components/teacher/tabs/types";
 
-interface Student {
-  user_id: string;
-  student_name: string;
-  grade: string | null;
-}
-
-interface FileInfo {
-  file_name: string;
-  storage_path: string;
-  uploaded_by_role: "teacher" | "student";
-  uploaded_at: string;
-}
-
-interface AssignmentWithFiles {
-  id: string;
-  title: string;
-  subject: string | null;
-  description: string | null;
-  due_date: string | null;
-  status: string;
-  created_at: string;
-  student_user_id: string;
-  has_attachments: boolean;
-  attachments: FileInfo[];
-  submission_attachments: FileInfo[];
-  student_name?: string;
-}
-
-interface TeacherSalary {
-  id: string;
-  created_at: string;
-  teacher_name: string | null;
-  num_classes: number | null;
-  total_hours: number | null;
-  salary_per_hour: number | null;
-  amount: number | null;
-  status: string | null;
-  note: string | null;
-  deleted_at?: string | null;
-}
-
-interface AttendanceRecord {
-  id: string;
-  date: string;
-  status: string;
-  hours: number | null;
-  topic: string | null;
-  student_user_id: string;
-  student_name?: string;
-  deleted_at?: string | null;
-}
-
-interface MeetLink {
-  student_user_id: string;
-  teacher_user_id: string;
-  zoom_link?: string | null;
-  student_name?: string;
-  deleted_at?: string | null;
-}
-
-interface StudentFee {
-  id: string;
-  created_at: string;
-  month: string;
-  student_name: string | null;
-  total_amount: number | null;
-  status: string | null;
-  deleted_at?: string | null;
-}
+const CalendarTab = lazy(() => import("@/components/teacher/tabs/CalendarTab"));
+const AttendanceTab = lazy(() => import("@/components/teacher/tabs/AttendanceTab"));
+const NotesTab = lazy(() => import("@/components/teacher/tabs/NotesTab"));
+const WorkDoneTab = lazy(() => import("@/components/teacher/tabs/WorkDoneTab"));
+const WhiteboardTab = lazy(() => import("@/components/teacher/tabs/WhiteboardTab"));
+const ResourcesTab = lazy(() => import("@/components/teacher/tabs/ResourcesTab"));
+const RecordingsTab = lazy(() => import("@/components/teacher/tabs/RecordingsTab"));
+const WorksheetBuilderTab = lazy(() => import("@/components/teacher/tabs/WorksheetBuilderTab"));
+const AssignmentsTab = lazy(() => import("@/components/teacher/tabs/AssignmentsTab"));
+const ManageAssignmentsTab = lazy(() => import("@/components/teacher/tabs/ManageAssignmentsTab"));
+const ZoomTab = lazy(() => import("@/components/teacher/tabs/ZoomTab"));
+const MessagingTab = lazy(() => import("@/components/teacher/tabs/MessagingTab"));
+const ProfileTab = lazy(() => import("@/components/teacher/tabs/ProfileTab"));
+const FeesTab = lazy(() => import("@/components/teacher/tabs/FeesTab"));
+const SalaryTab = lazy(() => import("@/components/teacher/tabs/SalaryTab"));
 
 const TeacherDashboard = () => {
   const { user } = useAuth();
@@ -878,6 +804,28 @@ const TeacherDashboard = () => {
     setActiveTab("messages");
   };
 
+  const ctx: TabContext = {
+    students, assignments, attendanceRecords, meetLinks, recentFees, salaries,
+    selectedStudent, setSelectedStudent, selectedConversationId,
+    attendanceForm, setAttendanceForm,
+    assignmentForm, setAssignmentForm,
+    meetForm, setMeetForm,
+    profileForm, setProfileForm,
+    feeForm, setFeeForm,
+    submitting, setSubmitting,
+    uploading, uploadProgress, pendingFiles, setPendingFiles,
+    fileInputRef, handleFileSelect, removePendingFile,
+    filterMonth, setFilterMonth, filterStudent, setFilterStudent,
+    filteredAttendance, setFilteredAttendance, filterLoading,
+    manageFilterStudent, setManageFilterStudent,
+    manageFilterSubject, setManageFilterSubject,
+    handleAddAttendance, handleAddAssignment, handleUpdateProfile,
+    handleSendFeeToAdmin, handleSalaryResponse, handleSoftDelete,
+    handleMarkAssignmentViewed, openDeleteDialog, openEditAttendance, openEditMeet,
+    isOverdue, fetchData,
+    MONTHS,
+  };
+
   if (loading) {
     return (
       <DashboardLayout 
@@ -957,811 +905,23 @@ const TeacherDashboard = () => {
 
       {/* Tab Content */}
       <div className="dashboard-section">
-        {activeTab === "calendar" && (
-          <TeacherCalendar students={students.map(s => ({ user_id: s.user_id, student_name: s.student_name }))} />
-        )}
-
-        {activeTab === "attendance" && (
-          <div className="space-y-6">
-            {/* Attendance Filter Section */}
-            <Card className="dashboard-list-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Search className="h-5 w-5" />
-                  View Attendance Records
-                </CardTitle>
-                <CardDescription>Select a month and student to view their attendance history</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-4 items-end">
-                  <div className="space-y-2 min-w-[200px] flex-1">
-                    <Label>Select Month *</Label>
-                    <Select value={filterMonth} onValueChange={setFilterMonth}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Month" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MONTHS.map((m) => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2 min-w-[200px] flex-1">
-                    <Label>Select Student *</Label>
-                    <Select value={filterStudent} onValueChange={setFilterStudent}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select Student" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {students.map((s) => (
-                          <SelectItem key={s.user_id} value={s.user_id}>
-                            {s.student_name} {s.grade && `(${s.grade})`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => { setFilterMonth(""); setFilterStudent(""); setFilteredAttendance([]); }}
-                    disabled={!filterMonth && !filterStudent}
-                  >
-                    <X className="h-4 w-4 mr-1" /> Clear Filters
-                  </Button>
-                </div>
-
-                {/* Validation message */}
-                {(!filterMonth || !filterStudent) && (filterMonth || filterStudent) && (
-                  <p className="text-sm text-destructive">Please select both a month and a student to view records.</p>
-                )}
-
-                {/* Loading */}
-                {filterLoading && (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-teacher" />
-                  </div>
-                )}
-
-                {/* Results Table */}
-                {filterMonth && filterStudent && !filterLoading && (
-                  filteredAttendance.length === 0 ? (
-                    <EmptyState
-                      icon={Calendar}
-                      title="No attendance records found"
-                      description={`No records for ${students.find(s => s.user_id === filterStudent)?.student_name || "this student"} in ${filterMonth}.`}
-                    />
-                  ) : (
-                    <div className="rounded-lg border overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted/50">
-                          <tr>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Hours</th>
-                            <th className="px-4 py-3 text-left font-medium text-muted-foreground">Notes</th>
-                            <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredAttendance.map((record) => (
-                            <tr key={record.id} className="border-t border-border hover:bg-muted/30">
-                              <td className="px-4 py-3">{new Date(record.date).toLocaleDateString()}</td>
-                              <td className="px-4 py-3">
-                                <Badge className={record.status === "present" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}>
-                                  {record.status === "present" ? "Present" : "Absent"}
-                                </Badge>
-                              </td>
-                              <td className="px-4 py-3">{record.hours ? `${record.hours}h` : "—"}</td>
-                              <td className="px-4 py-3 text-muted-foreground">{record.topic || "—"}</td>
-                              <td className="px-4 py-3 text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditAttendance(record)}>
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => openDeleteDialog("attendance_records", record.id, `${students.find(s => s.user_id === record.student_user_id)?.student_name || "student"}'s attendance`)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Existing Record Attendance Form + Recent Records */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="dashboard-list-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="h-5 w-5" />
-                  Record Attendance
-                </CardTitle>
-                <CardDescription>Mark attendance for the selected student</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleAddAttendance} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="date">Date</Label>
-                      <Input
-                        id="date"
-                        type="date"
-                        value={attendanceForm.date}
-                        onChange={(e) => setAttendanceForm({ ...attendanceForm, date: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="status">Status</Label>
-                      <Select
-                        value={attendanceForm.status}
-                        onValueChange={(v) => setAttendanceForm({ ...attendanceForm, status: v as "present" | "absent" })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="present">Present</SelectItem>
-                          <SelectItem value="absent">Absent</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="hours">Hours (optional)</Label>
-                    <Input
-                      id="hours"
-                      type="number"
-                      step="0.5"
-                      placeholder="e.g., 2"
-                      value={attendanceForm.hours}
-                      onChange={(e) => setAttendanceForm({ ...attendanceForm, hours: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="topic">Topic (optional)</Label>
-                    <Input
-                      id="topic"
-                      placeholder="What was covered in class?"
-                      value={attendanceForm.topic}
-                      onChange={(e) => setAttendanceForm({ ...attendanceForm, topic: e.target.value })}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting}>
-                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Record Attendance"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-            
-            {/* Recent Attendance Records */}
-            <Card className="dashboard-list-card h-fit">
-              <CardHeader>
-                <CardTitle className="text-base">Recent Attendance</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
-                {attendanceRecords.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No records yet</p>
-                ) : (
-                  attendanceRecords.map((record) => (
-                    <div key={record.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{record.student_name}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(record.date).toLocaleDateString()} • {record.status}</p>
-                        {record.topic && <p className="text-xs text-muted-foreground truncate">{record.topic}</p>}
-                      </div>
-                      <div className="flex items-center gap-1 ml-2">
-                        <Badge className={record.status === "present" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}>
-                          {record.hours ? `${record.hours}h` : record.status}
-                        </Badge>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditAttendance(record)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => openDeleteDialog("attendance_records", record.id, `${record.student_name}'s attendance`)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "notes" && (
-          <TeacherNotes />
-        )}
-
-        {activeTab === "work-done" && (
-          <TeacherWorkDone />
-        )}
-
-        {activeTab === "whiteboard" && (
-          <WhiteboardComponent />
-        )}
-
-        {activeTab === "resources" && (
-          <TeacherResources />
-        )}
-
-        {activeTab === "recordings" && <TeacherRecordings />}
-        {activeTab === "worksheet-builder" && <TeacherWorksheetBuilder />}
-
-        {activeTab === "assignments" && (
-          <Card className="max-w-lg dashboard-list-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Create Assignment
-              </CardTitle>
-              <CardDescription>Assign work to the selected student with file attachments</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAddAssignment} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Title *</Label>
-                  <Input
-                    id="title"
-                    placeholder="Assignment title"
-                    value={assignmentForm.title}
-                    onChange={(e) => setAssignmentForm({ ...assignmentForm, title: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input
-                      id="subject"
-                      placeholder="e.g., Mathematics"
-                      value={assignmentForm.subject}
-                      onChange={(e) => setAssignmentForm({ ...assignmentForm, subject: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dueDate">Due Date</Label>
-                    <Input
-                      id="dueDate"
-                      type="date"
-                      value={assignmentForm.dueDate}
-                      onChange={(e) => setAssignmentForm({ ...assignmentForm, dueDate: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Assignment details..."
-                    value={assignmentForm.description}
-                    onChange={(e) => setAssignmentForm({ ...assignmentForm, description: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-
-                {/* File Attachments Section */}
-                <div className="space-y-3 pt-2 border-t">
-                  <Label className="flex items-center gap-2">
-                    <Upload className="h-4 w-4" />
-                    Attachments
-                  </Label>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Add Files
-                    </Button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      className="hidden"
-                      onChange={handleFileSelect}
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,.gif,.webp"
-                    />
-                    <span className="text-xs text-muted-foreground">PDF, DOC, images, etc.</span>
-                  </div>
-
-                  {uploading && (
-                    <div className="space-y-1">
-                      <Progress value={uploadProgress} className="h-2" />
-                      <p className="text-xs text-muted-foreground">{uploadProgress}% complete</p>
-                    </div>
-                  )}
-
-                  {pendingFiles.length > 0 && (
-                    <div className="space-y-2">
-                      {pendingFiles.map((file, index) => (
-                        <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-sm">
-                          <File className="h-4 w-4 text-muted-foreground" />
-                          <span className="flex-1 truncate">{file.name}</span>
-                          <span className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</span>
-                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removePendingFile(index)} disabled={uploading}>
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting || uploading}>
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Create Assignment {pendingFiles.length > 0 && `(${pendingFiles.length} files)`}</>}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        {activeTab === "manage" && (
-          <Card className="dashboard-list-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ClipboardList className="h-5 w-5" />
-                All Assignments
-              </CardTitle>
-              <CardDescription>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Select value={manageFilterStudent} onValueChange={setManageFilterStudent}>
-                    <SelectTrigger className="w-[180px] h-8 bg-background"><SelectValue placeholder="All Students" /></SelectTrigger>
-                    <SelectContent className="bg-popover z-50">
-                      <SelectItem value="all">All Students</SelectItem>
-                      {students.map(s => <SelectItem key={s.user_id} value={s.user_id}>{s.student_name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Select value={manageFilterSubject} onValueChange={setManageFilterSubject}>
-                    <SelectTrigger className="w-[180px] h-8 bg-background"><SelectValue placeholder="All Subjects" /></SelectTrigger>
-                    <SelectContent className="bg-popover z-50">
-                      <SelectItem value="all">All Subjects</SelectItem>
-                      {[...new Set(assignments.map(a => a.subject).filter(Boolean))].map(s => (
-                        <SelectItem key={s!} value={s!}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {(() => {
-                const filtered = assignments.filter(a => {
-                  if (manageFilterStudent !== "all" && a.student_user_id !== manageFilterStudent) return false;
-                  if (manageFilterSubject !== "all" && a.subject !== manageFilterSubject) return false;
-                  return true;
-                });
-                return filtered.length === 0 ? (
-                <EmptyState icon={FileText} title="No assignments found" description="No assignments match the selected filters." />
-              ) : (
-                <div className="space-y-4">
-                  {filtered.map((assignment) => (
-                    <div key={assignment.id} className="p-4 rounded-xl border border-border hover:border-teacher/30 transition-all hover:shadow-md bg-card">
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-foreground">{assignment.title}</h4>
-                          <div className="flex flex-wrap items-center gap-2 mt-1">
-                            <Badge variant="secondary" className="text-xs">
-                              <GraduationCap className="h-3 w-3 mr-1" />
-                              {assignment.student_name}
-                            </Badge>
-                            {assignment.subject && (
-                              <Badge variant="outline" className="text-xs">
-                                {assignment.subject}
-                              </Badge>
-                            )}
-                          </div>
-                          {assignment.description && <p className="text-sm text-muted-foreground mt-1">{assignment.description}</p>}
-                          {assignment.due_date && (
-                            <span className={`text-xs flex items-center gap-1 mt-2 ${isOverdue(assignment.due_date) && assignment.status !== "submitted" ? "text-destructive" : "text-muted-foreground"}`}>
-                              <Clock className="h-3 w-3" />
-                              Due: {new Date(assignment.due_date).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          {assignment.status === "submitted" ? (
-                            <>
-                              <Badge className="bg-success/10 text-success border-success/20">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />Submitted
-                              </Badge>
-                              <Button size="sm" className="dashboard-btn dashboard-btn-teacher" onClick={() => handleMarkAssignmentViewed(assignment.id, assignment.student_user_id)}>
-                                <Eye className="h-4 w-4 mr-1" />Mark Viewed
-                              </Button>
-                            </>
-                          ) : assignment.status === "viewed" ? (
-                            <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                              <Eye className="h-3 w-3 mr-1" />Viewed
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-warning border-warning/30 bg-warning/5">Pending</Badge>
-                          )}
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleSoftDelete("assignments", assignment.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      {assignment.attachments.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-border/50">
-                          <FileDownload files={assignment.attachments} title="Your Attachments" />
-                        </div>
-                      )}
-
-                      {assignment.submission_attachments.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-border/50">
-                          <SubmissionFiles submissionFiles={assignment.submission_attachments} studentName={assignment.student_name} />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              );
-              })()}
-            </CardContent>
-          </Card>
-        )}
-
-        {activeTab === "zoom" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="dashboard-list-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="h-5 w-5" />
-                  {selectedStudent ? "Create / Update Zoom Link" : "Create New Zoom Link"}
-                </CardTitle>
-                <CardDescription>
-                  {selectedStudent 
-                    ? `Setting Zoom link for: ${students.find(s => s.user_id === selectedStudent)?.student_name || "Selected Student"}`
-                    : "Select a student above to create or update their Zoom link"
-                  }
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {!selectedStudent ? (
-                  <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
-                    <Video className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                    <p className="text-muted-foreground mb-2">No student selected</p>
-                    <p className="text-sm text-muted-foreground">Use the student selector above to choose a student</p>
-                  </div>
-                ) : (
-                  <form onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (!selectedStudent || !meetForm.zoomLink || !user) return;
-                    setSubmitting(true);
-                    try {
-                      const { error } = await supabase.from("meet_links").upsert({
-                        student_user_id: selectedStudent,
-                        teacher_user_id: user.id,
-                        zoom_link: meetForm.zoomLink,
-                        class_label: meetForm.classLabel || null,
-                        deleted_at: null,
-                        updated_at: new Date().toISOString(),
-                      }, { onConflict: "student_user_id,teacher_user_id" });
-                      if (error) throw error;
-                      toast({ title: "Success", description: "Zoom link saved!" });
-                      setMeetForm({ ...meetForm, zoomLink: "", classLabel: "" });
-                      fetchData();
-                    } catch (error: unknown) {
-                      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to save link", variant: "destructive" });
-                    } finally {
-                      setSubmitting(false);
-                    }
-                  }} className="space-y-4">
-                    <div className="p-3 bg-teacher/10 rounded-lg border border-teacher/20 mb-4">
-                      <p className="text-sm font-medium text-teacher">
-                        Creating link for: {students.find(s => s.user_id === selectedStudent)?.student_name}
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="classLabel">Class Label</Label>
-                      <Input
-                        id="classLabel"
-                        placeholder="e.g. Mathematics, Science"
-                        value={meetForm.classLabel}
-                        onChange={(e) => setMeetForm({ ...meetForm, classLabel: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="zoomLink">Zoom URL *</Label>
-                      <Input
-                        id="zoomLink"
-                        type="url"
-                        placeholder="https://zoom.us/j/xxxxxxxxx"
-                        value={meetForm.zoomLink}
-                        onChange={(e) => setMeetForm({ ...meetForm, zoomLink: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={submitting}>
-                      {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : (
-                        <>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Save Zoom Link
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                )}
-                
-                {students.filter(s => !meetLinks.some(z => z.student_user_id === s.user_id && z.zoom_link)).length > 0 && (
-                  <div className="mt-6 pt-6 border-t border-border">
-                    <p className="text-sm font-medium mb-3">Students without your Zoom link:</p>
-                    <div className="space-y-2">
-                      {students
-                        .filter(s => !meetLinks.some(z => z.student_user_id === s.user_id && z.zoom_link))
-                        .sort((a, b) => (a.student_name || "").localeCompare(b.student_name || ""))
-                        .map(student => (
-                          <div key={student.user_id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
-                            <span className="text-sm">{student.student_name}</span>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="h-7"
-                              onClick={() => setSelectedStudent(student.user_id)}
-                            >
-                              <Plus className="h-3.5 w-3.5 mr-1" />
-                              Add Link
-                            </Button>
-                          </div>
-                        ))
-                      }
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            <Card className="dashboard-list-card h-fit">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Video className="h-4 w-4" />
-                  Active Zoom Links
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 max-h-[500px] overflow-y-auto">
-                {meetLinks.filter(link => students.some(s => s.user_id === link.student_user_id) && link.zoom_link).length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No Zoom links set for your students</p>
-                ) : (
-                  meetLinks
-                    .filter(link => students.some(s => s.user_id === link.student_user_id) && link.zoom_link)
-                    .sort((a, b) => (a.student_name || "").localeCompare(b.student_name || ""))
-                    .map((link) => (
-                      <div key={link.student_user_id} className="p-4 rounded-xl border border-border hover:border-teacher/30 transition-all hover:shadow-md bg-card">
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-foreground">{link.student_name}</p>
-                            <p className="text-xs text-muted-foreground break-all mt-1">{link.zoom_link}</p>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <Button
-                            size="sm"
-                            className="dashboard-btn dashboard-btn-teacher shrink-0"
-                            onClick={() => window.open(link.zoom_link!, '_blank', 'noopener,noreferrer')}
-                          >
-                            <ExternalLink className="h-4 w-4 mr-1" />
-                            Join Zoom
-                          </Button>
-                        </div>
-                        <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-border/50">
-                          <Button size="sm" variant="outline" className="h-8" onClick={() => openEditMeet(link)}>
-                            <Pencil className="h-3.5 w-3.5 mr-1" />
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="outline" className="h-8 text-destructive hover:bg-destructive/10" onClick={() => openDeleteDialog("meet_links", `${link.student_user_id}|${link.teacher_user_id}`, `${link.student_name}'s Zoom link`)}>
-                            <Trash2 className="h-3.5 w-3.5 mr-1" />
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === "messages" && (
-          <div>
-            <Tabs defaultValue="students" className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="students">My Students</TabsTrigger>
-                <TabsTrigger value="admin">Admin Messages</TabsTrigger>
-              </TabsList>
-              <TabsContent value="students">
-                <MessagingPanel userRole="teacher" preselectedConversationId={selectedConversationId} />
-              </TabsContent>
-              <TabsContent value="admin">
-                <AdminTeacherMessaging userRole="teacher" />
-              </TabsContent>
-            </Tabs>
-          </div>
-        )}
-
-        {activeTab === "profile" && (
-          <Card className="max-w-lg dashboard-list-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                My Profile
-              </CardTitle>
-              <CardDescription>Update your teacher profile information</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleUpdateProfile} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="subjects">Subjects</Label>
-                  <Input
-                    id="subjects"
-                    placeholder="e.g., Math, Physics, Chemistry"
-                    value={profileForm.subjects}
-                    onChange={(e) => setProfileForm({ ...profileForm, subjects: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="availability">Availability</Label>
-                  <Input
-                    id="availability"
-                    placeholder="e.g., Mon-Fri 9am-5pm"
-                    value={profileForm.availability}
-                    onChange={(e) => setProfileForm({ ...profileForm, availability: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
-                  <Textarea
-                    id="bio"
-                    placeholder="Tell students about yourself..."
-                    value={profileForm.bio}
-                    onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
-                    rows={4}
-                  />
-                </div>
-                <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={submitting}>
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Profile"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        {activeTab === "fees" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="dashboard-list-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calculator className="h-5 w-5" />
-                  Student Fee Calculator
-                </CardTitle>
-                <CardDescription>Calculate and send fee details to admin</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSendFeeToAdmin} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Month *</Label>
-                      <Input type="month" value={feeForm.month} onChange={(e) => setFeeForm({ ...feeForm, month: e.target.value })} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Total Hours *</Label>
-                      <Input type="number" step="0.5" placeholder="e.g., 20" value={feeForm.totalHours} onChange={(e) => setFeeForm({ ...feeForm, totalHours: e.target.value })} required />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Fee Per Hour *</Label>
-                    <Input type="number" step="0.01" placeholder="e.g., 30.00" value={feeForm.feePerHour} onChange={(e) => setFeeForm({ ...feeForm, feePerHour: e.target.value })} required />
-                  </div>
-                  <div className="p-3 rounded-lg bg-muted">
-                    <p className="text-sm text-muted-foreground">Total Amount</p>
-                    <p className="text-2xl font-bold text-teacher">${((parseFloat(feeForm.totalHours) || 0) * (parseFloat(feeForm.feePerHour) || 0)).toFixed(2)}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Class Dates</Label>
-                    <Textarea placeholder="e.g., Jan 5, 7, 12, 14..." value={feeForm.classDates} onChange={(e) => setFeeForm({ ...feeForm, classDates: e.target.value })} rows={2} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Subjects Covered</Label>
-                    <Textarea placeholder="e.g., Algebra, Geometry..." value={feeForm.subjects} onChange={(e) => setFeeForm({ ...feeForm, subjects: e.target.value })} rows={2} />
-                  </div>
-                  <Button type="submit" className="w-full dashboard-btn dashboard-btn-teacher" disabled={!selectedStudent || submitting}>
-                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4 mr-2" />Send to Admin</>}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-            
-            <Card className="dashboard-list-card h-fit">
-              <CardHeader><CardTitle className="text-base">Recent Fees Sent</CardTitle></CardHeader>
-              <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
-                {recentFees.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No fees sent yet</p>
-                ) : (
-                  recentFees.map((fee) => (
-                    <div key={fee.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{fee.student_name}</p>
-                        <p className="text-xs text-muted-foreground">{fee.month} • ${fee.total_amount?.toFixed(2)}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={fee.status === "sent_to_student" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}>{fee.status === "sent_to_student" ? "Sent" : "Pending"}</Badge>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleSoftDelete("student_fees", fee.id)}><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === "salary" && (
-          <Card className="dashboard-list-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                My Salary
-              </CardTitle>
-              <CardDescription>View and respond to salary details from admin</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {salaries.length === 0 ? (
-                <EmptyState icon={DollarSign} title="No salary records" description="When admin sends salary details, they'll appear here." />
-              ) : (
-                <div className="space-y-4">
-                  {salaries.map((salary) => (
-                    <div key={salary.id} className="p-4 rounded-xl border border-border hover:border-teacher/30 transition-all">
-                      <div className="flex flex-wrap justify-between items-start gap-4">
-                        <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(salary.created_at || "").toLocaleDateString()}
-                          </p>
-                          <p className="text-lg font-semibold">
-                            {salary.total_hours}h × ${salary.salary_per_hour}/h = ${salary.amount?.toFixed(2)}
-                          </p>
-                          {salary.num_classes && <p className="text-sm text-muted-foreground">{salary.num_classes} classes</p>}
-                          {salary.note && <p className="text-sm text-muted-foreground">Note: {salary.note}</p>}
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <Badge className={
-                            salary.status === "confirmed" ? "bg-success/10 text-success" :
-                            salary.status === "needs_correction" ? "bg-destructive/10 text-destructive" :
-                            "bg-warning/10 text-warning"
-                          }>
-                            {salary.status === "sent_to_teacher" ? "Pending Review" : salary.status}
-                          </Badge>
-                          {salary.status === "sent_to_teacher" && (
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                className="dashboard-btn dashboard-btn-teacher"
-                                onClick={() => handleSalaryResponse(salary.id, "confirmed")}
-                              >
-                                <CheckCircle2 className="h-4 w-4 mr-1" />Yes, All Correct
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleSalaryResponse(salary.id, "needs_correction")}
-                              >
-                                Need Corrections
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-teacher" /></div>}>
+          {activeTab === "calendar" && <CalendarTab ctx={ctx} />}
+          {activeTab === "attendance" && <AttendanceTab ctx={ctx} />}
+          {activeTab === "notes" && <NotesTab />}
+          {activeTab === "work-done" && <WorkDoneTab />}
+          {activeTab === "whiteboard" && <WhiteboardTab />}
+          {activeTab === "resources" && <ResourcesTab />}
+          {activeTab === "recordings" && <RecordingsTab />}
+          {activeTab === "worksheet-builder" && <WorksheetBuilderTab />}
+          {activeTab === "assignments" && <AssignmentsTab ctx={ctx} />}
+          {activeTab === "manage" && <ManageAssignmentsTab ctx={ctx} />}
+          {activeTab === "zoom" && <ZoomTab ctx={ctx} />}
+          {activeTab === "messages" && <MessagingTab ctx={ctx} />}
+          {activeTab === "profile" && <ProfileTab ctx={ctx} />}
+          {activeTab === "fees" && <FeesTab ctx={ctx} />}
+          {activeTab === "salary" && <SalaryTab ctx={ctx} />}
+        </Suspense>
       </div>
       
       {/* Edit Attendance Dialog */}
