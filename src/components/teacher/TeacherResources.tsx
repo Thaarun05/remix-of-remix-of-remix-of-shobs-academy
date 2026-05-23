@@ -287,29 +287,8 @@ export function TeacherResources() {
 
   const teacherOptions = allTeachers;
 
-  const classOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          resources
-            .map((r) => (r.class_label || "").trim())
-            .filter((v) => v.length > 0)
-        )
-      ).sort((a, b) => a.localeCompare(b)),
-    [resources]
-  );
-
-  const subjectOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          resources
-            .map((r) => (r.subject || "").trim())
-            .filter((v) => v.length > 0)
-        )
-      ).sort((a, b) => a.localeCompare(b)),
-    [resources]
-  );
+  const classOptions = CLASS_OPTIONS;
+  const subjectOptions = SUBJECT_OPTIONS;
 
   const filtered = resources.filter((r) => {
     if (filterTeacher !== "all" && r.uploaded_by !== filterTeacher) return false;
