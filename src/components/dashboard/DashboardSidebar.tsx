@@ -202,6 +202,7 @@ export const adminSidebarItems: SidebarItem[] = [
   { id: "salary", label: "Teacher Salary", icon: DollarSign },
   { id: "work-submissions", label: "Work Submissions", icon: ClipboardList },
   { id: "work-done", label: "Work Done", icon: CalendarCheck },
+  { id: "resources", label: "Teacher Resources", icon: FolderOpen },
   { id: "messages", label: "Messages", icon: MessageSquare },
   { id: "all-users", label: "All Users", icon: Users },
 ];
