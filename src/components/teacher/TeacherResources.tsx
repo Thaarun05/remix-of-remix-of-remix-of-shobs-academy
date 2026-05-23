@@ -491,6 +491,16 @@ export function TeacherResources() {
                           {r.description && (
                             <p className="text-xs text-muted-foreground line-clamp-2">{r.description}</p>
                           )}
+                          {(r.class_label || r.subject) && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {r.class_label && (
+                                <Badge variant="outline" className="text-[10px] py-0">{r.class_label}</Badge>
+                              )}
+                              {r.subject && (
+                                <Badge variant="outline" className="text-[10px] py-0">{r.subject}</Badge>
+                              )}
+                            </div>
+                          )}
                           <p className="text-xs text-muted-foreground mt-1">
                             {r.file_name} · {formatSize(r.file_size)}
                           </p>
