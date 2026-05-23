@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import { Loader2, Sparkles, Download, RefreshCw, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,7 +49,6 @@ export function TeacherWorksheetBuilder() {
   const [objective, setObjective] = useState("");
   const [timeAllowed, setTimeAllowed] = useState("");
   const [totalMarks, setTotalMarks] = useState("");
-  const [includeAnswerKey, setIncludeAnswerKey] = useState(true);
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
@@ -211,11 +209,6 @@ export function TeacherWorksheetBuilder() {
             <Textarea value={objective} onChange={(e) => setObjective(e.target.value)} placeholder="Students should understand..." rows={2} />
           </div>
 
-          <div className="flex items-center gap-2">
-            <Switch checked={includeAnswerKey} onCheckedChange={setIncludeAnswerKey} id="ans" />
-            <Label htmlFor="ans" className="cursor-pointer">Include Answer Key (teacher-only)</Label>
-          </div>
-
           <div className="flex flex-wrap gap-2 pt-2">
             <Button variant="teacher" onClick={handleGenerate} disabled={loading}>
               {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating your worksheet...</> : <><Sparkles className="h-4 w-4" /> Generate Worksheet</>}
@@ -287,18 +280,6 @@ export function TeacherWorksheetBuilder() {
                     </li>
                   ))}
                 </ol>
-
-                {/* Answer key */}
-                {includeAnswerKey && (
-                  <div className="mt-12 pt-6 border-t-2 border-black">
-                    <h2 className="font-bold text-lg mb-4">ANSWER KEY — TEACHER ONLY</h2>
-                    <ol className="space-y-2 list-none p-0">
-                      {worksheet.questions.map((q) => (
-                        <li key={q.number}><strong>{q.number}.</strong> {q.answer}</li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
 
                 {/* Footer */}
                 <div className="mt-12 pt-3 border-t border-black text-center text-xs">
