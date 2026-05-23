@@ -1191,6 +1191,8 @@ const TeacherDashboard = () => {
           <TeacherResources />
         )}
 
+        {activeTab === "recordings" && <TeacherRecordings />}
+
         {activeTab === "assignments" && (
           <Card className="max-w-lg dashboard-list-card">
             <CardHeader>
