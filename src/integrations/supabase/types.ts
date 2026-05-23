@@ -705,6 +705,7 @@ export type Database = {
       }
       teacher_resources: {
         Row: {
+          class_label: string | null
           created_at: string
           deleted_at: string | null
           description: string | null
@@ -713,10 +714,12 @@ export type Database = {
           file_type: string
           id: string
           storage_path: string
+          subject: string | null
           title: string
           uploaded_by: string
         }
         Insert: {
+          class_label?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null
@@ -725,10 +728,12 @@ export type Database = {
           file_type: string
           id?: string
           storage_path: string
+          subject?: string | null
           title: string
           uploaded_by: string
         }
         Update: {
+          class_label?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null
@@ -737,6 +742,7 @@ export type Database = {
           file_type?: string
           id?: string
           storage_path?: string
+          subject?: string | null
           title?: string
           uploaded_by?: string
         }
