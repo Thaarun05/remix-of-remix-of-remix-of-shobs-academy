@@ -343,21 +343,31 @@ export function TeacherResources() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-2">
                   <Label>Class</Label>
-                  <Input
-                    placeholder="e.g. Grade 8"
+                  <Select
                     value={form.class_label}
-                    onChange={(e) => setForm({ ...form, class_label: e.target.value })}
-                    maxLength={50}
-                  />
+                    onValueChange={(v) => setForm({ ...form, class_label: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
+                    <SelectContent>
+                      {CLASS_OPTIONS.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Subject</Label>
-                  <Input
-                    placeholder="e.g. Math"
+                  <Select
                     value={form.subject}
-                    onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                    maxLength={50}
-                  />
+                    onValueChange={(v) => setForm({ ...form, subject: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select subject" /></SelectTrigger>
+                    <SelectContent>
+                      {SUBJECT_OPTIONS.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="space-y-2">
