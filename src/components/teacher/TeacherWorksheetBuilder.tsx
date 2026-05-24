@@ -15,10 +15,19 @@ import html2canvas from "html2canvas";
 
 interface Question {
   number: number;
-  type: "mcq" | "short_answer" | "fill_blank" | "numerical" | "true_false";
+  type: "mcq" | "short_answer" | "fill_blank" | "numerical" | "true_false" | "diagram" | "part_question";
   prompt: string;
   options?: string[];
-  answer: string;
+  answer?: string;
+  parts?: { label: string; prompt: string; marks?: number; answer?: string }[];
+  diagram?: {
+    type: "triangle" | "circle" | "graph_axes" | "right_angle_triangle" | "number_line" | "bar_chart" | "pie_chart" | "geometric_shape";
+    labels?: Record<string, string>;
+    dimensions?: Record<string, string | number>;
+    instructions?: string;
+  };
+  marks?: number;
+  working?: string;
 }
 
 interface Worksheet {
@@ -33,6 +42,18 @@ const QUESTION_TYPES = [
   { id: "fill_blank", label: "Fill in the Blank" },
   { id: "numerical", label: "Numerical" },
   { id: "true_false", label: "True/False" },
+  { id: "diagram", label: "Diagram" },
+  { id: "part_question", label: "Part Question (a)(b)(c)" },
+];
+
+const DIFFICULTY_OPTIONS = [
+  "Easy to Hard",
+  "Hard to Easy",
+  "Medium to Hard",
+  "Medium to Easy",
+  "Easy only",
+  "Hard only",
+  "Medium only",
 ];
 
 export function TeacherWorksheetBuilder() {
@@ -44,11 +65,9 @@ export function TeacherWorksheetBuilder() {
   const [grade, setGrade] = useState("");
   const [topic, setTopic] = useState("");
   const [count, setCount] = useState("10");
-  const [difficulty, setDifficulty] = useState("Medium");
+  const [difficulty, setDifficulty] = useState("Easy to Hard");
   const [types, setTypes] = useState<string[]>(["mcq", "short_answer"]);
   const [objective, setObjective] = useState("");
-  const [timeAllowed, setTimeAllowed] = useState("");
-  const [totalMarks, setTotalMarks] = useState("");
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
@@ -166,29 +185,22 @@ export function TeacherWorksheetBuilder() {
             </div>
             <div>
               <Label>Number of questions</Label>
-              <Select value={count} onValueChange={setCount}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {["5", "10", "15", "20"].map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Input
+                type="number"
+                min={1}
+                value={count}
+                onChange={(e) => setCount(e.target.value)}
+                placeholder="e.g. 10"
+              />
             </div>
             <div>
               <Label>Difficulty</Label>
               <Select value={difficulty} onValueChange={setDifficulty}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {["Easy", "Medium", "Hard"].map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  {DIFFICULTY_OPTIONS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label>Time allowed (optional)</Label>
-              <Input value={timeAllowed} onChange={(e) => setTimeAllowed(e.target.value)} placeholder="e.g. 45 minutes" />
-            </div>
-            <div>
-              <Label>Total marks (optional)</Label>
-              <Input value={totalMarks} onChange={(e) => setTotalMarks(e.target.value)} placeholder="e.g. 50" />
             </div>
           </div>
 
@@ -205,8 +217,13 @@ export function TeacherWorksheetBuilder() {
           </div>
 
           <div>
-            <Label>Learning objective (optional)</Label>
-            <Textarea value={objective} onChange={(e) => setObjective(e.target.value)} placeholder="Students should understand..." rows={2} />
+            <Label>Question Instructions</Label>
+            <Textarea
+              value={objective}
+              onChange={(e) => setObjective(e.target.value)}
+              placeholder="Describe exactly what type of questions you need — e.g. include step-by-step workings, part marks like (a)(b)(c), diagrams for triangles, label the diagram, show construction lines..."
+              rows={5}
+            />
           </div>
 
           <div className="flex flex-wrap gap-2 pt-2">
@@ -248,8 +265,6 @@ export function TeacherWorksheetBuilder() {
                   <span>Name: __________________________</span>
                   <span>Date: ________________</span>
                   <span>Grade: ____________</span>
-                  {timeAllowed && <span>Time: {timeAllowed}</span>}
-                  {totalMarks && <span>Total Marks: {totalMarks}</span>}
                 </div>
 
                 {/* Instructions */}
@@ -261,7 +276,12 @@ export function TeacherWorksheetBuilder() {
                 <ol className="space-y-5 list-none p-0">
                   {worksheet.questions.map((q) => (
                     <li key={q.number} className="break-inside-avoid">
-                      <div className="font-medium mb-1">{q.number}. {q.prompt}</div>
+                      <div className="font-medium mb-1 flex justify-between gap-4">
+                        <span>{q.number}. {q.prompt}</span>
+                        {typeof q.marks === "number" && q.marks > 0 && (
+                          <span className="text-xs whitespace-nowrap">[{q.marks} mark{q.marks === 1 ? "" : "s"}]</span>
+                        )}
+                      </div>
                       {q.type === "mcq" && q.options && (
                         <div className="ml-6 space-y-1 text-sm">
                           {q.options.map((opt, i) => <div key={i}>{opt}</div>)}
@@ -277,6 +297,37 @@ export function TeacherWorksheetBuilder() {
                       {q.type === "true_false" && (
                         <div className="ml-6 text-sm mt-1">◯ True &nbsp;&nbsp; ◯ False</div>
                       )}
+                      {q.type === "part_question" && q.parts && q.parts.length > 0 && (
+                        <ol className="ml-6 mt-2 space-y-3 list-none p-0">
+                          {q.parts.map((p, i) => (
+                            <li key={i}>
+                              <div className="text-sm flex justify-between gap-4">
+                                <span>({p.label}) {p.prompt}</span>
+                                {typeof p.marks === "number" && p.marks > 0 && (
+                                  <span className="text-xs whitespace-nowrap">[{p.marks} mark{p.marks === 1 ? "" : "s"}]</span>
+                                )}
+                              </div>
+                              <div className="mt-2 space-y-3">
+                                <div className="border-b border-black/60 h-5" />
+                                <div className="border-b border-black/60 h-5" />
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                      {q.diagram && (
+                        <div className="mt-3 border-2 border-dashed border-black/60 p-3">
+                          <div className="text-xs font-semibold mb-2 uppercase tracking-wide">Figure</div>
+                          <DiagramSVG diagram={q.diagram} />
+                          {q.diagram.instructions && (
+                            <div className="text-xs italic mt-2">{q.diagram.instructions}</div>
+                          )}
+                          <div className="mt-3 space-y-3">
+                            <div className="border-b border-black/40 h-5" />
+                            <div className="border-b border-black/40 h-5" />
+                          </div>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ol>
@@ -291,5 +342,168 @@ export function TeacherWorksheetBuilder() {
         </div>
       )}
     </div>
+  );
+}
+
+function DiagramSVG({ diagram }: { diagram: NonNullable<Question["diagram"]> }) {
+  const labels = diagram.labels ?? {};
+  const dims = diagram.dimensions ?? {};
+  const stroke = "#111";
+  const common = { stroke, fill: "none", strokeWidth: 1.5 } as const;
+  const textStyle: React.CSSProperties = { fontFamily: "Georgia, serif", fontSize: 12, fill: "#111" };
+
+  const W = 320, H = 220;
+
+  if (diagram.type === "right_angle_triangle") {
+    const a = String(labels.a ?? dims.a ?? "a");
+    const b = String(labels.b ?? dims.b ?? "b");
+    const c = String(labels.c ?? dims.c ?? "c");
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+        <polygon points="40,180 280,180 40,40" {...common} />
+        <rect x="40" y="165" width="15" height="15" {...common} />
+        <text x="160" y="200" textAnchor="middle" style={textStyle}>{b}</text>
+        <text x="25" y="115" textAnchor="middle" style={textStyle}>{a}</text>
+        <text x="170" y="100" textAnchor="middle" style={textStyle}>{c}</text>
+      </svg>
+    );
+  }
+
+  if (diagram.type === "triangle") {
+    const A = String(labels.A ?? "A");
+    const B = String(labels.B ?? "B");
+    const C = String(labels.C ?? "C");
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+        <polygon points="160,30 40,190 280,190" {...common} />
+        <text x="160" y="22" textAnchor="middle" style={textStyle}>{A}</text>
+        <text x="30" y="200" textAnchor="middle" style={textStyle}>{B}</text>
+        <text x="290" y="200" textAnchor="middle" style={textStyle}>{C}</text>
+      </svg>
+    );
+  }
+
+  if (diagram.type === "circle") {
+    const r = String(labels.radius ?? dims.radius ?? "r");
+    const center = String(labels.center ?? "O");
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+        <circle cx={W / 2} cy={H / 2} r={80} {...common} />
+        <line x1={W / 2} y1={H / 2} x2={W / 2 + 80} y2={H / 2} {...common} />
+        <circle cx={W / 2} cy={H / 2} r={2} fill={stroke} />
+        <text x={W / 2 - 8} y={H / 2 - 6} style={textStyle}>{center}</text>
+        <text x={W / 2 + 40} y={H / 2 - 6} textAnchor="middle" style={textStyle}>{r}</text>
+      </svg>
+    );
+  }
+
+  if (diagram.type === "graph_axes") {
+    const xLabel = String(labels.x ?? "x");
+    const yLabel = String(labels.y ?? "y");
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+            <path d="M0,0 L6,4 L0,8" fill={stroke} />
+          </marker>
+        </defs>
+        <line x1="20" y1={H - 30} x2={W - 20} y2={H - 30} {...common} markerEnd="url(#arr)" />
+        <line x1="40" y1={H - 10} x2="40" y2="20" {...common} markerEnd="url(#arr)" />
+        <text x={W - 30} y={H - 14} style={textStyle}>{xLabel}</text>
+        <text x="48" y="22" style={textStyle}>{yLabel}</text>
+        <text x="32" y={H - 18} style={textStyle}>O</text>
+      </svg>
+    );
+  }
+
+  if (diagram.type === "number_line") {
+    const start = Number(dims.start ?? 0);
+    const end = Number(dims.end ?? 10);
+    const step = Number(dims.step ?? 1);
+    const ticks: number[] = [];
+    for (let v = start; v <= end + 1e-9; v += step) ticks.push(Number(v.toFixed(4)));
+    const x = (v: number) => 30 + ((v - start) / (end - start || 1)) * (W - 60);
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={120} style={{ maxWidth: 360 }}>
+        <line x1="20" y1="60" x2={W - 20} y2="60" {...common} />
+        {ticks.map((t, i) => (
+          <g key={i}>
+            <line x1={x(t)} y1="52" x2={x(t)} y2="68" {...common} />
+            <text x={x(t)} y="86" textAnchor="middle" style={textStyle}>{t}</text>
+          </g>
+        ))}
+      </svg>
+    );
+  }
+
+  if (diagram.type === "bar_chart") {
+    const entries = Object.entries(dims).filter(([, v]) => !isNaN(Number(v)));
+    const max = Math.max(1, ...entries.map(([, v]) => Number(v)));
+    const bw = entries.length ? (W - 60) / entries.length - 8 : 20;
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+        <line x1="40" y1={H - 30} x2={W - 20} y2={H - 30} {...common} />
+        <line x1="40" y1="20" x2="40" y2={H - 30} {...common} />
+        {entries.map(([k, v], i) => {
+          const h = (Number(v) / max) * (H - 70);
+          const xPos = 50 + i * (bw + 8);
+          return (
+            <g key={k}>
+              <rect x={xPos} y={H - 30 - h} width={bw} height={h} fill="#ddd" stroke={stroke} />
+              <text x={xPos + bw / 2} y={H - 14} textAnchor="middle" style={textStyle}>{k}</text>
+            </g>
+          );
+        })}
+      </svg>
+    );
+  }
+
+  if (diagram.type === "pie_chart") {
+    const entries = Object.entries(dims).filter(([, v]) => !isNaN(Number(v)));
+    const total = entries.reduce((s, [, v]) => s + Number(v), 0) || 1;
+    let acc = 0;
+    const cx = W / 2, cy = H / 2, r = 80;
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+        {entries.map(([k, v], i) => {
+          const start = (acc / total) * Math.PI * 2 - Math.PI / 2;
+          acc += Number(v);
+          const end = (acc / total) * Math.PI * 2 - Math.PI / 2;
+          const large = end - start > Math.PI ? 1 : 0;
+          const x1 = cx + r * Math.cos(start), y1 = cy + r * Math.sin(start);
+          const x2 = cx + r * Math.cos(end), y2 = cy + r * Math.sin(end);
+          const mid = (start + end) / 2;
+          const lx = cx + (r + 14) * Math.cos(mid), ly = cy + (r + 14) * Math.sin(mid);
+          const shade = `hsl(0,0%,${90 - i * 10}%)`;
+          return (
+            <g key={k}>
+              <path d={`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z`} fill={shade} stroke={stroke} />
+              <text x={lx} y={ly} textAnchor="middle" style={textStyle}>{k}</text>
+            </g>
+          );
+        })}
+      </svg>
+    );
+  }
+
+  // geometric_shape — best-fit polygon based on a "sides" dimension
+  const sides = Math.max(3, Math.min(12, Number(dims.sides ?? 5)));
+  const cx = W / 2, cy = H / 2, r = 80;
+  const points = Array.from({ length: sides }, (_, i) => {
+    const a = (i / sides) * Math.PI * 2 - Math.PI / 2;
+    return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
+  }).join(" ");
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+      <polygon points={points} {...common} />
+      {Object.entries(labels).slice(0, sides).map(([k, v], i) => {
+        const a = (i / sides) * Math.PI * 2 - Math.PI / 2;
+        return (
+          <text key={k} x={cx + (r + 14) * Math.cos(a)} y={cy + (r + 14) * Math.sin(a)} textAnchor="middle" style={textStyle}>
+            {String(v)}
+          </text>
+        );
+      })}
+    </svg>
   );
 }
