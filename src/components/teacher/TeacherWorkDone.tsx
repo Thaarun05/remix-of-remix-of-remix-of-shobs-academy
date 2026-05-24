@@ -205,17 +205,46 @@ export function TeacherWorkDone() {
     if (!form.start_time || !form.end_time) return toast({ title: "Set start and end time", variant: "destructive" });
     const hours = diffHours(form.start_time, form.end_time);
     if (hours <= 0) return toast({ title: "End time must be after start time", variant: "destructive" });
-    const { error } = await supabase.from("attendance_records").insert({
-      student_user_id: form.student_user_id,
-      teacher_user_id: user.id,
-      date: expandedDate,
-      start_time: form.start_time,
-      end_time: form.end_time,
-      hours,
-      topic: form.topic || null,
-      status: "present",
-    } as any);
-    if (error) return toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+
+    // Check if an attendance row already exists for this student+date+teacher.
+    // Work Done / notes must only ever UPDATE the existing row — never insert a duplicate.
+    const { data: existing, error: findErr } = await supabase
+      .from("attendance_records")
+      .select("id")
+      .eq("teacher_user_id", user.id)
+      .eq("student_user_id", form.student_user_id)
+      .eq("date", expandedDate)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (findErr) return toast({ title: "Failed to save", description: findErr.message, variant: "destructive" });
+
+    if (existing?.id) {
+      const { error } = await supabase
+        .from("attendance_records")
+        .update({
+          start_time: form.start_time,
+          end_time: form.end_time,
+          hours,
+          topic: form.topic || null,
+        } as any)
+        .eq("id", existing.id);
+      if (error) return toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+    } else {
+      const { error } = await supabase.from("attendance_records").insert({
+        student_user_id: form.student_user_id,
+        teacher_user_id: user.id,
+        date: expandedDate,
+        start_time: form.start_time,
+        end_time: form.end_time,
+        hours,
+        topic: form.topic || null,
+        status: "present",
+      } as any);
+      if (error) return toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+    }
+
     toast({ title: "Entry saved" });
     setForm({ ...form, topic: "" });
     loadMonth(); loadYear();
