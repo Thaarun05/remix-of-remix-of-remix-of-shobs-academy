@@ -344,3 +344,166 @@ export function TeacherWorksheetBuilder() {
     </div>
   );
 }
+
+function DiagramSVG({ diagram }: { diagram: NonNullable<Question["diagram"]> }) {
+  const labels = diagram.labels ?? {};
+  const dims = diagram.dimensions ?? {};
+  const stroke = "#111";
+  const common = { stroke, fill: "none", strokeWidth: 1.5 } as const;
+  const textStyle: React.CSSProperties = { fontFamily: "Georgia, serif", fontSize: 12, fill: "#111" };
+
+  const W = 320, H = 220;
+
+  if (diagram.type === "right_angle_triangle") {
+    const a = String(labels.a ?? dims.a ?? "a");
+    const b = String(labels.b ?? dims.b ?? "b");
+    const c = String(labels.c ?? dims.c ?? "c");
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+        <polygon points="40,180 280,180 40,40" {...common} />
+        <rect x="40" y="165" width="15" height="15" {...common} />
+        <text x="160" y="200" textAnchor="middle" style={textStyle}>{b}</text>
+        <text x="25" y="115" textAnchor="middle" style={textStyle}>{a}</text>
+        <text x="170" y="100" textAnchor="middle" style={textStyle}>{c}</text>
+      </svg>
+    );
+  }
+
+  if (diagram.type === "triangle") {
+    const A = String(labels.A ?? "A");
+    const B = String(labels.B ?? "B");
+    const C = String(labels.C ?? "C");
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+        <polygon points="160,30 40,190 280,190" {...common} />
+        <text x="160" y="22" textAnchor="middle" style={textStyle}>{A}</text>
+        <text x="30" y="200" textAnchor="middle" style={textStyle}>{B}</text>
+        <text x="290" y="200" textAnchor="middle" style={textStyle}>{C}</text>
+      </svg>
+    );
+  }
+
+  if (diagram.type === "circle") {
+    const r = String(labels.radius ?? dims.radius ?? "r");
+    const center = String(labels.center ?? "O");
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+        <circle cx={W / 2} cy={H / 2} r={80} {...common} />
+        <line x1={W / 2} y1={H / 2} x2={W / 2 + 80} y2={H / 2} {...common} />
+        <circle cx={W / 2} cy={H / 2} r={2} fill={stroke} />
+        <text x={W / 2 - 8} y={H / 2 - 6} style={textStyle}>{center}</text>
+        <text x={W / 2 + 40} y={H / 2 - 6} textAnchor="middle" style={textStyle}>{r}</text>
+      </svg>
+    );
+  }
+
+  if (diagram.type === "graph_axes") {
+    const xLabel = String(labels.x ?? "x");
+    const yLabel = String(labels.y ?? "y");
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+            <path d="M0,0 L6,4 L0,8" fill={stroke} />
+          </marker>
+        </defs>
+        <line x1="20" y1={H - 30} x2={W - 20} y2={H - 30} {...common} markerEnd="url(#arr)" />
+        <line x1="40" y1={H - 10} x2="40" y2="20" {...common} markerEnd="url(#arr)" />
+        <text x={W - 30} y={H - 14} style={textStyle}>{xLabel}</text>
+        <text x="48" y="22" style={textStyle}>{yLabel}</text>
+        <text x="32" y={H - 18} style={textStyle}>O</text>
+      </svg>
+    );
+  }
+
+  if (diagram.type === "number_line") {
+    const start = Number(dims.start ?? 0);
+    const end = Number(dims.end ?? 10);
+    const step = Number(dims.step ?? 1);
+    const ticks: number[] = [];
+    for (let v = start; v <= end + 1e-9; v += step) ticks.push(Number(v.toFixed(4)));
+    const x = (v: number) => 30 + ((v - start) / (end - start || 1)) * (W - 60);
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={120} style={{ maxWidth: 360 }}>
+        <line x1="20" y1="60" x2={W - 20} y2="60" {...common} />
+        {ticks.map((t, i) => (
+          <g key={i}>
+            <line x1={x(t)} y1="52" x2={x(t)} y2="68" {...common} />
+            <text x={x(t)} y="86" textAnchor="middle" style={textStyle}>{t}</text>
+          </g>
+        ))}
+      </svg>
+    );
+  }
+
+  if (diagram.type === "bar_chart") {
+    const entries = Object.entries(dims).filter(([, v]) => !isNaN(Number(v)));
+    const max = Math.max(1, ...entries.map(([, v]) => Number(v)));
+    const bw = entries.length ? (W - 60) / entries.length - 8 : 20;
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+        <line x1="40" y1={H - 30} x2={W - 20} y2={H - 30} {...common} />
+        <line x1="40" y1="20" x2="40" y2={H - 30} {...common} />
+        {entries.map(([k, v], i) => {
+          const h = (Number(v) / max) * (H - 70);
+          const xPos = 50 + i * (bw + 8);
+          return (
+            <g key={k}>
+              <rect x={xPos} y={H - 30 - h} width={bw} height={h} fill="#ddd" stroke={stroke} />
+              <text x={xPos + bw / 2} y={H - 14} textAnchor="middle" style={textStyle}>{k}</text>
+            </g>
+          );
+        })}
+      </svg>
+    );
+  }
+
+  if (diagram.type === "pie_chart") {
+    const entries = Object.entries(dims).filter(([, v]) => !isNaN(Number(v)));
+    const total = entries.reduce((s, [, v]) => s + Number(v), 0) || 1;
+    let acc = 0;
+    const cx = W / 2, cy = H / 2, r = 80;
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+        {entries.map(([k, v], i) => {
+          const start = (acc / total) * Math.PI * 2 - Math.PI / 2;
+          acc += Number(v);
+          const end = (acc / total) * Math.PI * 2 - Math.PI / 2;
+          const large = end - start > Math.PI ? 1 : 0;
+          const x1 = cx + r * Math.cos(start), y1 = cy + r * Math.sin(start);
+          const x2 = cx + r * Math.cos(end), y2 = cy + r * Math.sin(end);
+          const mid = (start + end) / 2;
+          const lx = cx + (r + 14) * Math.cos(mid), ly = cy + (r + 14) * Math.sin(mid);
+          const shade = `hsl(0,0%,${90 - i * 10}%)`;
+          return (
+            <g key={k}>
+              <path d={`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z`} fill={shade} stroke={stroke} />
+              <text x={lx} y={ly} textAnchor="middle" style={textStyle}>{k}</text>
+            </g>
+          );
+        })}
+      </svg>
+    );
+  }
+
+  // geometric_shape — best-fit polygon based on a "sides" dimension
+  const sides = Math.max(3, Math.min(12, Number(dims.sides ?? 5)));
+  const cx = W / 2, cy = H / 2, r = 80;
+  const points = Array.from({ length: sides }, (_, i) => {
+    const a = (i / sides) * Math.PI * 2 - Math.PI / 2;
+    return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
+  }).join(" ");
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
+      <polygon points={points} {...common} />
+      {Object.entries(labels).slice(0, sides).map(([k, v], i) => {
+        const a = (i / sides) * Math.PI * 2 - Math.PI / 2;
+        return (
+          <text key={k} x={cx + (r + 14) * Math.cos(a)} y={cy + (r + 14) * Math.sin(a)} textAnchor="middle" style={textStyle}>
+            {String(v)}
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
