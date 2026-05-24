@@ -265,8 +265,6 @@ export function TeacherWorksheetBuilder() {
                   <span>Name: __________________________</span>
                   <span>Date: ________________</span>
                   <span>Grade: ____________</span>
-                  {timeAllowed && <span>Time: {timeAllowed}</span>}
-                  {totalMarks && <span>Total Marks: {totalMarks}</span>}
                 </div>
 
                 {/* Instructions */}
@@ -278,7 +276,12 @@ export function TeacherWorksheetBuilder() {
                 <ol className="space-y-5 list-none p-0">
                   {worksheet.questions.map((q) => (
                     <li key={q.number} className="break-inside-avoid">
-                      <div className="font-medium mb-1">{q.number}. {q.prompt}</div>
+                      <div className="font-medium mb-1 flex justify-between gap-4">
+                        <span>{q.number}. {q.prompt}</span>
+                        {typeof q.marks === "number" && q.marks > 0 && (
+                          <span className="text-xs whitespace-nowrap">[{q.marks} mark{q.marks === 1 ? "" : "s"}]</span>
+                        )}
+                      </div>
                       {q.type === "mcq" && q.options && (
                         <div className="ml-6 space-y-1 text-sm">
                           {q.options.map((opt, i) => <div key={i}>{opt}</div>)}
@@ -293,6 +296,37 @@ export function TeacherWorksheetBuilder() {
                       )}
                       {q.type === "true_false" && (
                         <div className="ml-6 text-sm mt-1">◯ True &nbsp;&nbsp; ◯ False</div>
+                      )}
+                      {q.type === "part_question" && q.parts && q.parts.length > 0 && (
+                        <ol className="ml-6 mt-2 space-y-3 list-none p-0">
+                          {q.parts.map((p, i) => (
+                            <li key={i}>
+                              <div className="text-sm flex justify-between gap-4">
+                                <span>({p.label}) {p.prompt}</span>
+                                {typeof p.marks === "number" && p.marks > 0 && (
+                                  <span className="text-xs whitespace-nowrap">[{p.marks} mark{p.marks === 1 ? "" : "s"}]</span>
+                                )}
+                              </div>
+                              <div className="mt-2 space-y-3">
+                                <div className="border-b border-black/60 h-5" />
+                                <div className="border-b border-black/60 h-5" />
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                      {q.diagram && (
+                        <div className="mt-3 border-2 border-dashed border-black/60 p-3">
+                          <div className="text-xs font-semibold mb-2 uppercase tracking-wide">Figure</div>
+                          <DiagramSVG diagram={q.diagram} />
+                          {q.diagram.instructions && (
+                            <div className="text-xs italic mt-2">{q.diagram.instructions}</div>
+                          )}
+                          <div className="mt-3 space-y-3">
+                            <div className="border-b border-black/40 h-5" />
+                            <div className="border-b border-black/40 h-5" />
+                          </div>
+                        </div>
                       )}
                     </li>
                   ))}
