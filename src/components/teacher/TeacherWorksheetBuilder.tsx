@@ -15,10 +15,19 @@ import html2canvas from "html2canvas";
 
 interface Question {
   number: number;
-  type: "mcq" | "short_answer" | "fill_blank" | "numerical" | "true_false";
+  type: "mcq" | "short_answer" | "fill_blank" | "numerical" | "true_false" | "diagram" | "part_question";
   prompt: string;
   options?: string[];
-  answer: string;
+  answer?: string;
+  parts?: { label: string; prompt: string; marks?: number; answer?: string }[];
+  diagram?: {
+    type: "triangle" | "circle" | "graph_axes" | "right_angle_triangle" | "number_line" | "bar_chart" | "pie_chart" | "geometric_shape";
+    labels?: Record<string, string>;
+    dimensions?: Record<string, string | number>;
+    instructions?: string;
+  };
+  marks?: number;
+  working?: string;
 }
 
 interface Worksheet {
@@ -33,6 +42,18 @@ const QUESTION_TYPES = [
   { id: "fill_blank", label: "Fill in the Blank" },
   { id: "numerical", label: "Numerical" },
   { id: "true_false", label: "True/False" },
+  { id: "diagram", label: "Diagram" },
+  { id: "part_question", label: "Part Question (a)(b)(c)" },
+];
+
+const DIFFICULTY_OPTIONS = [
+  "Easy to Hard",
+  "Hard to Easy",
+  "Medium to Hard",
+  "Medium to Easy",
+  "Easy only",
+  "Hard only",
+  "Medium only",
 ];
 
 export function TeacherWorksheetBuilder() {
@@ -44,11 +65,9 @@ export function TeacherWorksheetBuilder() {
   const [grade, setGrade] = useState("");
   const [topic, setTopic] = useState("");
   const [count, setCount] = useState("10");
-  const [difficulty, setDifficulty] = useState("Medium");
+  const [difficulty, setDifficulty] = useState("Easy to Hard");
   const [types, setTypes] = useState<string[]>(["mcq", "short_answer"]);
   const [objective, setObjective] = useState("");
-  const [timeAllowed, setTimeAllowed] = useState("");
-  const [totalMarks, setTotalMarks] = useState("");
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
@@ -166,29 +185,22 @@ export function TeacherWorksheetBuilder() {
             </div>
             <div>
               <Label>Number of questions</Label>
-              <Select value={count} onValueChange={setCount}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {["5", "10", "15", "20"].map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Input
+                type="number"
+                min={1}
+                value={count}
+                onChange={(e) => setCount(e.target.value)}
+                placeholder="e.g. 10"
+              />
             </div>
             <div>
               <Label>Difficulty</Label>
               <Select value={difficulty} onValueChange={setDifficulty}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {["Easy", "Medium", "Hard"].map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  {DIFFICULTY_OPTIONS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label>Time allowed (optional)</Label>
-              <Input value={timeAllowed} onChange={(e) => setTimeAllowed(e.target.value)} placeholder="e.g. 45 minutes" />
-            </div>
-            <div>
-              <Label>Total marks (optional)</Label>
-              <Input value={totalMarks} onChange={(e) => setTotalMarks(e.target.value)} placeholder="e.g. 50" />
             </div>
           </div>
 
@@ -205,8 +217,13 @@ export function TeacherWorksheetBuilder() {
           </div>
 
           <div>
-            <Label>Learning objective (optional)</Label>
-            <Textarea value={objective} onChange={(e) => setObjective(e.target.value)} placeholder="Students should understand..." rows={2} />
+            <Label>Question Instructions</Label>
+            <Textarea
+              value={objective}
+              onChange={(e) => setObjective(e.target.value)}
+              placeholder="Describe exactly what type of questions you need — e.g. include step-by-step workings, part marks like (a)(b)(c), diagrams for triangles, label the diagram, show construction lines..."
+              rows={5}
+            />
           </div>
 
           <div className="flex flex-wrap gap-2 pt-2">
