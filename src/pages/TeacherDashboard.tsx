@@ -56,6 +56,7 @@ const WhiteboardTab = lazy(() => import("@/components/teacher/tabs/WhiteboardTab
 const ResourcesTab = lazy(() => import("@/components/teacher/tabs/ResourcesTab"));
 const RecordingsTab = lazy(() => import("@/components/teacher/tabs/RecordingsTab"));
 const WorksheetBuilderTab = lazy(() => import("@/components/teacher/tabs/WorksheetBuilderTab"));
+const AiNotetakerTab = lazy(() => import("@/components/teacher/tabs/AiNotetakerTab"));
 const AssignmentsTab = lazy(() => import("@/components/teacher/tabs/AssignmentsTab"));
 const ManageAssignmentsTab = lazy(() => import("@/components/teacher/tabs/ManageAssignmentsTab"));
 const ZoomTab = lazy(() => import("@/components/teacher/tabs/ZoomTab"));
@@ -861,7 +862,7 @@ const TeacherDashboard = () => {
       </div>
 
       {/* Student Selector - shown on relevant tabs */}
-      {activeTab !== "profile" && activeTab !== "manage" && activeTab !== "messages" && activeTab !== "work-done" && (
+      {activeTab !== "profile" && activeTab !== "manage" && activeTab !== "messages" && activeTab !== "work-done" && activeTab !== "ai-notetaker" && activeTab !== "worksheet-builder" && (
         <Card className="mb-6 dashboard-list-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Select Student</CardTitle>
@@ -914,6 +915,7 @@ const TeacherDashboard = () => {
           {activeTab === "resources" && <ResourcesTab />}
           {activeTab === "recordings" && <RecordingsTab />}
           {activeTab === "worksheet-builder" && <WorksheetBuilderTab />}
+          {activeTab === "ai-notetaker" && <AiNotetakerTab />}
           {activeTab === "assignments" && <AssignmentsTab ctx={ctx} />}
           {activeTab === "manage" && <ManageAssignmentsTab ctx={ctx} />}
           {activeTab === "zoom" && <ZoomTab ctx={ctx} />}
