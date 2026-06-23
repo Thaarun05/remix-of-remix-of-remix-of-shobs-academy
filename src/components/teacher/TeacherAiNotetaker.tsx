@@ -11,7 +11,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import shobsLogo from "@/assets/shobs-academy-logo.png";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+
+// Convert imported PNG asset to a data URL so jsPDF can embed it.
+async function urlToDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result as string);
+      fr.onerror = reject;
+      fr.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
 interface KeyTerm { term: string; definition: string; }
 interface Section {
@@ -196,25 +211,205 @@ export function TeacherAiNotetaker() {
 
   // ----- PDF helpers -----
   const buildPdf = async (): Promise<{ pdf: jsPDF; safeTitle: string }> => {
-    if (!docRef.current) throw new Error("Preview not ready");
-    const canvas = await html2canvas(docRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false });
-    const imgData = canvas.toDataURL("image/png");
+    if (!notes) throw new Error("Notes not ready");
     const pdf = new jsPDF("p", "mm", "a4");
-    const pageWidth = 210;
-    const pageHeight = 297;
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let heightLeft = imgHeight;
-    let position = 0;
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+    const pageW = 210;
+    const pageH = 297;
+    const marginX = 18;
+    const marginTop = 20;
+    const marginBottom = 18;
+    const contentW = pageW - marginX * 2;
+    let y = marginTop;
+
+    const ensureSpace = (needed: number) => {
+      if (y + needed > pageH - marginBottom) {
+        pdf.addPage();
+        y = marginTop;
+      }
+    };
+
+    const writeWrapped = (
+      text: string,
+      opts: { size?: number; style?: "normal" | "bold" | "italic"; font?: "helvetica" | "courier" | "times"; indent?: number; lineGap?: number; color?: [number, number, number] } = {}
+    ) => {
+      const { size = 11, style = "normal", font = "helvetica", indent = 0, lineGap = 1.4, color = [17, 17, 17] } = opts;
+      pdf.setFont(font, style);
+      pdf.setFontSize(size);
+      pdf.setTextColor(color[0], color[1], color[2]);
+      const lh = size * 0.4 * lineGap; // mm per line
+      const lines = pdf.splitTextToSize(text, contentW - indent);
+      for (const line of lines) {
+        ensureSpace(lh);
+        pdf.text(line, marginX + indent, y);
+        y += lh;
+      }
+    };
+
+    // ----- Header -----
+    const logoData = await urlToDataUrl(shobsLogo);
+    if (logoData) {
+      try { pdf.addImage(logoData, "PNG", marginX, y - 4, 18, 18); } catch { /* ignore */ }
     }
-    const safeTitle = (notes?.title || "notes").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.setTextColor(17, 17, 17);
+    pdf.text("SHOBS ACADEMY", pageW - marginX, y + 8, { align: "right" });
+    y += 18;
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.6);
+    pdf.line(marginX, y, pageW - marginX, y);
+    y += 8;
+
+    // ----- Title -----
+    pdf.setFont("times", "bold");
+    pdf.setFontSize(20);
+    const titleLines = pdf.splitTextToSize(notes.title || "Study Notes", contentW);
+    for (const tl of titleLines) {
+      ensureSpace(9);
+      pdf.text(tl, pageW / 2, y, { align: "center" });
+      y += 8;
+    }
+    y += 1;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
+    const subtitle = [notes.subject, notes.grade].filter(Boolean).join(" · ");
+    if (subtitle) {
+      ensureSpace(6);
+      pdf.text(subtitle, pageW / 2, y, { align: "center" });
+      y += 8;
+    } else {
+      y += 4;
+    }
+
+    const sectionHeading = (text: string) => {
+      ensureSpace(14);
+      y += 2;
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.setTextColor(17, 17, 17);
+      pdf.text(text.toUpperCase(), marginX, y);
+      y += 2;
+      pdf.setDrawColor(120, 120, 120);
+      pdf.setLineWidth(0.3);
+      pdf.line(marginX, y, pageW - marginX, y);
+      y += 5;
+    };
+
+    const subHeading = (text: string) => {
+      ensureSpace(7);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(text.toUpperCase(), marginX, y);
+      y += 5;
+    };
+
+    // ----- Summary -----
+    if (notes.summary) {
+      sectionHeading("Summary");
+      writeWrapped(notes.summary, { size: 11, style: "italic", font: "times" });
+      y += 2;
+    }
+
+    // ----- Sections -----
+    notes.sections.forEach((s, i) => {
+      sectionHeading(`${i + 1}. ${s.heading || "Section"}`);
+
+      if (s.bullets.length > 0) {
+        for (const b of s.bullets) {
+          if (!b.trim()) continue;
+          // Bullet marker
+          ensureSpace(5);
+          const startY = y;
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(11);
+          pdf.setTextColor(17, 17, 17);
+          pdf.text("•", marginX + 2, startY);
+          writeWrapped(b.trim(), { size: 11, indent: 6 });
+          y += 0.5;
+          // restore y already moved by writeWrapped; nothing extra needed beyond small gap
+          // (we don't reset y to startY because writeWrapped already advanced past the bullet)
+        }
+        y += 1;
+      }
+
+      if (s.key_terms.length > 0) {
+        subHeading("Key terms");
+        for (const kt of s.key_terms) {
+          if (!kt.term && !kt.definition) continue;
+          const combined = `${kt.term}: ${kt.definition}`;
+          // bold term + normal definition: render in one wrapped paragraph
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(11);
+          const lines = pdf.splitTextToSize(combined, contentW - 2);
+          const lh = 11 * 0.4 * 1.4;
+          lines.forEach((line: string, idx: number) => {
+            ensureSpace(lh);
+            if (idx === 0 && kt.term) {
+              // draw bold term portion, then normal rest
+              const termText = `${kt.term}:`;
+              pdf.setFont("helvetica", "bold");
+              pdf.text(termText, marginX + 2, y);
+              const termWidth = pdf.getTextWidth(termText + " ");
+              const rest = line.slice(termText.length).replace(/^\s+/, "");
+              pdf.setFont("helvetica", "normal");
+              pdf.text(rest, marginX + 2 + termWidth, y);
+            } else {
+              pdf.setFont("helvetica", "normal");
+              pdf.text(line, marginX + 2, y);
+            }
+            y += lh;
+          });
+        }
+        y += 1;
+      }
+
+      if (s.formulas.length > 0) {
+        subHeading("Formulas");
+        for (const f of s.formulas) {
+          if (!f.trim()) continue;
+          writeWrapped(f, { size: 10, font: "courier", indent: 2 });
+        }
+        y += 1;
+      }
+
+      y += 2;
+    });
+
+    // ----- Quick revision -----
+    if (notes.quick_revision.length > 0) {
+      sectionHeading("Quick revision");
+      notes.quick_revision.forEach((q, idx) => {
+        if (!q.trim()) return;
+        const num = `${idx + 1}.`;
+        ensureSpace(5);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.setTextColor(17, 17, 17);
+        pdf.text(num, marginX + 2, y);
+        writeWrapped(q.trim(), { size: 11, indent: 9 });
+      });
+    }
+
+    // ----- Footer on every page -----
+    const totalPages = pdf.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      pdf.setPage(p);
+      pdf.setDrawColor(0, 0, 0);
+      pdf.setLineWidth(0.3);
+      pdf.line(marginX, pageH - marginBottom + 6, pageW - marginX, pageH - marginBottom + 6);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(
+        `Shobs Academy  |  For internal use only  |  Generated: ${today}  |  Page ${p} of ${totalPages}`,
+        pageW / 2,
+        pageH - marginBottom + 11,
+        { align: "center" }
+      );
+    }
+
+    const safeTitle = (notes.title || "notes").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
     return { pdf, safeTitle };
   };
 
