@@ -105,34 +105,207 @@ export function TeacherWorksheetBuilder() {
     }
   };
 
+  const urlToDataUrl = async (url: string): Promise<string | null> => {
+    try {
+      const r = await fetch(url);
+      const b = await r.blob();
+      return await new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result as string);
+        fr.onerror = rej;
+        fr.readAsDataURL(b);
+      });
+    } catch {
+      return null;
+    }
+  };
+
   const handleDownloadPDF = async () => {
-    if (!docRef.current || downloading) return;
+    if (!worksheet || downloading) return;
     setDownloading(true);
     try {
-      const canvas = await html2canvas(docRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
-      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pageW = 210;
+      const pageH = 297;
+      const marginX = 18;
+      const marginTop = 18;
+      const marginBottom = 18;
+      const contentW = pageW - marginX * 2;
+      let y = marginTop;
 
-      let heightLeft = imgHeight;
-      let position = 0;
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      const ensureSpace = (h: number) => {
+        if (y + h > pageH - marginBottom) {
+          pdf.addPage();
+          y = marginTop;
+        }
+      };
+
+      const writeWrapped = (
+        text: string,
+        opts: { size?: number; style?: "normal" | "bold" | "italic"; font?: "helvetica" | "times" | "courier"; indent?: number; lineGap?: number } = {}
+      ) => {
+        const size = opts.size ?? 11;
+        const style = opts.style ?? "normal";
+        const font = opts.font ?? "helvetica";
+        const indent = opts.indent ?? 0;
+        const lineGap = opts.lineGap ?? 1.4;
+        pdf.setFont(font, style);
+        pdf.setFontSize(size);
+        const lineH = (size * 0.3528) * lineGap;
+        const lines = pdf.splitTextToSize(text, contentW - indent);
+        for (const ln of lines) {
+          ensureSpace(lineH);
+          pdf.text(ln, marginX + indent, y);
+          y += lineH;
+        }
+      };
+
+      // Header with logo
+      const logoData = await urlToDataUrl(shobsLogo);
+      if (logoData) {
+        try { pdf.addImage(logoData, "PNG", marginX, y, 18, 18); } catch {}
       }
-      const safeTitle = (worksheet?.worksheet_title || "worksheet").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.text("SHOBS ACADEMY", pageW - marginX, y + 11, { align: "right" });
+      y += 22;
+      pdf.setDrawColor(0);
+      pdf.setLineWidth(0.6);
+      pdf.line(marginX, y, pageW - marginX, y);
+      y += 6;
+
+      // Title
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(16);
+      const titleLines = pdf.splitTextToSize(worksheet.worksheet_title || "Worksheet", contentW);
+      for (const ln of titleLines) {
+        ensureSpace(8);
+        pdf.text(ln, pageW / 2, y, { align: "center" });
+        y += 7;
+      }
+      y += 2;
+
+      // Student info row
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      const infoY = y;
+      pdf.text("Name: __________________________", marginX, infoY);
+      pdf.text("Date: ______________", marginX + 90, infoY);
+      pdf.text("Grade: __________", marginX + 140, infoY);
+      y += 8;
+
+      // Instructions
+      if (worksheet.instructions) {
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10);
+        ensureSpace(5);
+        pdf.text("Instructions:", marginX, y);
+        y += 4.5;
+        writeWrapped(worksheet.instructions, { size: 10, style: "italic" });
+        y += 2;
+      }
+
+      // Diagram rasterizer (small per-element JPEG)
+      const rasterizeDiagram = async (num: number): Promise<{ data: string; w: number; h: number } | null> => {
+        const el = docRef.current?.querySelector(`[data-diagram-q="${num}"]`) as HTMLElement | null;
+        if (!el) return null;
+        try {
+          const canvas = await html2canvas(el, { scale: 1.5, backgroundColor: "#ffffff", logging: false });
+          const data = canvas.toDataURL("image/jpeg", 0.7);
+          const ratio = canvas.height / canvas.width;
+          const wMm = Math.min(90, contentW);
+          return { data, w: wMm, h: wMm * ratio };
+        } catch {
+          return null;
+        }
+      };
+
+      // Questions
+      for (const q of worksheet.questions) {
+        y += 2;
+        const marks = typeof q.marks === "number" && q.marks > 0 ? ` [${q.marks} mark${q.marks === 1 ? "" : "s"}]` : "";
+        writeWrapped(`${q.number}. ${q.prompt}${marks}`, { size: 11, style: "bold" });
+
+        if (q.type === "mcq" && q.options?.length) {
+          for (const opt of q.options) writeWrapped(opt, { size: 10, indent: 8 });
+        }
+
+        if (q.type === "true_false") {
+          writeWrapped("◯ True     ◯ False", { size: 10, indent: 8 });
+        }
+
+        if (q.type === "short_answer" || q.type === "numerical") {
+          const lines = q.type === "short_answer" ? 3 : 2;
+          for (let i = 0; i < lines; i++) {
+            ensureSpace(8);
+            y += 5;
+            pdf.setDrawColor(80);
+            pdf.setLineWidth(0.2);
+            pdf.line(marginX, y, pageW - marginX, y);
+          }
+          y += 3;
+        }
+
+        if (q.type === "fill_blank") {
+          y += 1;
+        }
+
+        if (q.type === "part_question" && q.parts?.length) {
+          for (const p of q.parts) {
+            const pm = typeof p.marks === "number" && p.marks > 0 ? ` [${p.marks} mark${p.marks === 1 ? "" : "s"}]` : "";
+            writeWrapped(`(${p.label}) ${p.prompt}${pm}`, { size: 10, indent: 6 });
+            for (let i = 0; i < 2; i++) {
+              ensureSpace(7);
+              y += 5;
+              pdf.setDrawColor(80);
+              pdf.setLineWidth(0.2);
+              pdf.line(marginX + 6, y, pageW - marginX, y);
+            }
+            y += 2;
+          }
+        }
+
+        if (q.diagram) {
+          const img = await rasterizeDiagram(q.number);
+          if (img) {
+            ensureSpace(img.h + 6);
+            y += 2;
+            pdf.addImage(img.data, "JPEG", marginX + 6, y, img.w, img.h);
+            y += img.h + 2;
+          }
+          if (q.diagram.instructions) {
+            writeWrapped(q.diagram.instructions, { size: 9, style: "italic", indent: 6 });
+          }
+          for (let i = 0; i < 2; i++) {
+            ensureSpace(7);
+            y += 5;
+            pdf.setDrawColor(80);
+            pdf.setLineWidth(0.2);
+            pdf.line(marginX, y, pageW - marginX, y);
+          }
+          y += 2;
+        }
+
+        y += 2;
+      }
+
+      // Footer with page numbers
+      const total = pdf.getNumberOfPages();
+      for (let i = 1; i <= total; i++) {
+        pdf.setPage(i);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8);
+        pdf.setTextColor(110);
+        pdf.text(
+          `Shobs Academy | For internal use only | Generated: ${today}   |   Page ${i} of ${total}`,
+          pageW / 2,
+          pageH - 8,
+          { align: "center" }
+        );
+        pdf.setTextColor(0);
+      }
+
+      const safeTitle = (worksheet.worksheet_title || "worksheet").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
       pdf.save(`shobs-academy-${safeTitle}.pdf`);
       toast({ title: "Download started", description: "Your worksheet PDF has been saved." });
     } catch (e: any) {
@@ -316,7 +489,7 @@ export function TeacherWorksheetBuilder() {
                         </ol>
                       )}
                       {q.diagram && (
-                        <div className="mt-3 border-2 border-dashed border-black/60 p-3">
+                        <div data-diagram-q={q.number} className="mt-3 border-2 border-dashed border-black/60 p-3">
                           <div className="text-xs font-semibold mb-2 uppercase tracking-wide">Figure</div>
                           <DiagramSVG diagram={q.diagram} />
                           {q.diagram.instructions && (
