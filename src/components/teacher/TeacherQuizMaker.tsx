@@ -7,7 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Sparkles, Upload, X, Plus, Trash2, Send, AlertTriangle, RefreshCw } from "lucide-react";
+import { Loader2, Sparkles, Upload, X, Plus, Trash2, Send, AlertTriangle, RefreshCw, Pencil, Save } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -97,6 +101,7 @@ export function TeacherQuizMaker() {
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [quizId, setQuizId] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
   // Publish/assign settings
   const [timeLimit, setTimeLimit] = useState<string>("");
@@ -109,6 +114,7 @@ export function TeacherQuizMaker() {
   // Results
   const [myQuizzes, setMyQuizzes] = useState<any[]>([]);
   const [resultsLoading, setResultsLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => { loadStudents(); loadResults(); /* eslint-disable-next-line */ }, [user?.id]);
 
@@ -265,19 +271,33 @@ export function TeacherQuizMaker() {
     }
     setPublishing(true);
     try {
-      const { data: ins, error: insErr } = await (supabase as any).from("quizzes").insert({
-        teacher_user_id: user.id,
-        title: quiz.title,
-        subject: quiz.subject || null,
-        grade: quiz.grade || null,
-        instructions: quiz.instructions || null,
-        time_limit_minutes: timeLimit ? parseInt(timeLimit) : null,
-        status: "published",
-      }).select("id").single();
-      if (insErr) throw insErr;
-      const newId = ins.id as string;
+      let targetId = quizId;
+      if (editMode && targetId) {
+        const { error: upErr } = await (supabase as any).from("quizzes").update({
+          title: quiz.title,
+          subject: quiz.subject || null,
+          grade: quiz.grade || null,
+          instructions: quiz.instructions || null,
+          time_limit_minutes: timeLimit ? parseInt(timeLimit) : null,
+        }).eq("id", targetId);
+        if (upErr) throw upErr;
+        const { error: delErr } = await (supabase as any).from("quiz_questions").delete().eq("quiz_id", targetId);
+        if (delErr) throw delErr;
+      } else {
+        const { data: ins, error: insErr } = await (supabase as any).from("quizzes").insert({
+          teacher_user_id: user.id,
+          title: quiz.title,
+          subject: quiz.subject || null,
+          grade: quiz.grade || null,
+          instructions: quiz.instructions || null,
+          time_limit_minutes: timeLimit ? parseInt(timeLimit) : null,
+          status: "published",
+        }).select("id").single();
+        if (insErr) throw insErr;
+        targetId = ins.id as string;
+      }
       const rows = quiz.questions.map((q) => ({
-        quiz_id: newId,
+        quiz_id: targetId,
         number: q.number,
         topic: q.topic || null,
         difficulty: q.difficulty || null,
@@ -288,8 +308,9 @@ export function TeacherQuizMaker() {
       }));
       const { error: qErr } = await (supabase as any).from("quiz_questions").insert(rows);
       if (qErr) throw qErr;
-      setQuizId(newId);
-      toast({ title: "Quiz published", description: "Now assign it to your students below." });
+      setQuizId(targetId);
+      toast({ title: editMode ? "Quiz updated" : "Quiz published", description: editMode ? "Your changes were saved." : "Now assign it to your students below." });
+      setEditMode(false);
       loadResults();
     } catch (e: any) {
       toast({ title: "Publish failed", description: e?.message ?? "Try again.", variant: "destructive" });
@@ -344,6 +365,57 @@ export function TeacherQuizMaker() {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+  };
+
+  const handleEditExisting = async (quizRow: any) => {
+    try {
+      const { data: qs, error } = await (supabase as any)
+        .from("quiz_questions")
+        .select("number, topic, difficulty, question, options, correct_option, explanation")
+        .eq("quiz_id", quizRow.id)
+        .order("number", { ascending: true });
+      if (error) throw error;
+      const loaded: Quiz = {
+        title: quizRow.title || "",
+        subject: quizRow.subject || "",
+        grade: quizRow.grade || "",
+        instructions: quizRow.instructions || "",
+        questions: (qs || []).map((q: any, i: number) => ({
+          number: q.number || i + 1,
+          topic: q.topic || "",
+          difficulty: q.difficulty || "",
+          question: q.question || "",
+          options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ["A) ", "B) ", "C) ", "D) "],
+          correct_option: (["A","B","C","D"].includes(q.correct_option) ? q.correct_option : "A") as any,
+          explanation: q.explanation || "",
+        })),
+      };
+      setQuiz(loaded);
+      setQuizId(quizRow.id);
+      setEditMode(true);
+      setTimeLimit(quizRow.time_limit_minutes ? String(quizRow.time_limit_minutes) : "");
+      setSelectedStudents(new Set());
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e: any) {
+      toast({ title: "Could not load quiz", description: e?.message ?? "Try again.", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteExisting = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const { error } = await (supabase as any).from("quizzes")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+      toast({ title: "Quiz deleted" });
+      if (quizId === id) { setQuiz(null); setQuizId(null); setEditMode(false); }
+      loadResults();
+    } catch (e: any) {
+      toast({ title: "Delete failed", description: e?.message ?? "Try again.", variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -452,6 +524,15 @@ export function TeacherQuizMaker() {
               <Button onClick={handlePublish} disabled={publishing} className="dashboard-btn dashboard-btn-teacher">
                 {publishing ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Publishing…</> : <><Send className="h-4 w-4 mr-2" />Publish Quiz</>}
               </Button>
+            ) : editMode ? (
+              <div className="flex gap-2">
+                <Button onClick={handlePublish} disabled={publishing} className="dashboard-btn dashboard-btn-teacher">
+                  {publishing ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving…</> : <><Save className="h-4 w-4 mr-2" />Save Changes</>}
+                </Button>
+                <Button variant="outline" onClick={() => { setQuiz(null); setQuizId(null); setEditMode(false); setTimeLimit(""); }}>
+                  Cancel
+                </Button>
+              </div>
             ) : (
               <div className="space-y-3">
                 <div className="text-sm text-success font-medium">✓ Published. Now assign to students.</div>
@@ -508,7 +589,31 @@ export function TeacherQuizMaker() {
                     <div className="font-semibold">{q.title}</div>
                     <div className="text-xs text-muted-foreground">{[q.subject, q.grade].filter(Boolean).join(" · ")} · {new Date(q.created_at).toLocaleDateString()}</div>
                   </div>
-                  <Badge variant="outline">{q.assignments?.length || 0} assigned</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{q.assignments?.length || 0} assigned</Badge>
+                    <Button size="sm" variant="ghost" onClick={() => handleEditExisting(q)} title="Edit quiz">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="ghost" title="Delete quiz" disabled={deletingId === q.id}>
+                          {deletingId === q.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete this quiz?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            "{q.title}" will be removed for you and your students. This cannot be undone from the app.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteExisting(q.id)}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
                 {q.assignments?.length > 0 && (
                   <div className="space-y-2">
