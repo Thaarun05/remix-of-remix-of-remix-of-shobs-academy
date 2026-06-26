@@ -23,3 +23,12 @@ verify_jwt = false
 
 [functions.generate-notes]
 verify_jwt = false
+
+[functions.generate-quiz]
+verify_jwt = false
+
+[functions.get-quiz-for-student]
+verify_jwt = false
+
+[functions.submit-quiz]
+verify_jwt = false
