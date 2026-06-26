@@ -24,7 +24,8 @@ import {
   FolderOpen,
   Film,
   Sparkles,
-  NotebookPen
+  NotebookPen,
+  ListChecks
 } from "lucide-react";
 
 type RoleColor = "student" | "teacher" | "admin";
@@ -177,6 +178,7 @@ export const studentSidebarItems: SidebarItem[] = [
   { id: "notes", label: "Notes", icon: FileText },
   { id: "whiteboards", label: "Whiteboards", icon: PenTool },
   { id: "assignments", label: "Assignments", icon: FileText },
+  { id: "quizzes", label: "Quizzes", icon: ListChecks },
   { id: "fee-sheet", label: "Fee Sheet", icon: FileSpreadsheet },
   { id: "messages", label: "Messages", icon: MessageSquare },
 ];
@@ -192,6 +194,7 @@ export const teacherSidebarItems: SidebarItem[] = [
   { id: "recordings", label: "Recorded Classes", icon: Film },
   { id: "worksheet-builder", label: "Worksheet Builder", icon: Sparkles },
   { id: "ai-notetaker", label: "AI Notetaker", icon: NotebookPen },
+  { id: "quiz-maker", label: "Quiz Maker", icon: ListChecks },
   { id: "manage", label: "Manage", icon: ClipboardList },
   { id: "zoom", label: "Zoom", icon: Video },
   { id: "salary", label: "My Salary", icon: DollarSign },

@@ -476,6 +476,177 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_assignments: {
+        Row: {
+          assigned_at: string
+          deleted_at: string | null
+          id: string
+          max_attempts: number | null
+          quiz_id: string
+          student_user_id: string
+          teacher_user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          deleted_at?: string | null
+          id?: string
+          max_attempts?: number | null
+          quiz_id: string
+          student_user_id: string
+          teacher_user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          deleted_at?: string | null
+          id?: string
+          max_attempts?: number | null
+          quiz_id?: string
+          student_user_id?: string
+          teacher_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_assignments_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_attempts: {
+        Row: {
+          answers: Json | null
+          attempt_number: number
+          id: string
+          quiz_assignment_id: string
+          results: Json | null
+          score: number
+          student_user_id: string
+          submitted_at: string
+          total: number
+        }
+        Insert: {
+          answers?: Json | null
+          attempt_number: number
+          id?: string
+          quiz_assignment_id: string
+          results?: Json | null
+          score?: number
+          student_user_id: string
+          submitted_at?: string
+          total?: number
+        }
+        Update: {
+          answers?: Json | null
+          attempt_number?: number
+          id?: string
+          quiz_assignment_id?: string
+          results?: Json | null
+          score?: number
+          student_user_id?: string
+          submitted_at?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_attempts_quiz_assignment_id_fkey"
+            columns: ["quiz_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_questions: {
+        Row: {
+          correct_option: string
+          created_at: string
+          difficulty: string | null
+          explanation: string | null
+          id: string
+          number: number
+          options: Json
+          question: string
+          quiz_id: string
+          topic: string | null
+        }
+        Insert: {
+          correct_option: string
+          created_at?: string
+          difficulty?: string | null
+          explanation?: string | null
+          id?: string
+          number: number
+          options: Json
+          question: string
+          quiz_id: string
+          topic?: string | null
+        }
+        Update: {
+          correct_option?: string
+          created_at?: string
+          difficulty?: string | null
+          explanation?: string | null
+          id?: string
+          number?: number
+          options?: Json
+          question?: string
+          quiz_id?: string
+          topic?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_questions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quizzes: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          grade: string | null
+          id: string
+          instructions: string | null
+          status: string
+          subject: string | null
+          teacher_user_id: string
+          time_limit_minutes: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          grade?: string | null
+          id?: string
+          instructions?: string | null
+          status?: string
+          subject?: string | null
+          teacher_user_id: string
+          time_limit_minutes?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          grade?: string | null
+          id?: string
+          instructions?: string | null
+          status?: string
+          subject?: string | null
+          teacher_user_id?: string
+          time_limit_minutes?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       student_fee_invoice_rows: {
         Row: {
           class_date: string

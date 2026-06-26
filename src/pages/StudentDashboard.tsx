@@ -17,6 +17,7 @@ import { StudentFeeSheet } from "@/components/student/StudentFeeSheet";
 import { StudentAttendanceHistory } from "@/components/student/StudentAttendanceHistory";
 import { StudentNotes } from "@/components/student/StudentNotes";
 import { StudentWhiteboards } from "@/components/student/StudentWhiteboards";
+import { StudentQuizzes } from "@/components/student/StudentQuizzes";
 import { 
   Calendar, 
   Video, 
@@ -438,6 +439,10 @@ const StudentDashboard = () => {
 
         {activeTab === "whiteboards" && (
           <StudentWhiteboards />
+        )}
+
+        {activeTab === "quizzes" && (
+          <StudentQuizzes />
         )}
 
         {activeTab === "assignments" && (
