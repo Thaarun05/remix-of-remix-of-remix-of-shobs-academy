@@ -162,7 +162,7 @@ export function TeacherQuizMaker() {
             .in("quiz_assignment_id", aIds)
             .order("attempt_number", { ascending: true })
         : { data: [] };
-      const studentIds = Array.from(new Set((assignments || []).map((a: any) => a.student_user_id)));
+      const studentIds: string[] = Array.from(new Set((assignments || []).map((a: any) => a.student_user_id as string)));
       const { data: profs } = studentIds.length
         ? await supabase.from("student_profiles").select("user_id, student_name").in("user_id", studentIds)
         : { data: [] };
