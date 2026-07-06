@@ -939,6 +939,19 @@ const TeacherDashboard = () => {
             <DialogDescription>Update the attendance record.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Student</Label>
+              <Select value={editAttendanceForm.student_user_id} onValueChange={(v) => setEditAttendanceForm({ ...editAttendanceForm, student_user_id: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {students.map((s) => (
+                    <SelectItem key={s.user_id} value={s.user_id}>
+                      {s.student_name} {s.grade && `(${s.grade})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Date</Label>
