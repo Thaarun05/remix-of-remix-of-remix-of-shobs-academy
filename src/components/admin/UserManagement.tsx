@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/EmptyState";
@@ -82,6 +83,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
     phone: "",
     grade: "",
     assignedTeacherIds: [] as string[],
+    disabled: false,
   });
 
   const [addTeacherForm, setAddTeacherForm] = useState({
@@ -174,7 +176,17 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
         phone: profile.phone || "",
         grade: studentData?.grade || "",
         assignedTeacherIds: teacherIds,
+        disabled: false,
       });
+      // Fetch current disabled state via update-user (no-op call)
+      supabase.functions
+        .invoke("update-user", { body: { userId: profile.user_id } })
+        .then(({ data }) => {
+          if (data?.disabled === true) {
+            setEditStudentForm((f) => ({ ...f, disabled: true }));
+          }
+        })
+        .catch(() => {});
     }
     
     setIsEditDialogOpen(true);
@@ -272,6 +284,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
         studentName: editStudentForm.studentName,
         grade: editStudentForm.grade,
         assignedTeacherIds: editStudentForm.assignedTeacherIds,
+        disabled: editStudentForm.disabled,
       };
 
       // Only include email/password if provided
