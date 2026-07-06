@@ -294,6 +294,9 @@ export const StudentFeeSheet = () => {
                     attendance: attendanceRecords,
                     teacherName: selectedFee.teacher_name || undefined,
                     createdAt: selectedFee.created_at || undefined,
+                    siblingDiscountPct: selectedFee.sibling_discount_pct != null ? Number(selectedFee.sibling_discount_pct) : undefined,
+                    siblingDiscountAmount: selectedFee.sibling_discount_amount != null ? Number(selectedFee.sibling_discount_amount) : undefined,
+                    finalAmount: selectedFee.final_amount != null ? Number(selectedFee.final_amount) : undefined,
                   });
                 }}
               >
