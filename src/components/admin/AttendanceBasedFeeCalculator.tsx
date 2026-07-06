@@ -422,6 +422,9 @@ export const AttendanceBasedFeeCalculator = () => {
         totalAmount: total,
         attendance: attendanceData,
         createdAt: fee?.created_at ?? undefined,
+        siblingDiscountPct: currentSiblingRow?.final_discount_pct,
+        siblingDiscountAmount: currentSiblingRow?.final_discount_amount,
+        finalAmount: currentSiblingRow?.final_fee,
       });
     } catch (err) {
       console.error("PDF generation failed:", err);
