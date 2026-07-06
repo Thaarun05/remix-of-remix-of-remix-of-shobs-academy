@@ -437,6 +437,8 @@ export const AttendanceBasedFeeCalculator = () => {
     setCalculated(false);
     setEditingFeeId(null);
     setDraftSavedAt(null);
+    setSiblingRows(null);
+    setFamilyInfo(null);
   };
 
   const filteredRecords = showDraftsOnly
