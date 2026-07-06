@@ -254,7 +254,6 @@ export const FamilyManagement = () => {
                 const availableStudents = students.filter(
                   (s) => !fam.some((m) => m.student_user_id === s.user_id && !m.withdrawn_at),
                 );
-                const draft = overrideDraft[f.id] || { pct: "", reason: "" };
                 return (
                   <div key={f.id} className="border rounded-lg p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
@@ -262,16 +261,7 @@ export const FamilyManagement = () => {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold">{f.name}</span>
                           <Badge variant="outline">{active.length} active</Badge>
-                          {f.manual_override_pct != null && (
-                            <Badge className="bg-amber-500/10 text-amber-700 border-amber-500/30">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              Manual override {f.manual_override_pct}%
-                            </Badge>
-                          )}
                         </div>
-                        {f.manual_override_reason && (
-                          <p className="text-xs text-muted-foreground mt-1">Reason: {f.manual_override_reason}</p>
-                        )}
                       </div>
                       <Button variant="ghost" size="sm" className="text-destructive"
                         onClick={() => setConfirmDelete(f)}>
@@ -331,27 +321,6 @@ export const FamilyManagement = () => {
                         <Button size="sm" onClick={() => addMember(f.id)}><Plus className="h-4 w-4" /></Button>
                       </div>
                     )}
-
-                    {/* Manual override */}
-                    <div className="pt-3 border-t">
-                      <p className="text-xs font-semibold text-muted-foreground mb-2">Manual family override (logged)</p>
-                      <div className="grid grid-cols-1 md:grid-cols-[120px_1fr_auto_auto] gap-2 items-end">
-                        <div>
-                          <Label className="text-xs">Discount %</Label>
-                          <Input type="number" min="0" max="100" placeholder="e.g. 12" value={draft.pct}
-                            onChange={(e) => setOverrideDraft((s) => ({ ...s, [f.id]: { ...draft, pct: e.target.value } }))} />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Reason</Label>
-                          <Input placeholder="Reason" value={draft.reason}
-                            onChange={(e) => setOverrideDraft((s) => ({ ...s, [f.id]: { ...draft, reason: e.target.value } }))} />
-                        </div>
-                        <Button size="sm" onClick={() => setOverride(f, false)}>Apply</Button>
-                        {f.manual_override_pct != null && (
-                          <Button size="sm" variant="outline" onClick={() => setOverride(f, true)}>Clear</Button>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 );
               })}
