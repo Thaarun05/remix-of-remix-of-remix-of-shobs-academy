@@ -55,7 +55,7 @@ export const FamilyManagement = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [newFamilyName, setNewFamilyName] = useState("");
+  const [newFamilyStudentId, setNewFamilyStudentId] = useState("");
   const [addingMember, setAddingMember] = useState<Record<string, string>>({});
   const [overrideDraft, setOverrideDraft] = useState<Record<string, { pct: string; reason: string }>>({});
 
@@ -87,11 +87,24 @@ export const FamilyManagement = () => {
   };
 
   const createFamily = async () => {
-    if (!newFamilyName.trim()) return;
-    const { error } = await supabase.from("families").insert({ name: newFamilyName.trim() });
-    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
-    setNewFamilyName("");
-    toast({ title: "Family created" });
+    if (!newFamilyStudentId) return;
+    const student = students.find((s) => s.user_id === newFamilyStudentId);
+    if (!student) return;
+    const { data: fam, error } = await supabase
+      .from("families")
+      .insert({ name: `${student.student_name} Family` })
+      .select("id")
+      .single();
+    if (error || !fam) return toast({ title: "Error", description: error?.message, variant: "destructive" });
+    const { error: memErr } = await supabase
+      .from("family_members")
+      .insert({ family_id: fam.id, student_user_id: newFamilyStudentId });
+    if (memErr && memErr.code !== "23505") {
+      toast({ title: "Family created but student not added", description: memErr.message, variant: "destructive" });
+    } else {
+      toast({ title: "Family created" });
+    }
+    setNewFamilyStudentId("");
     loadAll();
   };
 
@@ -246,9 +259,21 @@ export const FamilyManagement = () => {
         </CardHeader>
         <CardContent>
           <div className="flex gap-2 mb-4">
-            <Input placeholder="e.g. Sharma Family" value={newFamilyName}
-              onChange={(e) => setNewFamilyName(e.target.value)} />
-            <Button onClick={createFamily}><Plus className="h-4 w-4 mr-2" />Add Family</Button>
+            <Select value={newFamilyStudentId} onValueChange={setNewFamilyStudentId}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Select first student..." />
+              </SelectTrigger>
+              <SelectContent>
+                {students
+                  .filter((s) => !Object.values(members).flat().some((m) => m.student_user_id === s.user_id && !m.withdrawn_at))
+                  .map((s) => (
+                    <SelectItem key={s.user_id} value={s.user_id}>{s.student_name}</SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={createFamily} disabled={!newFamilyStudentId}>
+              <Plus className="h-4 w-4 mr-2" />Add Family
+            </Button>
           </div>
 
           {families.length === 0 ? (
