@@ -133,6 +133,7 @@ const TeacherDashboard = () => {
     status: "present" as "present" | "absent",
     hours: "",
     topic: "",
+    student_user_id: "",
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState<{ table: string; id: string; name: string } | null>(null);
