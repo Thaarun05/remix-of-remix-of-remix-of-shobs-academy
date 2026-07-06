@@ -634,6 +634,7 @@ const TeacherDashboard = () => {
       status: record.status as "present" | "absent",
       hours: record.hours?.toString() || "",
       topic: record.topic || "",
+      student_user_id: record.student_user_id,
     });
     setEditAttendanceDialog(true);
   };
