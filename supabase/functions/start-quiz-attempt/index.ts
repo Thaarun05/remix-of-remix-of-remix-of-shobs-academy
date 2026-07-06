@@ -122,6 +122,13 @@ serve(async (req) => {
         time_limit_minutes: quiz.time_limit_minutes,
       },
       questions_meta: qs.map((q: any) => ({ id: q.id, number: q.number, topic: q.topic })),
+      questions_full: qs.map((q: any) => ({
+        id: q.id,
+        number: q.number,
+        topic: q.topic,
+        question: q.question,
+        options: q.options,
+      })),
       active_question_index: activeIdx,
       furthest_question_index: attempt!.furthest_question_index ?? 0,
       active_question: {

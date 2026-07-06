@@ -83,6 +83,7 @@ interface AttemptSession {
   };
   assignment: AssignmentRow;
   questions_meta: QuestionMeta[];
+  questions_full: ActiveQuestion[];
   active_question_index: number;
   furthest_question_index: number;
   active_question: ActiveQuestion;
@@ -90,6 +91,8 @@ interface AttemptSession {
   answers_summary: AnswersSummary;
   time_remaining_seconds: number | null;
   server_synced_at: number;
+  quiz_started_at_local: number;
+  prior_elapsed_seconds: number;
 }
 
 function formatClock(totalSeconds: number): string {
@@ -107,7 +110,6 @@ export function StudentQuizzes() {
 
   const [session, setSession] = useState<AttemptSession | null>(null);
   const [starting, setStarting] = useState(false);
-  const [navigating, setNavigating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   const [result, setResult] = useState<{
@@ -180,12 +182,11 @@ export function StudentQuizzes() {
     // eslint-disable-next-line
   }, [displayedRemaining, session, result]);
 
-  // Derived: stopwatch seconds for the currently active question
+  // Derived: total stopwatch for the whole quiz (elapsed since attempt started)
   const stopwatchSeconds = useMemo(() => {
     if (!session) return 0;
-    const stored = session.answers_summary.time_spent[session.active_question.id] || 0;
-    const local = Math.floor((Date.now() - questionOpenedAt.current) / 1000);
-    return stored + local;
+    const local = Math.floor((Date.now() - session.quiz_started_at_local) / 1000);
+    return session.prior_elapsed_seconds + local;
   }, [session, tick]);
 
   const startQuiz = async (row: AssignmentRow) => {
@@ -209,10 +210,15 @@ export function StudentQuizzes() {
       }
       submittedRef.current = false;
       questionOpenedAt.current = Date.now();
+      const priorElapsed = Object.values(
+        (payload.answers_summary?.time_spent as Record<string, number>) || {},
+      ).reduce((s, v) => s + (v || 0), 0);
       setSession({
         ...payload,
         assignment: row,
         server_synced_at: Date.now(),
+        quiz_started_at_local: Date.now(),
+        prior_elapsed_seconds: priorElapsed,
       });
       setResult(null);
     } catch (e: any) {
@@ -226,47 +232,49 @@ export function StudentQuizzes() {
     }
   };
 
-  const goToIndex = async (target: number) => {
-    if (!session || navigating || submitting) return;
+  const goToIndex = (target: number) => {
+    if (!session || submitting) return;
     if (target === session.active_question_index) return;
     if (target < 0 || target >= session.questions_meta.length) return;
-    setNavigating(true);
-    try {
-      // Flush any pending save first
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = null;
-      }
-      const { data, error } = await supabase.functions.invoke("go-to-question", {
-        body: { attempt_id: session.attempt_id, target_index: target },
+    // Optimistic, instant navigation using preloaded questions
+    const targetQ = session.questions_full[target];
+    if (!targetQ) return;
+    questionOpenedAt.current = Date.now();
+    setSession((prev) =>
+      prev
+        ? {
+            ...prev,
+            active_question_index: target,
+            furthest_question_index: Math.max(prev.furthest_question_index, target),
+            active_question: targetQ,
+            selected_option: prev.answers_summary.selected[targetQ.id] ?? null,
+          }
+        : prev,
+    );
+    // Fire server-side timing sync in background (non-blocking)
+    const attemptId = session.attempt_id;
+    supabase.functions
+      .invoke("go-to-question", {
+        body: { attempt_id: attemptId, target_index: target },
+      })
+      .then(({ data }) => {
+        const payload = data as any;
+        if (!payload || payload.error) return;
+        setSession((prev) => {
+          if (!prev || prev.attempt_id !== attemptId) return prev;
+          // Only refresh timing/answers metadata; do not clobber active question UI
+          return {
+            ...prev,
+            answers_summary: payload.answers_summary ?? prev.answers_summary,
+            time_remaining_seconds:
+              payload.time_remaining_seconds ?? prev.time_remaining_seconds,
+            server_synced_at: Date.now(),
+          };
+        });
+      })
+      .catch(() => {
+        /* silent; navigation already happened */
       });
-      if (error) throw error;
-      const payload = data as any;
-      if (payload?.error) throw new Error(payload.error);
-      questionOpenedAt.current = Date.now();
-      setSession((prev) =>
-        prev
-          ? {
-              ...prev,
-              active_question_index: payload.active_question_index,
-              furthest_question_index: payload.furthest_question_index,
-              active_question: payload.active_question,
-              selected_option: payload.selected_option,
-              answers_summary: payload.answers_summary,
-              time_remaining_seconds: payload.time_remaining_seconds,
-              server_synced_at: Date.now(),
-            }
-          : prev,
-      );
-    } catch (e: any) {
-      toast({
-        title: "Navigation failed",
-        description: e?.message ?? "Try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setNavigating(false);
-    }
   };
 
   const onSelectOption = (option: string) => {
@@ -470,7 +478,7 @@ export function StudentQuizzes() {
                   <button
                     key={qm.id}
                     onClick={() => goToIndex(i)}
-                    disabled={navigating || submitting}
+                    disabled={submitting}
                     className={[
                       "h-8 w-8 rounded-md text-xs font-medium border transition-colors",
                       active
@@ -519,7 +527,7 @@ export function StudentQuizzes() {
               <Button
                 variant="outline"
                 onClick={() => goToIndex(idx - 1)}
-                disabled={idx === 0 || navigating || submitting}
+                disabled={idx === 0 || submitting}
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Previous
@@ -540,7 +548,7 @@ export function StudentQuizzes() {
                   </Button>
                   <Button
                     onClick={() => goToIndex(idx + 1)}
-                    disabled={navigating || submitting}
+                    disabled={submitting}
                     className="dashboard-btn dashboard-btn-student"
                   >
                     Next
