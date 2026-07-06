@@ -1,61 +1,113 @@
-# Interactive Auto-Graded Quizzes (multi-attempt)
+## Sibling Discount Feature
 
-End-to-end MCQ quiz feature: teachers author quizzes (AI-generated from topics + uploads, then editable), publish & assign to students with per-assignment max-attempts (blank = unlimited) and optional time limit, students take in-app with server-side auto-grading, teachers see per-student attempt history.
+Add a sibling-discount layer on top of the existing fee calculators (`AttendanceBasedFeeCalculator` and, where relevant, `FeeSheetCalculator`). Base-fee math is untouched — the discount is applied afterwards and stored as a separate breakdown.
 
-## Part A — Database migration
+---
 
-New migration `supabase/migrations/<ts>_quiz_interactive.sql` as drafted in chat:
+### 1. Data model (migration)
 
-- `public.quizzes` — teacher-owned metadata incl. `time_limit_minutes`, soft-delete, `update_updated_at_column` trigger. RLS: teacher own (`has_role 'teacher'`); admin ALL; student SELECT only if linked via `quiz_assignments` and `deleted_at IS NULL`.
-- `public.quiz_questions` — holds `correct_option` + `explanation`. RLS: teacher manages rows for own quizzes; admin ALL. **No student policy** — answers never reach client; edge functions read via service role.
-- `public.quiz_assignments` — grant row per (quiz, student). `max_attempts INT NULL` (NULL = unlimited), `assigned_at`, `deleted_at`, **UNIQUE(quiz_id, student_user_id)**. RLS: teacher own; admin ALL; student SELECT own. No score/status columns (derived from attempts).
-- `public.quiz_attempts` — one row per submission. `attempt_number`, `answers`, `results`, `score`, `total`, `submitted_at`, UNIQUE(assignment_id, attempt_number). RLS: student SELECT own; teacher SELECT for own assignments; admin ALL. **No INSERT/UPDATE policy** — service role only, so scores cannot be forged.
+New tables (public schema, RLS on, GRANTs to `authenticated` + `service_role`, admin-only policies via `has_role(auth.uid(), 'admin')`):
 
-GRANTs on all four tables to `authenticated` + `service_role` (no anon). Note: anon exclusion is actually enforced by RLS having no anon policies — the explicit GRANTs are cleaner but slightly diverge from the existing notes/assignments migrations (which rely on default privileges). Effectively safe either way.
+- **`families`**
+  - `id uuid pk`, `name text not null` (e.g. "Sharma Family"), `notes text`, `created_at`, `updated_at`, `deleted_at`
 
-## Part B — Edge functions (Deno, `verify_jwt = false`, in-function `auth.getUser()`)
+- **`family_members`**
+  - `id uuid pk`, `family_id uuid fk families`, `student_user_id uuid fk auth.users`
+  - `enrolled_at timestamptz not null default now()` — admin-editable; drives sibling rank
+  - `withdrawn_at timestamptz null` — mid-term withdrawal marker; when set, this student stops receiving discounts from that date onward
+  - `unique(student_user_id) where withdrawn_at is null` (a student is in at most one active family)
 
-All three mirror `generate-notes` (CORS, 429/402 handling). Add each to `supabase/config.toml`.
+- **`sibling_discount_settings`** (singleton row, id=1)
+  - `second_child_pct numeric not null default 10`
+  - `third_plus_pct numeric not null default 15`
+  - `family_cap_pct numeric not null default 18`
+  - `per_student_floor_pct numeric not null default 20`
+  - `updated_by`, `updated_at`
 
-1. **generate-quiz** — Lovable AI Gateway (`openai/gpt-5-mini`, `response_format: json_object`, multimodal `image_url`). Body: `{ subject, grade, topics, count, difficulty, text, images, instructions }`. Returns `{ quiz: { title, subject, grade, instructions, questions:[{number, topic, difficulty, question, options[4], correct_option, explanation}] } }`.
-2. **get-quiz-for-student** — Body `{ quiz_assignment_id }`. Verify caller owns assignment. Count `quiz_attempts`; reject if `max_attempts` set and count ≥ max. Service-role-load quiz + questions, return STUDENT-SAFE payload (no `correct_option`/`explanation`), include `time_limit_minutes`.
-3. **submit-quiz** — Body `{ quiz_assignment_id, answers }`. Verify ownership. `attempt_number = existing + 1`; reject if cap reached. Service-role-load questions, compute `score`/`total`/per-question `results`, INSERT `quiz_attempts`. Insert teacher notification (`type: 'quiz_completed'`, body includes attempt #). Return `{ score, total, results, attempt_number }`.
+New columns on **`student_fees`** (no changes to how `total_amount` is computed today; add breakdown columns):
+- `base_amount numeric` — snapshot of pre-discount fee (= `total_hours * fee_per_hour`)
+- `sibling_discount_pct numeric default 0`
+- `sibling_discount_amount numeric default 0`
+- `final_amount numeric` — `base_amount - sibling_discount_amount` (this becomes the "amount due")
+- `sibling_rank int null`
+- `family_id uuid null` — snapshot at time of invoice
+- `discount_override_pct numeric null` — manual override, per invoice
+- `discount_override_reason text null`
+- `discount_override_by uuid null` (admin user_id)
 
-## Part C — Teacher authoring
+Rationale: `total_amount` stays as the base for backward compat; UI/PDF start reading `final_amount` when present, falling back to `total_amount`.
 
-- `src/components/teacher/TeacherQuizMaker.tsx` + `src/components/teacher/tabs/QuizMakerTab.tsx` (lazy-loaded, wired in `TeacherDashboard.tsx` + sidebar entry `{ id: "quiz-maker", label: "Quiz Maker", icon: ListChecks }`).
-- **Add `quiz-maker` to the "Select Student" card exclusion** in `TeacherDashboard.tsx` (~line 865) — it has its own multi-student selector, so the top card is redundant. Condition becomes `&& activeTab !== "quiz-maker"`.
-- Cloned from `TeacherAiNotetaker.tsx`: Subject/Grade/Topics/Count/Difficulty/Instructions inputs, paste text, upload PDF/PNG/JPG via existing `pdfjs-dist@6.0.227` `extractFromPdf` + `fileToDataUrl` helpers (no new deps, no Vite config touch).
-- Call `generate-quiz`, render editable question list (text, 4 options, correct A–D selector, explanation, add/remove).
-- **Publish**: insert `quizzes` (status `'published'`, include `time_limit_minutes` from form) then bulk-insert `quiz_questions`, using `(supabase as any).from(...)`.
-- **Assign**: multi-select of teacher's students (same dual query as Notetaker: `student_profiles.assigned_teacher_id` + `student_teacher_assignments`). Inputs:
-  - Students (multi)
-  - **Time limit (minutes, blank = none)** — written to `quizzes.time_limit_minutes` at publish (or here if assigning a draft); without this the Part D countdown never fires.
-  - Max attempts (blank = unlimited)
-  - Use `.upsert(rows, { onConflict: 'quiz_id,student_user_id', ignoreDuplicates: false })` so re-assigning the same quiz to a student doesn't error on the UNIQUE constraint — it updates `max_attempts`/`teacher_user_id`/clears `deleted_at`. Insert one `notifications` row per newly assigned student (skip notification when row already existed and nothing changed).
-- **Results view** (second card in same tab): list teacher's quizzes; per quiz show assignments grouped by student with all `quiz_attempts` (attempt #, score/total, date) and best score.
-- Keep optional "Save to Resources" / printable PDF as bonus.
+Also add `manual_override_pct` / `manual_override_reason` / `override_set_by` / `override_set_at` on **`families`** for a family-wide standing override (applies to future cycles until cleared, logged in an audit trail).
 
-## Part D — Student taking
+- **`family_discount_overrides`** (audit log)
+  - `id`, `family_id`, `admin_user_id`, `override_pct numeric null` (null = cleared), `reason text`, `created_at`
 
-- `src/components/student/StudentQuizzes.tsx`. Sidebar entry `{ id: "quizzes", label: "Quizzes", icon: ListChecks }` in `studentSidebarItems`; render `{activeTab === "quizzes" && <StudentQuizzes />}` in `StudentDashboard.tsx`.
-- List: `(supabase as any).from("quiz_assignments").select(..., quizzes(title,subject,grade,time_limit_minutes), quiz_attempts(score,total,attempt_number,submitted_at)).eq("student_user_id", user.id).is("deleted_at", null)`.
-- Per row: attempts used / max, best score, Start/Retake enabled while attempts remain, per-attempt history Review (renders stored `results` jsonb).
-- Taking view: invoke `get-quiz-for-student`, render radio groups (existing `radio-group`). If `time_limit_minutes` set, countdown auto-submits on expiry. Submit invokes `submit-quiz`; results screen colors each question correct/incorrect with explanation.
-- Toasts + `Loader2` + `EmptyState` consistent with the rest of the student dashboard.
+---
 
-## Constraints
+### 2. Discount computation (client-side, in the calculator)
 
-- Answers/explanations never sent pre-submit. No student SELECT on `quiz_questions`. No student/teacher INSERT/UPDATE on `quiz_attempts`.
-- Edge functions auth via Authorization header; service role for privileged reads/writes.
-- Reuse `has_role`, `update_updated_at_column`, existing `notifications` schema, soft-delete via `deleted_at`, `(supabase as any)` casts.
-- No new npm deps; `pdfjs-dist` stays at `6.0.227`.
+Pure helper `src/lib/siblingDiscount.ts`:
 
-## Out of scope
+```text
+input:  [{ student_user_id, base_fee, rank }], settings
+        rank = enrollment order among active (non-withdrawn) family members
+output: [{ student_user_id, base_fee, tier_pct, raw_discount,
+          final_discount_pct, final_discount_amount, final_fee }]
+```
 
-Question banks, proctoring beyond countdown, per-question media, retake-policy UI beyond `max_attempts`.
+Steps (matches spec exactly):
+1. Assign `tier_pct` by rank: rank 1 → 0%, rank 2 → `second_child_pct`, rank ≥3 → `third_plus_pct`.
+2. `raw_discount[i] = base_fee[i] * tier_pct[i] / 100`.
+3. Enforce per-student floor: `capped_i = min(raw_discount[i], base_fee[i] * floor_pct / 100)`.
+4. Enforce family cap: if `sum(capped_i) > sum(base_fee) * family_cap_pct / 100`, scale all `capped_i` down proportionally (`* cap_total / sum(capped_i)`).
+5. Return final numbers + breakdown.
 
-## Files touched
+Family-level manual override (`families.manual_override_pct`) bypasses tier logic: every non-rank-1 member gets exactly that pct (still subject to per-student floor). Logged in `family_discount_overrides` whenever set/changed.
 
-- New: migration; `supabase/functions/generate-quiz/index.ts`, `get-quiz-for-student/index.ts`, `submit-quiz/index.ts`; `src/components/teacher/TeacherQuizMaker.tsx`; `src/components/teacher/tabs/QuizMakerTab.tsx`; `src/components/student/StudentQuizzes.tsx`.
-- Edit: `supabase/config.toml` (3 function blocks); `src/components/dashboard/DashboardSidebar.tsx` (teacher + student items); `src/pages/TeacherDashboard.tsx` (lazy import, render block, exclude `quiz-maker` from Select Student card); `src/pages/StudentDashboard.tsx`.
+Rank computation at calculation time: `ORDER BY enrolled_at ASC` among members where `withdrawn_at IS NULL OR withdrawn_at > invoice_month_end`. Withdrawn students: no discount from the withdrawal date forward; siblings re-rank automatically next cycle. Past invoices are never rewritten (breakdown is snapshotted).
+
+---
+
+### 3. Admin UI
+
+**a. Family management page** — new tab in Admin dashboard "Families"
+- List families with member count + total active members
+- Create family, rename, soft-delete
+- Add/remove students (searchable dropdown, blocked if student is already in another active family)
+- Edit `enrolled_at` per member (default = row creation time, admin can correct)
+- Mark member withdrawn (sets `withdrawn_at`)
+- Family manual-override control: pct + reason (creates audit-log entry; shows badge "Manual override active")
+
+**b. Sibling discount settings** — new section inside the same Families tab (or a small settings card):
+- Editable numeric inputs for `second_child_pct`, `third_plus_pct`, `family_cap_pct`, `per_student_floor_pct` with Save
+
+**c. Fee calculator integration** (`AttendanceBasedFeeCalculator.tsx`)
+- When the selected student belongs to an active family with ≥2 active members, after `handleCalculate`:
+  1. Fetch the family's active siblings + settings (single query).
+  2. Compute each member's would-be base fee for the month using their own attendance × the same rate (or the last saved base for that month if a fee already exists — falls back to just this student when others have no attendance yet).
+  3. Show a "Sibling discount applied" panel under the fee breakdown:
+     - Base fee, Rank (1st/2nd/3rd+), Tier %, Applied discount %, Discount amount, Final fee
+     - Note if family cap or per-student floor was the binding constraint
+     - "Manual override active" badge if applicable
+- `saveFeeRecord` writes the new breakdown columns (`base_amount`, `sibling_discount_pct`, `sibling_discount_amount`, `final_amount`, `sibling_rank`, `family_id`). `total_amount` continues to hold the base (unchanged code path); `final_amount` is what students see as the amount due.
+
+**d. Student fee sheet + PDF**
+- `StudentFeeSheet.tsx` and `feePdfBuilder`: if `sibling_discount_amount > 0`, render an extra breakdown block (Base, Sibling discount −X%, Final). Otherwise unchanged.
+- Notification body uses `final_amount` when present.
+
+Non-family flow is byte-identical to today (all new columns default to 0/null).
+
+---
+
+### 4. Out of scope
+- Auto-detecting families by surname/phone.
+- Retroactive rewrites of past invoices.
+- Applying the discount inside `FeeSheetCalculator` (the older calculator) unless you want that too — I'll wire the breakdown display there as a read-only enhancement but keep authoring in `AttendanceBasedFeeCalculator`.
+
+---
+
+### Technical notes
+- RLS: all new tables admin-only for writes; `authenticated` read allowed on `sibling_discount_settings` and `family_members` filtered to `student_user_id = auth.uid()` so students can see their own family membership (needed if we ever want to show them "Sibling discount applied").
+- Rank is derived, never stored on `family_members`; only snapshotted onto the invoice row (`sibling_rank`).
+- The pure discount helper gets a small unit-testable surface (no DB deps).
+- `student_fees.total_amount` stays as the base so existing queries/reports don't break; new `final_amount` is authoritative for amount-due UI going forward.
