@@ -287,7 +287,8 @@ const drawAttendanceSection = (pdf: PdfDocument, y: number, data: FeeData) => {
 
 const drawSummaryCard = (pdf: jsPDF, y: number, data: FeeData) => {
   const pageWidth = getPageWidth(pdf);
-  const cardHeight = 44;
+  const hasDiscount = (data.siblingDiscountAmount ?? 0) > 0;
+  const cardHeight = hasDiscount ? 64 : 44;
 
   y = ensurePageSpace(pdf, y, cardHeight + PAGE.sectionGap);
 
@@ -304,6 +305,13 @@ const drawSummaryCard = (pdf: jsPDF, y: number, data: FeeData) => {
     { label: "Total Present Hours", value: formatPdfHours(data.totalHours) },
     { label: "Hourly Rate", value: formatPdfCurrency(data.feePerHour) },
   ];
+  if (hasDiscount) {
+    rows.push({ label: "Base Fee", value: formatPdfCurrency(data.totalAmount) });
+    rows.push({
+      label: `Sibling Discount (${(data.siblingDiscountPct ?? 0).toFixed(1)}%)`,
+      value: `- ${formatPdfCurrency(data.siblingDiscountAmount ?? 0)}`,
+    });
+  }
 
   rows.forEach((row) => {
     cursorY += 8;
@@ -323,8 +331,10 @@ const drawSummaryCard = (pdf: jsPDF, y: number, data: FeeData) => {
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(16);
   setTextColor(pdf, COLORS.accent);
-  pdf.text("Total Fee", PAGE.margin + 6, cursorY);
-  pdf.text(formatPdfCurrency(data.totalAmount), pageWidth - PAGE.margin - 6, cursorY, { align: "right" });
+  const finalLabel = hasDiscount ? "Amount Due" : "Total Fee";
+  const finalValue = hasDiscount ? (data.finalAmount ?? data.totalAmount) : data.totalAmount;
+  pdf.text(finalLabel, PAGE.margin + 6, cursorY);
+  pdf.text(formatPdfCurrency(finalValue), pageWidth - PAGE.margin - 6, cursorY, { align: "right" });
 
   return y + cardHeight + PAGE.sectionGap;
 };
