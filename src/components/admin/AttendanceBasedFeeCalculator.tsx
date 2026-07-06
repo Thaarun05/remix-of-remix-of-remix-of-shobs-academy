@@ -104,6 +104,11 @@ export const AttendanceBasedFeeCalculator = () => {
   const [siblingRows, setSiblingRows] = useState<SiblingDiscountRow[] | null>(null);
   const [familyInfo, setFamilyInfo] = useState<{ id: string; name: string; override: number | null } | null>(null);
   const [computingDiscount, setComputingDiscount] = useState(false);
+  const [discountConfirmOpen, setDiscountConfirmOpen] = useState(false);
+  const [pendingDiscount, setPendingDiscount] = useState<{
+    rows: SiblingDiscountRow[];
+    family: { id: string; name: string; override: number | null };
+  } | null>(null);
 
   const currentYear = new Date().getFullYear();
 
@@ -186,17 +191,26 @@ export const AttendanceBasedFeeCalculator = () => {
       return;
     }
     setCalculated(true);
-
-    await computeFamilyDiscount();
-
-    // Auto-save as draft
-    await saveFeeRecord("draft");
-  };
-
-  const computeFamilyDiscount = async () => {
+    // Clear any prior discount so save uses current state
     setSiblingRows(null);
     setFamilyInfo(null);
-    if (!selectedStudentId || !selectedMonth) return;
+
+    const preview = await computeFamilyDiscount();
+    if (preview) {
+      // Ask admin whether to apply the sibling discount
+      setPendingDiscount(preview);
+      setDiscountConfirmOpen(true);
+    } else {
+      // No family → save draft immediately
+      await saveFeeRecord("draft");
+    }
+  };
+
+  const computeFamilyDiscount = async (): Promise<{
+    rows: SiblingDiscountRow[];
+    family: { id: string; name: string; override: number | null };
+  } | null> => {
+    if (!selectedStudentId || !selectedMonth) return null;
     setComputingDiscount(true);
     try {
       const monthIndex = MONTHS.indexOf(selectedMonth);
@@ -210,11 +224,11 @@ export const AttendanceBasedFeeCalculator = () => {
         .eq("student_user_id", selectedStudentId)
         .is("withdrawn_at", null)
         .maybeSingle();
-      if (!myMembership) return;
+      if (!myMembership) return null;
 
       // Load family + active siblings + settings in parallel
       const [{ data: family }, { data: siblings }, { data: settingsRow }, { data: profiles }] = await Promise.all([
-        supabase.from("families").select("id, name, manual_override_pct").eq("id", myMembership.family_id).maybeSingle(),
+        supabase.from("families").select("id, name").eq("id", myMembership.family_id).maybeSingle(),
         supabase
           .from("family_members")
           .select("student_user_id, enrolled_at, withdrawn_at")
@@ -224,7 +238,7 @@ export const AttendanceBasedFeeCalculator = () => {
         supabase.from("sibling_discount_settings").select("*").eq("id", 1).maybeSingle(),
         supabase.from("student_profiles").select("user_id, student_name"),
       ]);
-      if (!family || !siblings || siblings.length < 2 || !settingsRow) return;
+      if (!family || !siblings || siblings.length < 2 || !settingsRow) return null;
 
       const nameById = new Map((profiles || []).map((p) => [p.user_id, p.student_name]));
 
@@ -257,14 +271,33 @@ export const AttendanceBasedFeeCalculator = () => {
       }
 
       const settings: SiblingDiscountSettings = settingsRow;
-      const rows = computeSiblingDiscounts(bases, settings, family.manual_override_pct);
-      setSiblingRows(rows);
-      setFamilyInfo({ id: family.id, name: family.name, override: family.manual_override_pct });
+      const rows = computeSiblingDiscounts(bases, settings, null);
+      const fam = { id: family.id, name: family.name, override: null };
+      return { rows, family: fam };
     } catch (e) {
       console.error("Sibling discount compute failed", e);
+      return null;
     } finally {
       setComputingDiscount(false);
     }
+  };
+
+  const applyDiscountAndSave = async () => {
+    if (!pendingDiscount) return;
+    setSiblingRows(pendingDiscount.rows);
+    setFamilyInfo(pendingDiscount.family);
+    setDiscountConfirmOpen(false);
+    setPendingDiscount(null);
+    // Defer save until state settles
+    setTimeout(() => { void saveFeeRecord("draft"); }, 0);
+  };
+
+  const skipDiscountAndSave = async () => {
+    setSiblingRows(null);
+    setFamilyInfo(null);
+    setDiscountConfirmOpen(false);
+    setPendingDiscount(null);
+    setTimeout(() => { void saveFeeRecord("draft"); }, 0);
   };
 
   const currentSiblingRow = siblingRows?.find((r) => r.student_user_id === selectedStudentId) || null;
@@ -716,6 +749,57 @@ export const AttendanceBasedFeeCalculator = () => {
             <AlertDialogAction onClick={confirmSend} className="bg-emerald-600 hover:bg-emerald-700">
               Send to Student
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Sibling Discount Confirmation Dialog */}
+      <AlertDialog open={discountConfirmOpen} onOpenChange={setDiscountConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apply sibling discount?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  <span className="font-medium">{selectedStudent?.student_name}</span> is part of{" "}
+                  <span className="font-medium">{pendingDiscount?.family.name}</span>.
+                  Apply the sibling discount based on the current settings?
+                </p>
+                {pendingDiscount && (
+                  <div className="rounded-md border bg-muted/30 p-3 text-sm space-y-1">
+                    {pendingDiscount.rows.map((r) => {
+                      const isCurrent = r.student_user_id === selectedStudentId;
+                      return (
+                        <div key={r.student_user_id} className={`flex justify-between ${isCurrent ? "font-semibold text-primary" : ""}`}>
+                          <span>
+                            {r.student_name || r.student_user_id.slice(0, 6)} · {rankSuffix(r.rank)}
+                            {r.tier_pct > 0 ? ` · ${r.tier_pct}% off` : ""}
+                          </span>
+                          <span>
+                            {formatINR(r.base_fee)} → {formatINR(r.final_fee)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {pendingDiscount && (() => {
+                  const cur = pendingDiscount.rows.find((r) => r.student_user_id === selectedStudentId);
+                  if (!cur) return null;
+                  return (
+                    <p className="text-sm">
+                      For <span className="font-medium">{selectedStudent?.student_name}</span>:{" "}
+                      base {formatINR(cur.base_fee)} − discount {formatINR(cur.final_discount_amount)} ={" "}
+                      <span className="font-semibold text-primary">{formatINR(cur.final_fee)}</span>
+                    </p>
+                  );
+                })()}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={skipDiscountAndSave}>Skip discount</AlertDialogCancel>
+            <AlertDialogAction onClick={applyDiscountAndSave}>Apply discount</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
