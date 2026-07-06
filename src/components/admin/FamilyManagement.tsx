@@ -12,16 +12,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Plus, Trash2, Users, Save, UserMinus, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, Trash2, Users, Save, UserMinus } from "lucide-react";
 import { format } from "date-fns";
 
 interface Family {
   id: string;
   name: string;
   notes: string | null;
-  manual_override_pct: number | null;
-  manual_override_reason: string | null;
-  override_set_at: string | null;
 }
 
 interface Member {
@@ -57,7 +54,6 @@ export const FamilyManagement = () => {
 
   const [newFamilyStudentId, setNewFamilyStudentId] = useState("");
   const [addingMember, setAddingMember] = useState<Record<string, string>>({});
-  const [overrideDraft, setOverrideDraft] = useState<Record<string, { pct: string; reason: string }>>({});
 
   const [confirmDelete, setConfirmDelete] = useState<Family | null>(null);
   const [confirmWithdraw, setConfirmWithdraw] = useState<Member | null>(null);
@@ -176,34 +172,6 @@ export const FamilyManagement = () => {
       .eq("id", 1);
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
     toast({ title: "Settings saved" });
-  };
-
-  const setOverride = async (f: Family, clear: boolean) => {
-    const draft = overrideDraft[f.id] || { pct: "", reason: "" };
-    const pct = clear ? null : Number(draft.pct);
-    if (!clear && (isNaN(pct as number) || (pct as number) < 0 || (pct as number) > 100)) {
-      return toast({ title: "Enter a valid % (0-100)", variant: "destructive" });
-    }
-    const nowIso = new Date().toISOString();
-    const { error } = await supabase
-      .from("families")
-      .update({
-        manual_override_pct: pct,
-        manual_override_reason: clear ? null : draft.reason || null,
-        override_set_by: user?.id,
-        override_set_at: nowIso,
-      })
-      .eq("id", f.id);
-    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
-    await supabase.from("family_discount_overrides").insert({
-      family_id: f.id,
-      admin_user_id: user!.id,
-      override_pct: pct,
-      reason: clear ? "Override cleared" : draft.reason || null,
-    });
-    toast({ title: clear ? "Override cleared" : "Override applied" });
-    setOverrideDraft((s) => ({ ...s, [f.id]: { pct: "", reason: "" } }));
-    loadAll();
   };
 
   if (loading) {
