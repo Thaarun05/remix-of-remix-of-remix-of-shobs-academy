@@ -15,6 +15,10 @@ import {
 } from "lucide-react";
 import { format, endOfMonth } from "date-fns";
 import {
+  computeSiblingDiscounts, rankSuffix,
+  type SiblingDiscountRow, type SiblingDiscountSettings, type SiblingMemberInput,
+} from "@/lib/siblingDiscount";
+import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -95,6 +99,11 @@ export const AttendanceBasedFeeCalculator = () => {
 
   // Send confirmation dialog
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
+
+  // Sibling discount
+  const [siblingRows, setSiblingRows] = useState<SiblingDiscountRow[] | null>(null);
+  const [familyInfo, setFamilyInfo] = useState<{ id: string; name: string; override: number | null } | null>(null);
+  const [computingDiscount, setComputingDiscount] = useState(false);
 
   const currentYear = new Date().getFullYear();
 
@@ -178,9 +187,89 @@ export const AttendanceBasedFeeCalculator = () => {
     }
     setCalculated(true);
 
+    await computeFamilyDiscount();
+
     // Auto-save as draft
     await saveFeeRecord("draft");
   };
+
+  const computeFamilyDiscount = async () => {
+    setSiblingRows(null);
+    setFamilyInfo(null);
+    if (!selectedStudentId || !selectedMonth) return;
+    setComputingDiscount(true);
+    try {
+      const monthIndex = MONTHS.indexOf(selectedMonth);
+      const startDate = format(new Date(currentYear, monthIndex, 1), "yyyy-MM-dd");
+      const endDate = format(endOfMonth(new Date(currentYear, monthIndex, 1)), "yyyy-MM-dd");
+
+      // Find this student's active family membership
+      const { data: myMembership } = await supabase
+        .from("family_members")
+        .select("family_id")
+        .eq("student_user_id", selectedStudentId)
+        .is("withdrawn_at", null)
+        .maybeSingle();
+      if (!myMembership) return;
+
+      // Load family + active siblings + settings in parallel
+      const [{ data: family }, { data: siblings }, { data: settingsRow }, { data: profiles }] = await Promise.all([
+        supabase.from("families").select("id, name, manual_override_pct").eq("id", myMembership.family_id).maybeSingle(),
+        supabase
+          .from("family_members")
+          .select("student_user_id, enrolled_at, withdrawn_at")
+          .eq("family_id", myMembership.family_id)
+          .or(`withdrawn_at.is.null,withdrawn_at.gt.${endDate}`)
+          .order("enrolled_at", { ascending: true }),
+        supabase.from("sibling_discount_settings").select("*").eq("id", 1).maybeSingle(),
+        supabase.from("student_profiles").select("user_id, student_name"),
+      ]);
+      if (!family || !siblings || siblings.length < 2 || !settingsRow) return;
+
+      const nameById = new Map((profiles || []).map((p) => [p.user_id, p.student_name]));
+
+      // For each active sibling, compute base fee for the month = present hours * rate.
+      // For the current student, use in-memory attendance (already loaded).
+      const bases: SiblingMemberInput[] = [];
+      for (let i = 0; i < siblings.length; i++) {
+        const sib = siblings[i];
+        let hours = 0;
+        if (sib.student_user_id === selectedStudentId) {
+          hours = totalPresentHours;
+        } else {
+          const { data: att } = await supabase
+            .from("attendance_records")
+            .select("status, hours")
+            .eq("student_user_id", sib.student_user_id)
+            .is("deleted_at", null)
+            .gte("date", startDate)
+            .lte("date", endDate);
+          hours = (att || [])
+            .filter((a) => (a.status || "").toLowerCase() === "present")
+            .reduce((s, a) => s + (Number(a.hours) || 0), 0);
+        }
+        bases.push({
+          student_user_id: sib.student_user_id,
+          student_name: nameById.get(sib.student_user_id) || undefined,
+          base_fee: hours * rate,
+          rank: i + 1,
+        });
+      }
+
+      const settings: SiblingDiscountSettings = settingsRow;
+      const rows = computeSiblingDiscounts(bases, settings, family.manual_override_pct);
+      setSiblingRows(rows);
+      setFamilyInfo({ id: family.id, name: family.name, override: family.manual_override_pct });
+    } catch (e) {
+      console.error("Sibling discount compute failed", e);
+    } finally {
+      setComputingDiscount(false);
+    }
+  };
+
+  const currentSiblingRow = siblingRows?.find((r) => r.student_user_id === selectedStudentId) || null;
+  const displayedFinalFee = currentSiblingRow ? currentSiblingRow.final_fee : totalFee;
+  const displayedDiscountAmount = currentSiblingRow ? currentSiblingRow.final_discount_amount : 0;
 
   const saveFeeRecord = async (status: string) => {
     if (!selectedStudent) return;
@@ -197,6 +286,12 @@ export const AttendanceBasedFeeCalculator = () => {
         total_amount: totalFee,
         student_name: selectedStudent.student_name,
         status,
+        base_amount: totalFee,
+        sibling_discount_pct: currentSiblingRow?.final_discount_pct ?? 0,
+        sibling_discount_amount: currentSiblingRow?.final_discount_amount ?? 0,
+        final_amount: displayedFinalFee,
+        sibling_rank: currentSiblingRow?.rank ?? null,
+        family_id: familyInfo?.id ?? null,
       };
 
       if (editingFeeId) {
@@ -225,7 +320,7 @@ export const AttendanceBasedFeeCalculator = () => {
           sender_id: user!.id,
           type: "fee",
           title: "Fee Sheet Available",
-          body: `Your fee sheet for ${selectedMonth} ${currentYear} is ready. Total: ${formatINR(totalFee)}`,
+          body: `Your fee sheet for ${selectedMonth} ${currentYear} is ready. Total: ${formatINR(displayedFinalFee)}`,
           entity_table: "student_fees",
           entity_id: editingFeeId,
         });
@@ -327,6 +422,9 @@ export const AttendanceBasedFeeCalculator = () => {
         totalAmount: total,
         attendance: attendanceData,
         createdAt: fee?.created_at ?? undefined,
+        siblingDiscountPct: currentSiblingRow?.final_discount_pct,
+        siblingDiscountAmount: currentSiblingRow?.final_discount_amount,
+        finalAmount: currentSiblingRow?.final_fee,
       });
     } catch (err) {
       console.error("PDF generation failed:", err);
@@ -342,6 +440,8 @@ export const AttendanceBasedFeeCalculator = () => {
     setCalculated(false);
     setEditingFeeId(null);
     setDraftSavedAt(null);
+    setSiblingRows(null);
+    setFamilyInfo(null);
   };
 
   const filteredRecords = showDraftsOnly

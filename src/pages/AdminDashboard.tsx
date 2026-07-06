@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { adminSidebarItems } from "@/components/dashboard/DashboardSidebar";
 import { AttendanceBasedFeeCalculator } from "@/components/admin/AttendanceBasedFeeCalculator";
+import { FamilyManagement } from "@/components/admin/FamilyManagement";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { MultiTeacherAssign } from "@/components/admin/MultiTeacherAssign";
 import { WorkSubmissions } from "@/components/admin/WorkSubmissions";
@@ -1125,6 +1126,10 @@ const AdminDashboard = () => {
 
         {activeTab === "fee-sheet" && (
           <AttendanceBasedFeeCalculator />
+        )}
+
+        {activeTab === "families" && (
+          <FamilyManagement />
         )}
 
         {activeTab === "work-submissions" && (

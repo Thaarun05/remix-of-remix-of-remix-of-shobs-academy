@@ -282,6 +282,118 @@ export type Database = {
           },
         ]
       }
+      families: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          manual_override_pct: number | null
+          manual_override_reason: string | null
+          name: string
+          notes: string | null
+          override_set_at: string | null
+          override_set_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          manual_override_pct?: number | null
+          manual_override_reason?: string | null
+          name: string
+          notes?: string | null
+          override_set_at?: string | null
+          override_set_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          manual_override_pct?: number | null
+          manual_override_reason?: string | null
+          name?: string
+          notes?: string | null
+          override_set_at?: string | null
+          override_set_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      family_discount_overrides: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          family_id: string
+          id: string
+          override_pct: number | null
+          reason: string | null
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          family_id: string
+          id?: string
+          override_pct?: number | null
+          reason?: string | null
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          family_id?: string
+          id?: string
+          override_pct?: number | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_discount_overrides_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_members: {
+        Row: {
+          created_at: string
+          enrolled_at: string
+          family_id: string
+          id: string
+          student_user_id: string
+          updated_at: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          enrolled_at?: string
+          family_id: string
+          id?: string
+          student_user_id: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          enrolled_at?: string
+          family_id?: string
+          id?: string
+          student_user_id?: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meet_links: {
         Row: {
           class_label: string | null
@@ -647,6 +759,36 @@ export type Database = {
         }
         Relationships: []
       }
+      sibling_discount_settings: {
+        Row: {
+          family_cap_pct: number
+          id: number
+          per_student_floor_pct: number
+          second_child_pct: number
+          third_plus_pct: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          family_cap_pct?: number
+          id?: number
+          per_student_floor_pct?: number
+          second_child_pct?: number
+          third_plus_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          family_cap_pct?: number
+          id?: number
+          per_student_floor_pct?: number
+          second_child_pct?: number
+          third_plus_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       student_fee_invoice_rows: {
         Row: {
           class_date: string
@@ -736,12 +878,21 @@ export type Database = {
       student_fees: {
         Row: {
           admin_viewed_at: string | null
+          base_amount: number | null
           class_dates: string | null
           created_at: string | null
           deleted_at: string | null
+          discount_override_by: string | null
+          discount_override_pct: number | null
+          discount_override_reason: string | null
+          family_id: string | null
           fee_per_hour: number | null
+          final_amount: number | null
           id: string
           month: string
+          sibling_discount_amount: number | null
+          sibling_discount_pct: number | null
+          sibling_rank: number | null
           status: string | null
           student_ack_status: string | null
           student_id: string
@@ -754,12 +905,21 @@ export type Database = {
         }
         Insert: {
           admin_viewed_at?: string | null
+          base_amount?: number | null
           class_dates?: string | null
           created_at?: string | null
           deleted_at?: string | null
+          discount_override_by?: string | null
+          discount_override_pct?: number | null
+          discount_override_reason?: string | null
+          family_id?: string | null
           fee_per_hour?: number | null
+          final_amount?: number | null
           id?: string
           month: string
+          sibling_discount_amount?: number | null
+          sibling_discount_pct?: number | null
+          sibling_rank?: number | null
           status?: string | null
           student_ack_status?: string | null
           student_id: string
@@ -772,12 +932,21 @@ export type Database = {
         }
         Update: {
           admin_viewed_at?: string | null
+          base_amount?: number | null
           class_dates?: string | null
           created_at?: string | null
           deleted_at?: string | null
+          discount_override_by?: string | null
+          discount_override_pct?: number | null
+          discount_override_reason?: string | null
+          family_id?: string | null
           fee_per_hour?: number | null
+          final_amount?: number | null
           id?: string
           month?: string
+          sibling_discount_amount?: number | null
+          sibling_discount_pct?: number | null
+          sibling_rank?: number | null
           status?: string | null
           student_ack_status?: string | null
           student_id?: string

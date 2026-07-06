@@ -208,6 +208,7 @@ export const adminSidebarItems: SidebarItem[] = [
   { id: "create-student", label: "Create Student", icon: GraduationCap },
   { id: "fee-sheet", label: "Fee Sheet", icon: FileSpreadsheet },
   { id: "fees", label: "Student Fees (Old)", icon: Receipt },
+  { id: "families", label: "Families", icon: Users },
   { id: "salary", label: "Teacher Salary", icon: DollarSign },
   { id: "work-submissions", label: "Work Submissions", icon: ClipboardList },
   { id: "work-done", label: "Work Done", icon: CalendarCheck },

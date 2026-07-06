@@ -15,4 +15,7 @@ export interface FeeData {
   attendance: AttendanceRow[];
   teacherName?: string;
   createdAt?: string;
+  siblingDiscountPct?: number;
+  siblingDiscountAmount?: number;
+  finalAmount?: number;
 }
