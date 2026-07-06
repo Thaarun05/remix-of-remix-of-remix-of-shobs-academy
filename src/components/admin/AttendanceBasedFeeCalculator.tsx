@@ -753,6 +753,57 @@ export const AttendanceBasedFeeCalculator = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Sibling Discount Confirmation Dialog */}
+      <AlertDialog open={discountConfirmOpen} onOpenChange={setDiscountConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apply sibling discount?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  <span className="font-medium">{selectedStudent?.student_name}</span> is part of{" "}
+                  <span className="font-medium">{pendingDiscount?.family.name}</span>.
+                  Apply the sibling discount based on the current settings?
+                </p>
+                {pendingDiscount && (
+                  <div className="rounded-md border bg-muted/30 p-3 text-sm space-y-1">
+                    {pendingDiscount.rows.map((r) => {
+                      const isCurrent = r.student_user_id === selectedStudentId;
+                      return (
+                        <div key={r.student_user_id} className={`flex justify-between ${isCurrent ? "font-semibold text-primary" : ""}`}>
+                          <span>
+                            {r.student_name || r.student_user_id.slice(0, 6)} · {rankSuffix(r.rank)}
+                            {r.tier_pct > 0 ? ` · ${r.tier_pct}% off` : ""}
+                          </span>
+                          <span>
+                            {formatINR(r.base_fee)} → {formatINR(r.final_fee)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {pendingDiscount && (() => {
+                  const cur = pendingDiscount.rows.find((r) => r.student_user_id === selectedStudentId);
+                  if (!cur) return null;
+                  return (
+                    <p className="text-sm">
+                      For <span className="font-medium">{selectedStudent?.student_name}</span>:{" "}
+                      base {formatINR(cur.base_fee)} − discount {formatINR(cur.final_discount_amount)} ={" "}
+                      <span className="font-semibold text-primary">{formatINR(cur.final_fee)}</span>
+                    </p>
+                  );
+                })()}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={skipDiscountAndSave}>Skip discount</AlertDialogCancel>
+            <AlertDialogAction onClick={applyDiscountAndSave}>Apply discount</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
