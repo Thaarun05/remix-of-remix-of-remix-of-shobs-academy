@@ -1128,6 +1128,10 @@ const AdminDashboard = () => {
           <AttendanceBasedFeeCalculator />
         )}
 
+        {activeTab === "families" && (
+          <FamilyManagement />
+        )}
+
         {activeTab === "work-submissions" && (
           <WorkSubmissions />
         )}
