@@ -203,12 +203,28 @@ export const StudentFeeSheet = () => {
                 </p>
               </div>
               <div className="p-4 bg-primary/10 rounded-lg text-center border border-primary/20">
-                <p className="text-sm text-muted-foreground">Total Fee</p>
+                <p className="text-sm text-muted-foreground">Amount Due</p>
                 <p className="text-2xl font-bold text-primary">
-                  {selectedFee.total_amount ? formatINR(selectedFee.total_amount) : "₹0"}
+                  {formatINR(selectedFee.final_amount ?? selectedFee.total_amount ?? 0)}
                 </p>
               </div>
             </div>
+
+            {/* Sibling discount breakdown */}
+            {selectedFee.sibling_discount_amount != null && Number(selectedFee.sibling_discount_amount) > 0 && (
+              <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1 text-sm">
+                <div className="font-semibold text-emerald-700">Sibling discount applied</div>
+                <div className="flex justify-between"><span>Base fee</span><span>{formatINR(Number(selectedFee.base_amount ?? selectedFee.total_amount ?? 0))}</span></div>
+                <div className="flex justify-between">
+                  <span>Discount ({Number(selectedFee.sibling_discount_pct ?? 0).toFixed(1)}%)</span>
+                  <span>− {formatINR(Number(selectedFee.sibling_discount_amount))}</span>
+                </div>
+                <div className="flex justify-between font-semibold">
+                  <span>Final</span>
+                  <span>{formatINR(Number(selectedFee.final_amount ?? selectedFee.total_amount ?? 0))}</span>
+                </div>
+              </div>
+            )}
 
             {/* Attendance Breakdown */}
             <div>
