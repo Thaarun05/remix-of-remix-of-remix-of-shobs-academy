@@ -164,8 +164,9 @@ export function TeacherQuizMaker() {
       const { data: attempts } = aIds.length
         ? await (supabase as any)
             .from("quiz_attempts")
-            .select("id, quiz_assignment_id, attempt_number, score, total, submitted_at")
+            .select("id, quiz_assignment_id, attempt_number, score, total, submitted_at, status, results, total_time_spent_seconds")
             .in("quiz_assignment_id", aIds)
+            .eq("status", "submitted")
             .order("attempt_number", { ascending: true })
         : { data: [] };
       const studentIds: string[] = Array.from(new Set((assignments || []).map((a: any) => a.student_user_id as string)));
