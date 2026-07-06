@@ -628,37 +628,55 @@ export type Database = {
       }
       quiz_attempts: {
         Row: {
+          active_question_index: number
           answers: Json | null
           attempt_number: number
+          furthest_question_index: number
           id: string
+          question_started_at: string | null
           quiz_assignment_id: string
           results: Json | null
-          score: number
+          score: number | null
+          started_at: string | null
+          status: string
           student_user_id: string
-          submitted_at: string
-          total: number
+          submitted_at: string | null
+          total: number | null
+          total_time_spent_seconds: number
         }
         Insert: {
+          active_question_index?: number
           answers?: Json | null
           attempt_number: number
+          furthest_question_index?: number
           id?: string
+          question_started_at?: string | null
           quiz_assignment_id: string
           results?: Json | null
-          score?: number
+          score?: number | null
+          started_at?: string | null
+          status?: string
           student_user_id: string
-          submitted_at?: string
-          total?: number
+          submitted_at?: string | null
+          total?: number | null
+          total_time_spent_seconds?: number
         }
         Update: {
+          active_question_index?: number
           answers?: Json | null
           attempt_number?: number
+          furthest_question_index?: number
           id?: string
+          question_started_at?: string | null
           quiz_assignment_id?: string
           results?: Json | null
-          score?: number
+          score?: number | null
+          started_at?: string | null
+          status?: string
           student_user_id?: string
-          submitted_at?: string
-          total?: number
+          submitted_at?: string | null
+          total?: number | null
+          total_time_spent_seconds?: number
         }
         Relationships: [
           {

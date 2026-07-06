@@ -164,8 +164,9 @@ export function TeacherQuizMaker() {
       const { data: attempts } = aIds.length
         ? await (supabase as any)
             .from("quiz_attempts")
-            .select("id, quiz_assignment_id, attempt_number, score, total, submitted_at")
+            .select("id, quiz_assignment_id, attempt_number, score, total, submitted_at, status, results, total_time_spent_seconds")
             .in("quiz_assignment_id", aIds)
+            .eq("status", "submitted")
             .order("attempt_number", { ascending: true })
         : { data: [] };
       const studentIds: string[] = Array.from(new Set((assignments || []).map((a: any) => a.student_user_id as string)));
@@ -630,8 +631,61 @@ export function TeacherQuizMaker() {
                             </span>
                           </div>
                           {a.attempts.length > 0 && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {a.attempts.map((t: any) => `#${t.attempt_number}: ${t.score}/${t.total} (${new Date(t.submitted_at).toLocaleDateString()})`).join(" · ")}
+                            <div className="mt-1 space-y-2">
+                              {a.attempts.map((t: any) => {
+                                const total = t.total_time_spent_seconds ?? 0;
+                                const mm = Math.floor(total / 60);
+                                const ss = total % 60;
+                                const totalLabel = t.total_time_spent_seconds != null
+                                  ? `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`
+                                  : null;
+                                return (
+                                  <details key={t.id} className="text-xs">
+                                    <summary className="cursor-pointer text-muted-foreground">
+                                      #{t.attempt_number}: {t.score}/{t.total}
+                                      {totalLabel ? ` · ${totalLabel}` : ""}
+                                      {t.submitted_at ? ` · ${new Date(t.submitted_at).toLocaleDateString()}` : ""}
+                                    </summary>
+                                    {Array.isArray(t.results) && t.results.length > 0 && (
+                                      <div className="mt-1 border rounded overflow-hidden">
+                                        <table className="w-full text-[11px]">
+                                          <thead className="bg-muted">
+                                            <tr>
+                                              <th className="text-left px-2 py-1">Q</th>
+                                              <th className="text-left px-2 py-1">Result</th>
+                                              <th className="text-left px-2 py-1">Selected</th>
+                                              <th className="text-left px-2 py-1">Correct</th>
+                                              <th className="text-left px-2 py-1">Time</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {t.results.map((r: any) => {
+                                              const sec = r.time_spent_seconds ?? 0;
+                                              const m = Math.floor(sec / 60);
+                                              const s = sec % 60;
+                                              return (
+                                                <tr key={r.question_id} className="border-t">
+                                                  <td className="px-2 py-1">{r.number}</td>
+                                                  <td className={`px-2 py-1 ${r.is_correct ? "text-success" : "text-destructive"}`}>
+                                                    {r.is_correct ? "✓" : "✗"}
+                                                  </td>
+                                                  <td className="px-2 py-1">{r.selected ?? "—"}</td>
+                                                  <td className="px-2 py-1">{r.correct_option}</td>
+                                                  <td className="px-2 py-1">
+                                                    {r.time_spent_seconds != null
+                                                      ? `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+                                                      : "—"}
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    )}
+                                  </details>
+                                );
+                              })}
                             </div>
                           )}
                         </div>

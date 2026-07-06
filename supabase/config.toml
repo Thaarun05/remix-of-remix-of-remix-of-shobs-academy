@@ -32,3 +32,12 @@ verify_jwt = false
 
 [functions.submit-quiz]
 verify_jwt = false
+
+[functions.start-quiz-attempt]
+verify_jwt = false
+
+[functions.go-to-question]
+verify_jwt = false
+
+[functions.save-answer]
+verify_jwt = false
