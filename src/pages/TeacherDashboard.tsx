@@ -133,6 +133,7 @@ const TeacherDashboard = () => {
     status: "present" as "present" | "absent",
     hours: "",
     topic: "",
+    student_user_id: "",
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState<{ table: string; id: string; name: string } | null>(null);
@@ -633,6 +634,7 @@ const TeacherDashboard = () => {
       status: record.status as "present" | "absent",
       hours: record.hours?.toString() || "",
       topic: record.topic || "",
+      student_user_id: record.student_user_id,
     });
     setEditAttendanceDialog(true);
   };
@@ -640,7 +642,7 @@ const TeacherDashboard = () => {
   const handleUpdateAttendance = async () => {
     if (!editingAttendance || !user) return;
     setSubmitting(true);
-    
+
     try {
       const { error } = await supabase
         .from("attendance_records")
@@ -649,14 +651,15 @@ const TeacherDashboard = () => {
           status: editAttendanceForm.status,
           hours: editAttendanceForm.hours ? parseFloat(editAttendanceForm.hours) : null,
           topic: editAttendanceForm.topic || null,
+          student_user_id: editAttendanceForm.student_user_id,
         })
         .eq("id", editingAttendance.id);
-      
+
       if (error) throw error;
-      
-      // Notify student about updated attendance
+
+      // Notify the currently assigned student about updated attendance
       await supabase.from("notifications").insert({
-        recipient_id: editingAttendance.student_user_id,
+        recipient_id: editAttendanceForm.student_user_id,
         sender_id: user.id,
         type: "attendance",
         title: "Attendance Updated",
@@ -664,7 +667,7 @@ const TeacherDashboard = () => {
         entity_table: "attendance_records",
         entity_id: editingAttendance.id,
       });
-      
+
       toast({ title: "Attendance updated", description: "The student has been notified." });
       setEditAttendanceDialog(false);
       setEditingAttendance(null);
@@ -936,6 +939,19 @@ const TeacherDashboard = () => {
             <DialogDescription>Update the attendance record.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Student</Label>
+              <Select value={editAttendanceForm.student_user_id} onValueChange={(v) => setEditAttendanceForm({ ...editAttendanceForm, student_user_id: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {students.map((s) => (
+                    <SelectItem key={s.user_id} value={s.user_id}>
+                      {s.student_name} {s.grade && `(${s.grade})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Date</Label>
