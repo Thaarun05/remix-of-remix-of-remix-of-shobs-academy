@@ -97,13 +97,24 @@ export async function signOut() {
   try {
     // Use 'local' scope to only clear local session, avoiding 403 if session already invalid
     const { error } = await supabase.auth.signOut({ scope: 'local' });
-    // Don't throw on signout errors - session may already be invalidated
     if (error) {
       console.warn("Sign out warning (non-fatal):", error.message);
     }
   } catch (err) {
-    // Catch any unexpected errors but don't propagate - user intent is to sign out
     console.warn("Sign out error (non-fatal):", err);
+  }
+  // Always purge any lingering Supabase auth tokens from localStorage so
+  // the AuthContext session listener fires SIGNED_OUT and state clears,
+  // even when the server session was already missing.
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith("sb-") || key.startsWith("supabase.auth."))) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // ignore storage access errors
   }
 }
 
