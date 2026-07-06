@@ -31,7 +31,15 @@ export function Navbar({
         title: "Signed out",
         description: "You have been successfully signed out."
       });
-      navigate("/");
+      // Hard redirect to guarantee cached auth state is dropped even if
+      // the Supabase SIGNED_OUT event didn't fire (e.g. session was already
+      // missing on the server).
+      const loginPath =
+        role === "admin" ? "/admin-login"
+        : role === "teacher" ? "/teacher-login"
+        : role === "student" ? "/student-login"
+        : "/";
+      window.location.href = loginPath;
     } catch (error: any) {
       toast({
         title: "Error",
