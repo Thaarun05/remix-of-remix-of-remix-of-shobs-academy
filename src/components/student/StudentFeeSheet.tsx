@@ -22,6 +22,11 @@ interface FeeRecord {
   student_ack_status: string | null;
   created_at: string | null;
   teacher_name: string | null;
+  base_amount?: number | null;
+  sibling_discount_pct?: number | null;
+  sibling_discount_amount?: number | null;
+  final_amount?: number | null;
+  sibling_rank?: number | null;
 }
 
 interface AttendanceRecord {
