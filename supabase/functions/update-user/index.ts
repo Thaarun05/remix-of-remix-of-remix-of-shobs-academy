@@ -21,6 +21,8 @@ interface UpdateUserRequest {
   grade?: string;
   assignedTeacherId?: string;
   assignedTeacherIds?: string[];
+  // Temporarily disable/enable auth account (ban)
+  disabled?: boolean;
 }
 
 serve(async (req) => {
@@ -132,6 +134,23 @@ serve(async (req) => {
         );
       }
       console.log("Auth user updated successfully");
+    }
+
+    // Handle disable/enable (ban/unban) toggle
+    if (typeof body.disabled === "boolean") {
+      const banDuration = body.disabled ? "876000h" : "none";
+      const { error: banError } = await supabaseAdmin.auth.admin.updateUserById(
+        body.userId,
+        { ban_duration: banDuration } as any
+      );
+      if (banError) {
+        console.log("Error toggling account disabled state:", banError);
+        return new Response(
+          JSON.stringify({ error: banError.message }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.log(`Account ${body.disabled ? "disabled" : "enabled"} successfully`);
     }
 
     // Update profiles table
@@ -266,10 +285,24 @@ serve(async (req) => {
 
     console.log("User updated successfully:", body.userId);
 
+    // Fetch current auth user to report disabled status
+    let disabled = false;
+    try {
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(body.userId);
+      const bannedUntil = (userData?.user as any)?.banned_until as string | null | undefined;
+      if (bannedUntil) {
+        const t = new Date(bannedUntil).getTime();
+        disabled = !isNaN(t) && t > Date.now();
+      }
+    } catch (e) {
+      console.log("Could not fetch user ban status:", e);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         message: "User updated successfully",
+        disabled,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
