@@ -566,7 +566,7 @@ export function TeacherAiNotetaker() {
           </div>
 
           <div>
-            <Label>Upload source files (PDF, PNG, JPG — max 20MB each)</Label>
+            <Label>Upload source files</Label>
             <div className="flex items-center gap-2 mt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                 <Upload className="h-4 w-4 mr-2" /> Choose files
