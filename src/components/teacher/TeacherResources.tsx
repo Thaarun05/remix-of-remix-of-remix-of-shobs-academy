@@ -57,8 +57,6 @@ interface Resource {
   uploader_name?: string;
 }
 
-const MAX_SIZE = 50 * 1024 * 1024;
-
 const ALLOWED_EXTS = ["pdf", "ppt", "pptx", "doc", "docx"];
 const ALLOWED_MIMES = [
   "application/pdf",
@@ -185,7 +183,6 @@ export function TeacherResources() {
   };
 
   const validateFile = (file: File): string | null => {
-    if (file.size > MAX_SIZE) return "Maximum file size is 50MB.";
     const ext = file.name.split(".").pop()?.toLowerCase() || "";
     if (!ALLOWED_EXTS.includes(ext)) return "Only PDF, PPT, PPTX, DOC, DOCX files are allowed.";
     if (file.type && !ALLOWED_MIMES.includes(file.type)) {
@@ -371,7 +368,7 @@ export function TeacherResources() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>File * (PDF, PPT, DOC — max 50MB)</Label>
+                <Label>File * (PDF, PPT, DOC)</Label>
                 <div className="flex items-center gap-2">
                   <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                     <Upload className="h-4 w-4 mr-2" />
