@@ -19,7 +19,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.generate-worksheet]
-verify_jwt = false
+verify_jwt = true
+
+[functions.generate-diagram-spec]
+verify_jwt = true
 
 [functions.generate-notes]
 verify_jwt = false
