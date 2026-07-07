@@ -1,102 +1,46 @@
-## Live Quiz-Taking Experience
+# Add Source File Upload to AI Worksheet Builder
 
-Rework the student quiz flow into a one-question-at-a-time, server-timed experience. Teacher creation/editing, quiz tables, and RLS stay untouched.
+Bring the "Upload source files (PDF/PNG/JPG, max 20MB each)" capability into the Worksheet Builder so the AI grounds generated questions in the uploaded material — matching how it already works in the AI Notemaker and Quiz Maker.
 
-CONTEXT:
+## Approach
 
-Currently the student-facing quiz screen likely renders all questions at once. Replace this with a server-driven, one-question-at-a-time interface where the server is the source of truth for timing (never trust client-reported durations), and students can freely revisit and change any answered question before final submission.
+Reuse Quiz Maker's client-side extraction pipeline (`pdfjs-dist` for PDF text + rasterizing image-only pages, base64 for PNG/JPG). It's self-contained inside the component and doesn't rely on any storage bucket — files never leave the browser except as `text` + `images[]` in the edge function call. That matches the Notemaker/Quiz Maker behavior exactly and requires no new storage/RLS.
 
-### 1. Database migration (quiz_attempts)
+## Frontend — `src/components/teacher/TeacherWorksheetBuilder.tsx`
 
-Add columns:
+1. Add state: `files: File[]`, `pastedText: string` (optional, for parity with Quiz Maker), plus a `fileInputRef`.
+2. Copy the `extractFromPdf` and `fileToDataUrl` helpers from `TeacherQuizMaker.tsx` (or lift them to a shared util — see Technical notes).
+3. Add a new "Upload source files (PDF, PNG, JPG — max 20MB each)" section in the generation form, placed directly above the "Generate Worksheet" button (mirrors Quiz Maker's position at the end of the form). Include:
+   - Hidden `<input type="file" multiple accept=".pdf,.png,.jpg,.jpeg">`
+   - "Choose files" outlined button with `Upload` icon + `N file(s)` count
+   - Same removable `Badge` list of selected file names with the `X` icon
+   - Same 20MB / type validation + toast-on-skip behavior
+4. Optionally add a "Paste source text (optional)" textarea above it (parity with Quiz Maker). Flag: include only if the user wants full parity; otherwise stick to files only.
+5. In `handleGenerate`, before invoking `generate-worksheet`:
+   - Loop through `files`, run `extractFromPdf` on PDFs and `fileToDataUrl` on images
+   - Concatenate extracted text; collect image data URLs
+   - Pass `text` and `images` fields in the invoke body alongside existing fields
 
-- `status` text default `'in_progress'` (check: in_progress | submitted | expired)
-- `furthest_question_index` int default 0
-- `active_question_index` int default 0
-- `started_at` timestamptz default now()
-- `question_started_at` timestamptz default now()
-- `total_time_spent_seconds` int default 0
-- Make `submitted_at`, `score`, `total`, `results` nullable (they are only set on submission)
+## Backend — `supabase/functions/generate-worksheet/index.ts`
 
-`answers` jsonb shape becomes: `{ [question_id]: { selected_option: "A"|..|null, time_spent_seconds: int } }`.
+1. Accept new optional fields `text?: string` and `images?: string[]` in the request body.
+2. Build a multimodal `user` message the same way `generate-quiz` does:
+   - Text block includes existing worksheet spec + any pasted/extracted `text`
+   - Append `{ type: "image_url", image_url: { url } }` blocks for each image data URL
+3. Extend the system prompt (small addition, not a rewrite) instructing the model to ground questions in the supplied source material when present, paraphrasing rather than copying — same rule Quiz Maker enforces.
+4. Keep everything else (schema, question types, diagrams, part-questions, difficulty, error handling for 429/402) unchanged.
 
-Add partial unique index to prevent duplicate in-progress attempts per assignment:
-`CREATE UNIQUE INDEX ... ON quiz_attempts(quiz_assignment_id) WHERE status='in_progress';`
+No other Worksheet Builder behavior changes (question types, difficulty, PDF export, preview all stay identical).
 
-Existing rows (all already submitted) get backfilled with `status='submitted'`.
+## Technical notes
 
-### 2. Edge functions
+- No new tables, buckets, RLS, or edge functions — additive only.
+- `extractFromPdf` is duplicated inline in Quiz Maker today. Cleanest option is to lift it into `src/lib/extractSource.ts` and import from both components; acceptable alternative is to duplicate it in Worksheet Builder to keep this change surgical. Recommend lifting to a shared util.
+- Model call remains `openai/gpt-5-mini` via Lovable AI gateway; multimodal input follows the existing Quiz Maker pattern.
+- Existing Notemaker and Quiz Maker upload flows are untouched.
 
-Replace/add functions (all `verify_jwt=false`, validate JWT in-code like existing ones):
+## Build summary will confirm
 
-`**start-quiz-attempt**` — body `{ quiz_assignment_id }`
-
-- Auth + assignment ownership check
-- If `status='in_progress'` attempt exists → resume (return it as-is)
-- Else enforce max_attempts on submitted attempts, insert new attempt (attempt_number = submitted count + 1, active/furthest = 0, timestamps = now)
-- Return: quiz meta, questions list (id, number, topic — no options/answers), active question full payload (options, no correct_option), previously selected option for it, `time_remaining_seconds` (null if untimed), `answers_summary` `{ question_id: selected_option }` for the nav grid
-
-`**go-to-question**` — body `{ attempt_id, target_index }`
-
-- Load attempt, guard status='in_progress', target_index in range
-- Accumulate elapsed = now - question_started_at into `answers[current_qid].time_spent_seconds` (create entry if missing)
-- Set `active_question_index=target_index`, bump `furthest_question_index`, reset `question_started_at=now()`
-- Auto-expire if `time_remaining <= 0`: call submit path instead
-- Return target question payload + previously selected + time_remaining
-
-`**save-answer**` — body `{ attempt_id, question_id, selected_option }`
-
-- Merge into `answers[question_id].selected_option`; preserve existing `time_spent_seconds`
-- No index change, no timer reset
-- Return `{ ok: true, time_remaining_seconds }`
-
-`**submit-quiz**` — body `{ attempt_id }` (replaces existing)
-
-- Accumulate elapsed onto currently-active question
-- Sum all `time_spent_seconds` → `total_time_spent_seconds`
-- Load correct answers, score, build results (question, options, selected, correct_option, is_correct, explanation, time_spent_seconds)
-- Set `status='submitted'`, `submitted_at`, `score`, `total`, `results`
-- Notify teacher (existing behavior)
-- Return `{ score, total, total_time_spent_seconds, results, attempt_number }`
-
-`**get-quiz-for-student**` — remove or leave dormant (student flow now uses start-quiz-attempt).
-
-All timing is derived from `started_at`, `question_started_at`, and server `now()` — client-sent durations are ignored.
-
-Register the four functions in `supabase/config.toml`.
-
-### 3. Frontend — `src/components/student/StudentQuizzes.tsx`
-
-Rewrite the taking flow:
-
-- On "Start": call `start-quiz-attempt`, store `attempt`, `questions` list, current question payload, `answers_summary`, `serverTimeRemaining`, `serverSyncedAt`
-- **Countdown** (only if time limit): derive `displayedRemaining = serverTimeRemaining - (Date.now()-serverSyncedAt)/1000`; tick every second; reconcile on every server response; auto-submit at 0
-- **Stopwatch** (always): seed with stored `time_spent_seconds` for the active question from `answers_summary_full` (extend response to include per-q accumulated seconds), tick up locally while active
-- **Navigation grid**: N numbered buttons; state = answered (filled), unanswered (outline), active (ring). Click → `go-to-question`
-- **Prev / Next** buttons wired to `go-to-question(index±1)`
-- **Options**: radio; on change → local state update + debounced `save-answer` (~400ms) + immediate update of `answers_summary`
-- **Submit Quiz** button in persistent footer; if any unanswered, show AlertDialog "X questions unanswered — submit anyway?"
-- On submit → results screen using returned `results` + `total_time_spent_seconds`
-
-Per-question time on results: show `mm:ss` beside each question. Show total time prominently at top.
-
-Resume-on-refresh: `startQuiz` idempotently reuses in_progress attempt, reopens at `active_question_index`.
-
-### 4. Teacher reporting
-
-In whichever teacher view lists a student's attempts (locate via ripgrep on `quiz_attempts`), add:
-
-- Per-question `time_spent_seconds` column (formatted mm:ss) rendered from `results[i].time_spent_seconds`
-- Total time spent row/badge from `total_time_spent_seconds`
-
-No changes to teacher quiz authoring, publishing, or assignment.
-
-### Out of scope
-
-Quiz/question/assignment schemas, RLS, generate-quiz, teacher creation UI — untouched.
-
-### Technical notes
-
-- Concurrency: use single-row updates keyed by `id` + `status='in_progress'` guard to avoid double-submits.
-- Backward compatibility: existing submitted attempts render fine because new columns are nullable/defaulted; `results` entries without `time_spent_seconds` fall back to "—".
-- All new columns get grants via existing table grants (no new table, so no GRANT block needed — RLS policies already cover student self-access).
+1. Shared client-side pipeline reused (extracted into `src/lib/extractSource.ts`, imported by both).
+2. Upload UI inserted at the bottom of the Worksheet Builder generation form, just above "Generate Worksheet".
+3. Extracted text + image data URLs are passed as `text` and `images` in the `generate-worksheet` invoke body; the edge function forwards them as a multimodal user message so questions are grounded in the source material.
