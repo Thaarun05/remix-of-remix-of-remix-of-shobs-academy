@@ -419,6 +419,32 @@ export function TeacherWorksheetBuilder() {
             />
           </div>
 
+          <div className="space-y-1">
+            <Label>Paste source text (optional)</Label>
+            <Textarea value={pastedText} onChange={(e) => setPastedText(e.target.value)} rows={4} placeholder="Lecture notes, textbook excerpt, etc." />
+          </div>
+
+          <div className="space-y-1">
+            <Label>Upload source files (PDF, PNG, JPG — max 20MB each)</Label>
+            <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg" onChange={handleFileSelect} className="hidden" />
+            <div className="flex items-center gap-3">
+              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-4 w-4 mr-2" />Choose files
+              </Button>
+              <span className="text-sm text-muted-foreground">{files.length} file(s)</span>
+            </div>
+            {files.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {files.map((f, i) => (
+                  <Badge key={i} variant="secondary" className="gap-1">
+                    {f.name}
+                    <button onClick={() => removeFile(i)}><X className="h-3 w-3" /></button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex flex-wrap gap-2 pt-2">
             <Button variant="teacher" onClick={handleGenerate} disabled={loading}>
               {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating your worksheet...</> : <><Sparkles className="h-4 w-4" /> Generate Worksheet</>}
