@@ -425,7 +425,7 @@ export function TeacherWorksheetBuilder() {
           </div>
 
           <div className="space-y-1">
-            <Label>Upload source files (PDF, PNG, JPG — max 20MB each)</Label>
+            <Label>Upload source files</Label>
             <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg" onChange={handleFileSelect} className="hidden" />
             <div className="flex items-center gap-3">
               <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
