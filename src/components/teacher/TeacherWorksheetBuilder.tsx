@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,13 +7,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Download, RefreshCw, AlertTriangle, Upload, X } from "lucide-react";
+import { Loader2, Sparkles, Download, RefreshCw, AlertTriangle, Upload, X, Pencil, Trash2, GripVertical, ArrowUp, ArrowDown, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { extractSourceFiles } from "@/lib/extractSource";
 import shobsLogo from "@/assets/shobs-academy-logo.png";
 import jsPDF from "jspdf";
+import "svg2pdf.js";
 import html2canvas from "html2canvas";
+import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { DiagramRenderer } from "./worksheet/diagrams/DiagramRenderer";
+import { DiagramV2, DiagramKind, validateDiagramSpec } from "@/lib/diagrams/schemas";
 
 interface Question {
   number: number;
@@ -22,19 +32,23 @@ interface Question {
   options?: string[];
   answer?: string;
   parts?: { label: string; prompt: string; marks?: number; answer?: string }[];
-  diagram?: {
-    type: "triangle" | "circle" | "graph_axes" | "right_angle_triangle" | "number_line" | "bar_chart" | "pie_chart" | "geometric_shape";
-    labels?: Record<string, string>;
-    dimensions?: Record<string, string | number>;
-    instructions?: string;
-  };
+  diagram?: DiagramV2;
   marks?: number;
+  difficulty?: "easy" | "medium" | "hard";
+  blooms_level?: "remember" | "understand" | "apply" | "analyze" | "evaluate" | "create";
+  rubric?: string;
   working?: string;
+}
+
+interface WorksheetMetadata {
+  topic_tags: string[];
+  estimated_minutes: number;
 }
 
 interface Worksheet {
   worksheet_title: string;
   instructions: string;
+  metadata?: WorksheetMetadata;
   questions: Question[];
 }
 
@@ -49,14 +63,58 @@ const QUESTION_TYPES = [
 ];
 
 const DIFFICULTY_OPTIONS = [
-  "Easy to Hard",
-  "Hard to Easy",
-  "Medium to Hard",
-  "Medium to Easy",
-  "Easy only",
-  "Hard only",
-  "Medium only",
+  "Easy to Hard", "Hard to Easy", "Medium to Hard", "Medium to Easy",
+  "Easy only", "Hard only", "Medium only",
 ];
+
+const DIAGRAM_KINDS: DiagramKind[] = ["geometry_2d", "coordinate_graph", "number_line"];
+
+// Resolve diagram specs (Pass B) for questions that have diagram description but no valid spec yet.
+async function resolveDiagramSpecs(questions: Question[]): Promise<Question[]> {
+  const jobs: Promise<void>[] = [];
+  const result = questions.map((q) => ({ ...q }));
+  const runJob = async (idx: number) => {
+    const q = result[idx];
+    if (!q.diagram) return;
+    const kind = (q.diagram.kind && DIAGRAM_KINDS.includes(q.diagram.kind as DiagramKind))
+      ? (q.diagram.kind as DiagramKind)
+      : "geometry_2d";
+    // If spec already validates, skip.
+    if (q.diagram.spec) {
+      const check = validateDiagramSpec(kind, q.diagram.spec);
+      if (check.success) { q.diagram = { ...q.diagram, kind, spec: check.data, error: undefined }; return; }
+    }
+    const description = q.diagram.description ?? q.diagram.caption ?? "";
+    let lastSpec: any = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-diagram-spec", {
+          body: { kind, description, question_prompt: q.prompt },
+        });
+        if (error) throw error;
+        lastSpec = (data as any)?.spec;
+        const check = validateDiagramSpec(kind, lastSpec);
+        if (check.success) {
+          q.diagram = { kind, spec: check.data, caption: q.diagram.caption ?? "", description };
+          return;
+        }
+      } catch { /* retry */ }
+    }
+    q.diagram = { kind, spec: null, caption: q.diagram.caption ?? "", description, error: "spec_invalid" };
+  };
+  // Concurrency-capped parallelism
+  const CONCURRENCY = 4;
+  const indices = result.map((_, i) => i).filter((i) => result[i].diagram);
+  let pointer = 0;
+  const workers = Array.from({ length: Math.min(CONCURRENCY, indices.length) }, async () => {
+    while (pointer < indices.length) {
+      const my = pointer++;
+      await runJob(indices[my]);
+    }
+  });
+  await Promise.all(workers);
+  return result;
+}
 
 export function TeacherWorksheetBuilder() {
   const { toast } = useToast();
@@ -74,8 +132,11 @@ export function TeacherWorksheetBuilder() {
   const [pastedText, setPastedText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<null | "student" | "answer">(null);
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
+  const [sourceExcerpt, setSourceExcerpt] = useState<string>(""); // stored for regenerate
+  const [regenIdx, setRegenIdx] = useState<number | null>(null);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
 
   const toggleType = (id: string) => {
     setTypes((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
@@ -83,14 +144,16 @@ export function TeacherWorksheetBuilder() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const list = Array.from(e.target.files || []);
-    const allowed = list.filter((f) => /\.(pdf|png|jpe?g)$/i.test(f.name) && f.size <= 20 * 1024 * 1024);
+    const allowed = list.filter((f) => /\.(pdf|png|jpe?g)$/i.test(f.name));
     if (allowed.length !== list.length) {
-      toast({ title: "Some files skipped", description: "Only PDF / PNG / JPG up to 20MB each.", variant: "destructive" });
+      toast({ title: "Some files skipped", description: "Only PDF / PNG / JPG files supported.", variant: "destructive" });
     }
     setFiles((prev) => [...prev, ...allowed]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
   const removeFile = (i: number) => setFiles((prev) => prev.filter((_, idx) => idx !== i));
+
+  const renumber = (qs: Question[]) => qs.map((q, i) => ({ ...q, number: i + 1 }));
 
   const handleGenerate = async () => {
     if (!subject || !grade || !topic || types.length === 0) {
@@ -101,6 +164,7 @@ export function TeacherWorksheetBuilder() {
     try {
       const { text: extractedText, images } = files.length ? await extractSourceFiles(files) : { text: "", images: [] as string[] };
       const combinedText = [pastedText.trim(), extractedText.trim()].filter(Boolean).join("\n\n");
+      setSourceExcerpt(combinedText);
       const { data, error } = await supabase.functions.invoke("generate-worksheet", {
         body: {
           subject, grade, topic,
@@ -116,13 +180,87 @@ export function TeacherWorksheetBuilder() {
       if ((data as any)?.error) throw new Error((data as any).error);
       const ws = (data as any).worksheet as Worksheet;
       if (!ws?.questions?.length) throw new Error("Generation failed — try a more specific topic.");
-      setWorksheet(ws);
+      // Resolve diagram specs (Pass B) before showing preview.
+      const resolved = await resolveDiagramSpecs(ws.questions);
+      setWorksheet({ ...ws, questions: renumber(resolved) });
       setTimeout(() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     } catch (e: any) {
       toast({ title: "Generation failed", description: e.message ?? "Try a more specific topic.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
+  };
+
+  const regenerateQuestion = async (idx: number) => {
+    if (!worksheet) return;
+    setRegenIdx(idx);
+    try {
+      const target = worksheet.questions[idx];
+      const others = worksheet.questions
+        .filter((_, i) => i !== idx)
+        .map((q) => ({ number: q.number, type: q.type, prompt: q.prompt }));
+      const { data, error } = await supabase.functions.invoke("generate-worksheet", {
+        body: {
+          mode: "regenerate_question",
+          worksheet_title: worksheet.worksheet_title,
+          subject, grade, topic, difficulty,
+          allowed_types: types.map((t) => QUESTION_TYPES.find((q) => q.id === t)?.label ?? t),
+          other_questions_summary: others,
+          target_number: target.number,
+          target_type: target.type,
+          instructions: objective,
+          original_source_excerpt: sourceExcerpt,
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const q = (data as any).question as Question;
+      if (!q) throw new Error("No question returned");
+      let replaced: Question = { ...q, number: target.number };
+      if (replaced.diagram) {
+        const [withSpec] = await resolveDiagramSpecs([replaced]);
+        replaced = withSpec;
+      }
+      setWorksheet((prev) => prev ? { ...prev, questions: prev.questions.map((qq, i) => i === idx ? replaced : qq) } : prev);
+      toast({ title: "Question regenerated" });
+    } catch (e: any) {
+      toast({ title: "Regeneration failed", description: e?.message ?? "Try again.", variant: "destructive" });
+    } finally {
+      setRegenIdx(null);
+    }
+  };
+
+  const deleteQuestion = (idx: number) => {
+    setWorksheet((prev) => prev ? { ...prev, questions: renumber(prev.questions.filter((_, i) => i !== idx)) } : prev);
+  };
+
+  const moveQuestion = (idx: number, dir: -1 | 1) => {
+    setWorksheet((prev) => {
+      if (!prev) return prev;
+      const to = idx + dir;
+      if (to < 0 || to >= prev.questions.length) return prev;
+      return { ...prev, questions: renumber(arrayMove(prev.questions, idx, to)) };
+    });
+  };
+
+  const updateQuestion = (idx: number, patch: Partial<Question>) => {
+    setWorksheet((prev) => prev ? { ...prev, questions: prev.questions.map((q, i) => i === idx ? { ...q, ...patch } : q) } : prev);
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setWorksheet((prev) => {
+      if (!prev) return prev;
+      const oldIdx = prev.questions.findIndex((q) => String(q.number) === String(active.id));
+      const newIdx = prev.questions.findIndex((q) => String(q.number) === String(over.id));
+      if (oldIdx < 0 || newIdx < 0) return prev;
+      return { ...prev, questions: renumber(arrayMove(prev.questions, oldIdx, newIdx)) };
+    });
   };
 
   const urlToDataUrl = async (url: string): Promise<string | null> => {
@@ -140,9 +278,9 @@ export function TeacherWorksheetBuilder() {
     }
   };
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = async (includeAnswers: boolean) => {
     if (!worksheet || downloading) return;
-    setDownloading(true);
+    setDownloading(includeAnswers ? "answer" : "student");
     try {
       const pdf = new jsPDF("p", "mm", "a4");
       const pageW = 210;
@@ -154,10 +292,7 @@ export function TeacherWorksheetBuilder() {
       let y = marginTop;
 
       const ensureSpace = (h: number) => {
-        if (y + h > pageH - marginBottom) {
-          pdf.addPage();
-          y = marginTop;
-        }
+        if (y + h > pageH - marginBottom) { pdf.addPage(); y = marginTop; }
       };
 
       const writeWrapped = (
@@ -180,11 +315,9 @@ export function TeacherWorksheetBuilder() {
         }
       };
 
-      // Header with logo
+      // Header
       const logoData = await urlToDataUrl(shobsLogo);
-      if (logoData) {
-        try { pdf.addImage(logoData, "PNG", marginX, y, 18, 18); } catch {}
-      }
+      if (logoData) { try { pdf.addImage(logoData, "PNG", marginX, y, 18, 18); } catch { /* noop */ } }
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(18);
       pdf.text("SHOBS ACADEMY", pageW - marginX, y + 11, { align: "right" });
@@ -194,18 +327,14 @@ export function TeacherWorksheetBuilder() {
       pdf.line(marginX, y, pageW - marginX, y);
       y += 6;
 
-      // Title
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(16);
-      const titleLines = pdf.splitTextToSize(worksheet.worksheet_title || "Worksheet", contentW);
-      for (const ln of titleLines) {
-        ensureSpace(8);
-        pdf.text(ln, pageW / 2, y, { align: "center" });
-        y += 7;
-      }
+      const title = worksheet.worksheet_title || "Worksheet";
+      const suffix = includeAnswers ? " — Answer Key" : "";
+      const titleLines = pdf.splitTextToSize(title + suffix, contentW);
+      for (const ln of titleLines) { ensureSpace(8); pdf.text(ln, pageW / 2, y, { align: "center" }); y += 7; }
       y += 2;
 
-      // Student info row
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(10);
       const infoY = y;
@@ -214,7 +343,6 @@ export function TeacherWorksheetBuilder() {
       pdf.text("Grade: __________", marginX + 140, infoY);
       y += 8;
 
-      // Instructions
       if (worksheet.instructions) {
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(10);
@@ -225,22 +353,35 @@ export function TeacherWorksheetBuilder() {
         y += 2;
       }
 
-      // Diagram rasterizer (small per-element JPEG)
-      const rasterizeDiagram = async (num: number): Promise<{ data: string; w: number; h: number } | null> => {
-        const el = docRef.current?.querySelector(`[data-diagram-q="${num}"]`) as HTMLElement | null;
-        if (!el) return null;
+      const embedDiagram = async (num: number) => {
+        const svg = docRef.current?.querySelector(`[data-diagram-q="${num}"] svg`) as SVGSVGElement | null;
+        if (!svg) return;
+        const maxW = Math.min(120, contentW);
+        const vb = svg.viewBox?.baseVal;
+        const ratio = vb && vb.width ? vb.height / vb.width : 0.66;
+        const drawH = maxW * ratio;
+        ensureSpace(drawH + 4);
         try {
-          const canvas = await html2canvas(el, { scale: 1.5, backgroundColor: "#ffffff", logging: false });
-          const data = canvas.toDataURL("image/jpeg", 0.7);
-          const ratio = canvas.height / canvas.width;
-          const wMm = Math.min(90, contentW);
-          return { data, w: wMm, h: wMm * ratio };
+          // svg2pdf plugs into jsPDF prototype
+          await (pdf as any).svg(svg, { x: marginX + 6, y, width: maxW, height: drawH });
+          y += drawH + 3;
+          return;
         } catch {
-          return null;
+          // fallback: rasterize with html2canvas
+          const host = docRef.current?.querySelector(`[data-diagram-q="${num}"]`) as HTMLElement | null;
+          if (!host) return;
+          try {
+            const canvas = await html2canvas(host, { scale: 2, backgroundColor: "#ffffff", logging: false });
+            const data = canvas.toDataURL("image/jpeg", 0.85);
+            const wMm = maxW;
+            const hMm = wMm * (canvas.height / canvas.width);
+            ensureSpace(hMm + 4);
+            pdf.addImage(data, "JPEG", marginX + 6, y, wMm, hMm);
+            y += hMm + 3;
+          } catch { /* noop */ }
         }
       };
 
-      // Questions
       for (const q of worksheet.questions) {
         y += 2;
         const marks = typeof q.marks === "number" && q.marks > 0 ? ` [${q.marks} mark${q.marks === 1 ? "" : "s"}]` : "";
@@ -249,67 +390,54 @@ export function TeacherWorksheetBuilder() {
         if (q.type === "mcq" && q.options?.length) {
           for (const opt of q.options) writeWrapped(opt, { size: 10, indent: 8 });
         }
-
-        if (q.type === "true_false") {
-          writeWrapped("◯ True     ◯ False", { size: 10, indent: 8 });
-        }
-
-        if (q.type === "short_answer" || q.type === "numerical") {
+        if (q.type === "true_false") writeWrapped("◯ True     ◯ False", { size: 10, indent: 8 });
+        if (!includeAnswers && (q.type === "short_answer" || q.type === "numerical")) {
           const lines = q.type === "short_answer" ? 3 : 2;
           for (let i = 0; i < lines; i++) {
-            ensureSpace(8);
-            y += 5;
-            pdf.setDrawColor(80);
-            pdf.setLineWidth(0.2);
+            ensureSpace(8); y += 5;
+            pdf.setDrawColor(80); pdf.setLineWidth(0.2);
             pdf.line(marginX, y, pageW - marginX, y);
           }
           y += 3;
         }
-
-        if (q.type === "fill_blank") {
-          y += 1;
-        }
-
         if (q.type === "part_question" && q.parts?.length) {
           for (const p of q.parts) {
             const pm = typeof p.marks === "number" && p.marks > 0 ? ` [${p.marks} mark${p.marks === 1 ? "" : "s"}]` : "";
             writeWrapped(`(${p.label}) ${p.prompt}${pm}`, { size: 10, indent: 6 });
-            for (let i = 0; i < 2; i++) {
-              ensureSpace(7);
-              y += 5;
-              pdf.setDrawColor(80);
-              pdf.setLineWidth(0.2);
-              pdf.line(marginX + 6, y, pageW - marginX, y);
+            if (!includeAnswers) {
+              for (let i = 0; i < 2; i++) {
+                ensureSpace(7); y += 5;
+                pdf.setDrawColor(80); pdf.setLineWidth(0.2);
+                pdf.line(marginX + 6, y, pageW - marginX, y);
+              }
+              y += 2;
+            } else if (p.answer) {
+              writeWrapped(`Answer: ${p.answer}`, { size: 10, indent: 10, style: "italic" });
             }
-            y += 2;
           }
         }
+        if (q.diagram && q.diagram.spec) await embedDiagram(q.number);
 
-        if (q.diagram) {
-          const img = await rasterizeDiagram(q.number);
-          if (img) {
-            ensureSpace(img.h + 6);
-            y += 2;
-            pdf.addImage(img.data, "JPEG", marginX + 6, y, img.w, img.h);
-            y += img.h + 2;
+        if (includeAnswers) {
+          if (q.answer) {
+            let ans = q.answer;
+            if (q.type === "mcq" && q.options?.length) {
+              // If answer is a letter, append full option
+              const m = q.answer.trim().match(/^[A-D]$/i);
+              if (m) {
+                const letter = q.answer.trim().toUpperCase();
+                const opt = q.options.find((o) => o.trim().toUpperCase().startsWith(`${letter})`));
+                if (opt) ans = `${letter} — ${opt.replace(/^[A-D]\)\s*/i, "")}`;
+              }
+            }
+            writeWrapped(`Answer: ${ans}`, { size: 10, style: "italic", indent: 4 });
           }
-          if (q.diagram.instructions) {
-            writeWrapped(q.diagram.instructions, { size: 9, style: "italic", indent: 6 });
-          }
-          for (let i = 0; i < 2; i++) {
-            ensureSpace(7);
-            y += 5;
-            pdf.setDrawColor(80);
-            pdf.setLineWidth(0.2);
-            pdf.line(marginX, y, pageW - marginX, y);
-          }
-          y += 2;
+          if (q.working) writeWrapped(`Working: ${q.working}`, { size: 10, indent: 4 });
+          if (q.rubric) writeWrapped(`Rubric: ${q.rubric}`, { size: 10, style: "italic", indent: 4 });
         }
-
         y += 2;
       }
 
-      // Footer with page numbers
       const total = pdf.getNumberOfPages();
       for (let i = 1; i <= total; i++) {
         pdf.setPage(i);
@@ -318,35 +446,29 @@ export function TeacherWorksheetBuilder() {
         pdf.setTextColor(110);
         pdf.text(
           `Shobs Academy | For internal use only | Generated: ${today}   |   Page ${i} of ${total}`,
-          pageW / 2,
-          pageH - 8,
-          { align: "center" }
+          pageW / 2, pageH - 8, { align: "center" }
         );
         pdf.setTextColor(0);
       }
 
       const safeTitle = (worksheet.worksheet_title || "worksheet").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-      pdf.save(`shobs-academy-${safeTitle}.pdf`);
-      toast({ title: "Download started", description: "Your worksheet PDF has been saved." });
+      const filename = `shobs-academy-${safeTitle}${includeAnswers ? "-answer-key" : ""}.pdf`;
+      pdf.save(filename);
+      toast({ title: "Download started", description: `${includeAnswers ? "Answer key" : "Student"} PDF has been saved.` });
     } catch (e: any) {
       toast({ title: "Download failed", description: e?.message ?? "Could not generate PDF.", variant: "destructive" });
     } finally {
-      setDownloading(false);
+      setDownloading(null);
     }
   };
 
   const today = new Date().toLocaleDateString();
+  const sortableIds = useMemo(() => (worksheet?.questions ?? []).map((q) => String(q.number)), [worksheet]);
 
   return (
     <div className="space-y-6">
       <style>{`
-        .worksheet-doc {
-          background: white;
-          color: #111;
-          padding: 48px 56px;
-          font-family: Georgia, 'Times New Roman', serif;
-          line-height: 1.5;
-        }
+        .worksheet-doc { background: white; color: #111; padding: 48px 56px; font-family: Georgia, 'Times New Roman', serif; line-height: 1.5; }
         .worksheet-doc h1, .worksheet-doc h2, .worksheet-doc h3, .worksheet-doc p { color: #111; }
       `}</style>
 
@@ -359,40 +481,20 @@ export function TeacherWorksheetBuilder() {
           <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
             <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
             <p className="text-amber-900 dark:text-amber-200">
-              <strong>*</strong> Please do not change tabs or close your system while the worksheet is being created. Generation can take up to 30 seconds.
+              <strong>*</strong> Please do not change tabs or close your system while the worksheet is being created. Generation can take up to 45 seconds (includes diagram spec generation).
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Subject</Label>
-              <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Mathematics" />
-            </div>
-            <div>
-              <Label>Grade / Year group</Label>
-              <Input value={grade} onChange={(e) => setGrade(e.target.value)} placeholder="e.g. Grade 5" />
-            </div>
-            <div className="md:col-span-2">
-              <Label>Topic</Label>
-              <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Fractions, Photosynthesis" />
-            </div>
-            <div>
-              <Label>Number of questions</Label>
-              <Input
-                type="number"
-                min={1}
-                value={count}
-                onChange={(e) => setCount(e.target.value)}
-                placeholder="e.g. 10"
-              />
-            </div>
+            <div><Label>Subject</Label><Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Mathematics" /></div>
+            <div><Label>Grade / Year group</Label><Input value={grade} onChange={(e) => setGrade(e.target.value)} placeholder="e.g. Grade 5" /></div>
+            <div className="md:col-span-2"><Label>Topic</Label><Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Fractions, Photosynthesis" /></div>
+            <div><Label>Number of questions</Label><Input type="number" min={1} value={count} onChange={(e) => setCount(e.target.value)} placeholder="e.g. 10" /></div>
             <div>
               <Label>Difficulty</Label>
               <Select value={difficulty} onValueChange={setDifficulty}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {DIFFICULTY_OPTIONS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                </SelectContent>
+                <SelectContent>{DIFFICULTY_OPTIONS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
@@ -411,12 +513,9 @@ export function TeacherWorksheetBuilder() {
 
           <div>
             <Label>Question Instructions</Label>
-            <Textarea
-              value={objective}
-              onChange={(e) => setObjective(e.target.value)}
-              placeholder="Describe exactly what type of questions you need — e.g. include step-by-step workings, part marks like (a)(b)(c), diagrams for triangles, label the diagram, show construction lines..."
-              rows={5}
-            />
+            <Textarea value={objective} onChange={(e) => setObjective(e.target.value)}
+              placeholder="Describe exactly what type of questions you need — e.g. include step-by-step workings, part marks like (a)(b)(c), diagrams for triangles, label the diagram..."
+              rows={5} />
           </div>
 
           <div className="space-y-1">
@@ -452,10 +551,13 @@ export function TeacherWorksheetBuilder() {
             {worksheet && (
               <>
                 <Button variant="outline" onClick={handleGenerate} disabled={loading}>
-                  <RefreshCw className="h-4 w-4" /> Regenerate
+                  <RefreshCw className="h-4 w-4" /> Regenerate All
                 </Button>
-                <Button variant="outline" onClick={handleDownloadPDF} disabled={downloading || loading}>
-                  {downloading ? <><Loader2 className="h-4 w-4 animate-spin" /> Preparing PDF...</> : <><Download className="h-4 w-4" /> Download PDF</>}
+                <Button variant="outline" onClick={() => handleDownloadPDF(false)} disabled={!!downloading || loading}>
+                  {downloading === "student" ? <><Loader2 className="h-4 w-4 animate-spin" /> Preparing...</> : <><Download className="h-4 w-4" /> Download Student PDF</>}
+                </Button>
+                <Button variant="outline" onClick={() => handleDownloadPDF(true)} disabled={!!downloading || loading}>
+                  {downloading === "answer" ? <><Loader2 className="h-4 w-4 animate-spin" /> Preparing...</> : <><Download className="h-4 w-4" /> Download Answer Key PDF</>}
                 </Button>
               </>
             )}
@@ -470,88 +572,44 @@ export function TeacherWorksheetBuilder() {
           <Card className="overflow-hidden">
             <CardContent className="p-0">
               <div ref={docRef} className="worksheet-doc">
-                {/* Header */}
                 <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-6">
                   <img src={shobsLogo} alt="Shobs Academy" className="h-16 w-auto" />
                   <div className="text-2xl font-bold tracking-wide">SHOBS ACADEMY</div>
                 </div>
-
-                {/* Title */}
                 <h1 className="text-center text-2xl font-bold mb-4">{worksheet.worksheet_title}</h1>
-
-                {/* Student info */}
                 <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm mb-4">
                   <span>Name: __________________________</span>
                   <span>Date: ________________</span>
                   <span>Grade: ____________</span>
                 </div>
-
-                {/* Instructions */}
                 <div className="mb-6 italic text-sm">
                   <strong className="not-italic">Instructions: </strong>{worksheet.instructions}
                 </div>
 
-                {/* Questions */}
-                <ol className="space-y-5 list-none p-0">
-                  {worksheet.questions.map((q) => (
-                    <li key={q.number} className="break-inside-avoid">
-                      <div className="font-medium mb-1 flex justify-between gap-4">
-                        <span>{q.number}. {q.prompt}</span>
-                        {typeof q.marks === "number" && q.marks > 0 && (
-                          <span className="text-xs whitespace-nowrap">[{q.marks} mark{q.marks === 1 ? "" : "s"}]</span>
-                        )}
-                      </div>
-                      {q.type === "mcq" && q.options && (
-                        <div className="ml-6 space-y-1 text-sm">
-                          {q.options.map((opt, i) => <div key={i}>{opt}</div>)}
-                        </div>
-                      )}
-                      {(q.type === "short_answer" || q.type === "numerical") && (
-                        <div className="mt-2 space-y-4">
-                          <div className="border-b border-black/60 h-5" />
-                          <div className="border-b border-black/60 h-5" />
-                          {q.type === "short_answer" && <div className="border-b border-black/60 h-5" />}
-                        </div>
-                      )}
-                      {q.type === "true_false" && (
-                        <div className="ml-6 text-sm mt-1">◯ True &nbsp;&nbsp; ◯ False</div>
-                      )}
-                      {q.type === "part_question" && q.parts && q.parts.length > 0 && (
-                        <ol className="ml-6 mt-2 space-y-3 list-none p-0">
-                          {q.parts.map((p, i) => (
-                            <li key={i}>
-                              <div className="text-sm flex justify-between gap-4">
-                                <span>({p.label}) {p.prompt}</span>
-                                {typeof p.marks === "number" && p.marks > 0 && (
-                                  <span className="text-xs whitespace-nowrap">[{p.marks} mark{p.marks === 1 ? "" : "s"}]</span>
-                                )}
-                              </div>
-                              <div className="mt-2 space-y-3">
-                                <div className="border-b border-black/60 h-5" />
-                                <div className="border-b border-black/60 h-5" />
-                              </div>
-                            </li>
-                          ))}
-                        </ol>
-                      )}
-                      {q.diagram && (
-                        <div data-diagram-q={q.number} className="mt-3 border-2 border-dashed border-black/60 p-3">
-                          <div className="text-xs font-semibold mb-2 uppercase tracking-wide">Figure</div>
-                          <DiagramSVG diagram={q.diagram} />
-                          {q.diagram.instructions && (
-                            <div className="text-xs italic mt-2">{q.diagram.instructions}</div>
-                          )}
-                          <div className="mt-3 space-y-3">
-                            <div className="border-b border-black/40 h-5" />
-                            <div className="border-b border-black/40 h-5" />
-                          </div>
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ol>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+                    <ol className="space-y-5 list-none p-0">
+                      {worksheet.questions.map((q, idx) => (
+                        <SortableQuestion
+                          key={q.number}
+                          id={String(q.number)}
+                          q={q}
+                          idx={idx}
+                          total={worksheet.questions.length}
+                          editing={editingIdx === idx}
+                          regenerating={regenIdx === idx}
+                          onEditToggle={() => setEditingIdx((v) => v === idx ? null : idx)}
+                          onSave={(patch) => { updateQuestion(idx, patch); setEditingIdx(null); }}
+                          onDelete={() => deleteQuestion(idx)}
+                          onRegenerate={() => regenerateQuestion(idx)}
+                          onMoveUp={() => moveQuestion(idx, -1)}
+                          onMoveDown={() => moveQuestion(idx, 1)}
+                        />
+                      ))}
+                    </ol>
+                  </SortableContext>
+                </DndContext>
 
-                {/* Footer */}
                 <div className="mt-12 pt-3 border-t border-black text-center text-xs">
                   Shobs Academy | For internal use only | Generated: {today}
                 </div>
@@ -564,165 +622,171 @@ export function TeacherWorksheetBuilder() {
   );
 }
 
-function DiagramSVG({ diagram }: { diagram: NonNullable<Question["diagram"]> }) {
-  const labels = diagram.labels ?? {};
-  const dims = diagram.dimensions ?? {};
-  const stroke = "#111";
-  const common = { stroke, fill: "none", strokeWidth: 1.5 } as const;
-  const textStyle: React.CSSProperties = { fontFamily: "Georgia, serif", fontSize: 12, fill: "#111" };
+function SortableQuestion({ id, q, idx, total, editing, regenerating, onEditToggle, onSave, onDelete, onRegenerate, onMoveUp, onMoveDown }: {
+  id: string;
+  q: Question;
+  idx: number;
+  total: number;
+  editing: boolean;
+  regenerating: boolean;
+  onEditToggle: () => void;
+  onSave: (patch: Partial<Question>) => void;
+  onDelete: () => void;
+  onRegenerate: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
 
-  const W = 320, H = 220;
+  const [draftPrompt, setDraftPrompt] = useState(q.prompt);
+  const [draftAnswer, setDraftAnswer] = useState(q.answer ?? "");
+  const [draftOptions, setDraftOptions] = useState<string[]>(q.options ?? []);
+  const [draftWorking, setDraftWorking] = useState(q.working ?? "");
+  const [draftParts, setDraftParts] = useState(q.parts ?? []);
 
-  if (diagram.type === "right_angle_triangle") {
-    const a = String(labels.a ?? dims.a ?? "a");
-    const b = String(labels.b ?? dims.b ?? "b");
-    const c = String(labels.c ?? dims.c ?? "c");
-    return (
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
-        <polygon points="40,180 280,180 40,40" {...common} />
-        <rect x="40" y="165" width="15" height="15" {...common} />
-        <text x="160" y="200" textAnchor="middle" style={textStyle}>{b}</text>
-        <text x="25" y="115" textAnchor="middle" style={textStyle}>{a}</text>
-        <text x="170" y="100" textAnchor="middle" style={textStyle}>{c}</text>
-      </svg>
-    );
-  }
+  // Re-sync drafts when opening edit mode
+  const openEdit = () => {
+    setDraftPrompt(q.prompt);
+    setDraftAnswer(q.answer ?? "");
+    setDraftOptions(q.options ?? []);
+    setDraftWorking(q.working ?? "");
+    setDraftParts(q.parts ?? []);
+    onEditToggle();
+  };
 
-  if (diagram.type === "triangle") {
-    const A = String(labels.A ?? "A");
-    const B = String(labels.B ?? "B");
-    const C = String(labels.C ?? "C");
-    return (
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
-        <polygon points="160,30 40,190 280,190" {...common} />
-        <text x="160" y="22" textAnchor="middle" style={textStyle}>{A}</text>
-        <text x="30" y="200" textAnchor="middle" style={textStyle}>{B}</text>
-        <text x="290" y="200" textAnchor="middle" style={textStyle}>{C}</text>
-      </svg>
-    );
-  }
-
-  if (diagram.type === "circle") {
-    const r = String(labels.radius ?? dims.radius ?? "r");
-    const center = String(labels.center ?? "O");
-    return (
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
-        <circle cx={W / 2} cy={H / 2} r={80} {...common} />
-        <line x1={W / 2} y1={H / 2} x2={W / 2 + 80} y2={H / 2} {...common} />
-        <circle cx={W / 2} cy={H / 2} r={2} fill={stroke} />
-        <text x={W / 2 - 8} y={H / 2 - 6} style={textStyle}>{center}</text>
-        <text x={W / 2 + 40} y={H / 2 - 6} textAnchor="middle" style={textStyle}>{r}</text>
-      </svg>
-    );
-  }
-
-  if (diagram.type === "graph_axes") {
-    const xLabel = String(labels.x ?? "x");
-    const yLabel = String(labels.y ?? "y");
-    return (
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
-        <defs>
-          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
-            <path d="M0,0 L6,4 L0,8" fill={stroke} />
-          </marker>
-        </defs>
-        <line x1="20" y1={H - 30} x2={W - 20} y2={H - 30} {...common} markerEnd="url(#arr)" />
-        <line x1="40" y1={H - 10} x2="40" y2="20" {...common} markerEnd="url(#arr)" />
-        <text x={W - 30} y={H - 14} style={textStyle}>{xLabel}</text>
-        <text x="48" y="22" style={textStyle}>{yLabel}</text>
-        <text x="32" y={H - 18} style={textStyle}>O</text>
-      </svg>
-    );
-  }
-
-  if (diagram.type === "number_line") {
-    const start = Number(dims.start ?? 0);
-    const end = Number(dims.end ?? 10);
-    const step = Number(dims.step ?? 1);
-    const ticks: number[] = [];
-    for (let v = start; v <= end + 1e-9; v += step) ticks.push(Number(v.toFixed(4)));
-    const x = (v: number) => 30 + ((v - start) / (end - start || 1)) * (W - 60);
-    return (
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={120} style={{ maxWidth: 360 }}>
-        <line x1="20" y1="60" x2={W - 20} y2="60" {...common} />
-        {ticks.map((t, i) => (
-          <g key={i}>
-            <line x1={x(t)} y1="52" x2={x(t)} y2="68" {...common} />
-            <text x={x(t)} y="86" textAnchor="middle" style={textStyle}>{t}</text>
-          </g>
-        ))}
-      </svg>
-    );
-  }
-
-  if (diagram.type === "bar_chart") {
-    const entries = Object.entries(dims).filter(([, v]) => !isNaN(Number(v)));
-    const max = Math.max(1, ...entries.map(([, v]) => Number(v)));
-    const bw = entries.length ? (W - 60) / entries.length - 8 : 20;
-    return (
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
-        <line x1="40" y1={H - 30} x2={W - 20} y2={H - 30} {...common} />
-        <line x1="40" y1="20" x2="40" y2={H - 30} {...common} />
-        {entries.map(([k, v], i) => {
-          const h = (Number(v) / max) * (H - 70);
-          const xPos = 50 + i * (bw + 8);
-          return (
-            <g key={k}>
-              <rect x={xPos} y={H - 30 - h} width={bw} height={h} fill="#ddd" stroke={stroke} />
-              <text x={xPos + bw / 2} y={H - 14} textAnchor="middle" style={textStyle}>{k}</text>
-            </g>
-          );
-        })}
-      </svg>
-    );
-  }
-
-  if (diagram.type === "pie_chart") {
-    const entries = Object.entries(dims).filter(([, v]) => !isNaN(Number(v)));
-    const total = entries.reduce((s, [, v]) => s + Number(v), 0) || 1;
-    let acc = 0;
-    const cx = W / 2, cy = H / 2, r = 80;
-    return (
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
-        {entries.map(([k, v], i) => {
-          const start = (acc / total) * Math.PI * 2 - Math.PI / 2;
-          acc += Number(v);
-          const end = (acc / total) * Math.PI * 2 - Math.PI / 2;
-          const large = end - start > Math.PI ? 1 : 0;
-          const x1 = cx + r * Math.cos(start), y1 = cy + r * Math.sin(start);
-          const x2 = cx + r * Math.cos(end), y2 = cy + r * Math.sin(end);
-          const mid = (start + end) / 2;
-          const lx = cx + (r + 14) * Math.cos(mid), ly = cy + (r + 14) * Math.sin(mid);
-          const shade = `hsl(0,0%,${90 - i * 10}%)`;
-          return (
-            <g key={k}>
-              <path d={`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z`} fill={shade} stroke={stroke} />
-              <text x={lx} y={ly} textAnchor="middle" style={textStyle}>{k}</text>
-            </g>
-          );
-        })}
-      </svg>
-    );
-  }
-
-  // geometric_shape — best-fit polygon based on a "sides" dimension
-  const sides = Math.max(3, Math.min(12, Number(dims.sides ?? 5)));
-  const cx = W / 2, cy = H / 2, r = 80;
-  const points = Array.from({ length: sides }, (_, i) => {
-    const a = (i / sides) * Math.PI * 2 - Math.PI / 2;
-    return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
-  }).join(" ");
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ maxWidth: 360 }}>
-      <polygon points={points} {...common} />
-      {Object.entries(labels).slice(0, sides).map(([k, v], i) => {
-        const a = (i / sides) * Math.PI * 2 - Math.PI / 2;
-        return (
-          <text key={k} x={cx + (r + 14) * Math.cos(a)} y={cy + (r + 14) * Math.sin(a)} textAnchor="middle" style={textStyle}>
-            {String(v)}
-          </text>
-        );
-      })}
-    </svg>
+    <li ref={setNodeRef} style={style} className="break-inside-avoid group border border-transparent hover:border-black/10 rounded p-2 -mx-2">
+      <div className="flex items-start gap-2">
+        <button
+          className="mt-1 p-1 rounded hover:bg-black/5 cursor-grab text-black/50 print:hidden"
+          {...attributes} {...listeners}
+          aria-label={`Drag question ${q.number}`}
+          title="Drag to reorder"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+        <div className="flex-1 min-w-0">
+          {!editing && (
+            <div className="font-medium mb-1 flex justify-between gap-4">
+              <span>{q.number}. {q.prompt}</span>
+              {typeof q.marks === "number" && q.marks > 0 && (
+                <span className="text-xs whitespace-nowrap">[{q.marks} mark{q.marks === 1 ? "" : "s"}]</span>
+              )}
+            </div>
+          )}
+
+          {!editing && q.type === "mcq" && q.options && (
+            <div className="ml-6 space-y-1 text-sm">
+              {q.options.map((opt, i) => <div key={i}>{opt}</div>)}
+            </div>
+          )}
+          {!editing && (q.type === "short_answer" || q.type === "numerical") && (
+            <div className="mt-2 space-y-4">
+              <div className="border-b border-black/60 h-5" />
+              <div className="border-b border-black/60 h-5" />
+              {q.type === "short_answer" && <div className="border-b border-black/60 h-5" />}
+            </div>
+          )}
+          {!editing && q.type === "true_false" && (
+            <div className="ml-6 text-sm mt-1">◯ True &nbsp;&nbsp; ◯ False</div>
+          )}
+          {!editing && q.type === "part_question" && q.parts && q.parts.length > 0 && (
+            <ol className="ml-6 mt-2 space-y-3 list-none p-0">
+              {q.parts.map((p, i) => (
+                <li key={i}>
+                  <div className="text-sm flex justify-between gap-4">
+                    <span>({p.label}) {p.prompt}</span>
+                    {typeof p.marks === "number" && p.marks > 0 && (
+                      <span className="text-xs whitespace-nowrap">[{p.marks} mark{p.marks === 1 ? "" : "s"}]</span>
+                    )}
+                  </div>
+                  <div className="mt-2 space-y-3">
+                    <div className="border-b border-black/60 h-5" />
+                    <div className="border-b border-black/60 h-5" />
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+          {!editing && q.diagram && (
+            <div data-diagram-q={q.number} className="mt-3 border-2 border-dashed border-black/60 p-3">
+              <div className="text-xs font-semibold mb-2 uppercase tracking-wide">Figure</div>
+              <DiagramRenderer diagram={q.diagram} />
+              {q.diagram.caption && (
+                <div className="text-xs italic mt-2">{q.diagram.caption}</div>
+              )}
+              <div className="mt-3 space-y-3">
+                <div className="border-b border-black/40 h-5" />
+                <div className="border-b border-black/40 h-5" />
+              </div>
+            </div>
+          )}
+
+          {editing && (
+            <div className="space-y-2 bg-black/[0.02] rounded p-2 border border-black/10">
+              <div>
+                <Label className="text-xs">Prompt</Label>
+                <Textarea rows={3} value={draftPrompt} onChange={(e) => setDraftPrompt(e.target.value)} />
+              </div>
+              {q.type === "mcq" && (
+                <div>
+                  <Label className="text-xs">Options</Label>
+                  {draftOptions.map((opt, i) => (
+                    <Input key={i} value={opt} onChange={(e) => setDraftOptions((prev) => prev.map((o, j) => j === i ? e.target.value : o))} className="mt-1" />
+                  ))}
+                </div>
+              )}
+              {q.type === "part_question" && draftParts.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs">Parts</Label>
+                  {draftParts.map((p, i) => (
+                    <div key={i} className="grid grid-cols-[auto_1fr] gap-2 items-start">
+                      <span className="mt-2 text-sm">({p.label})</span>
+                      <div className="space-y-1">
+                        <Textarea rows={2} value={p.prompt} onChange={(e) => setDraftParts((prev) => prev.map((pp, j) => j === i ? { ...pp, prompt: e.target.value } : pp))} />
+                        <Input placeholder="Answer" value={p.answer ?? ""} onChange={(e) => setDraftParts((prev) => prev.map((pp, j) => j === i ? { ...pp, answer: e.target.value } : pp))} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div>
+                <Label className="text-xs">Answer</Label>
+                <Textarea rows={2} value={draftAnswer} onChange={(e) => setDraftAnswer(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Working</Label>
+                <Textarea rows={2} value={draftWorking} onChange={(e) => setDraftWorking(e.target.value)} />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button size="sm" variant="ghost" onClick={onEditToggle}>Cancel</Button>
+                <Button size="sm" variant="teacher" onClick={() => onSave({
+                  prompt: draftPrompt,
+                  answer: draftAnswer,
+                  working: draftWorking,
+                  options: q.type === "mcq" ? draftOptions : q.options,
+                  parts: q.type === "part_question" ? draftParts : q.parts,
+                })}><Save className="h-3 w-3" /> Save</Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1 opacity-70 group-hover:opacity-100 print:hidden">
+          <Button size="icon" variant="ghost" onClick={onMoveUp} disabled={idx === 0} title="Move up"><ArrowUp className="h-3.5 w-3.5" /></Button>
+          <Button size="icon" variant="ghost" onClick={onMoveDown} disabled={idx === total - 1} title="Move down"><ArrowDown className="h-3.5 w-3.5" /></Button>
+          <Button size="icon" variant="ghost" onClick={editing ? onEditToggle : openEdit} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
+          <Button size="icon" variant="ghost" onClick={onRegenerate} disabled={regenerating} title="Regenerate">
+            {regenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+          </Button>
+          <Button size="icon" variant="ghost" onClick={onDelete} title="Delete"><Trash2 className="h-3.5 w-3.5" /></Button>
+        </div>
+      </div>
+    </li>
   );
 }
