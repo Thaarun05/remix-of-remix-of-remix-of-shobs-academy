@@ -8,6 +8,7 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `You are drafting original practice worksheet questions for academy students.
 Do NOT reproduce any content from textbooks, past papers, or named publishers.
 Do NOT include URLs, quotations, or scraped text.
+If source material (pasted text or uploaded images/PDF pages) is supplied, GROUND the worksheet in it — paraphrase and adapt concepts, facts, examples and terminology from the source. Do not copy verbatim.
 Return ONLY a valid JSON object — no markdown, no explanation, no backticks.
 
 Schema:
@@ -45,9 +46,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { subject, grade, topic, count, difficulty, types, objective } = await req.json();
+    const { subject, grade, topic, count, difficulty, types, objective, text, images } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const imgs: string[] = Array.isArray(images) ? images.filter((s: unknown) => typeof s === "string" && (s as string).startsWith("data:")) : [];
 
     const userMsg = `Create an original practice worksheet.
 Subject: ${subject}
@@ -58,7 +61,12 @@ Difficulty progression: ${difficulty}
 Allowed question types: ${types.join(", ")}
 ${objective ? `Question Instructions from teacher (follow precisely):\n${objective}` : ""}
 
-Distribute questions across the allowed types. Number them sequentially starting at 1. For mcq include exactly 4 options prefixed "A) ", "B) ", "C) ", "D) ". For non-mcq, omit options or return empty array. Always include a concise "answer" for the teacher. Include a "diagram" object whenever the teacher's instructions ask for shapes/graphs/figures. Use type "part_question" with a populated "parts" array when teacher asks for (a)(b)(c) style part marks. Include "working" with step-by-step workings when teacher asks for workings.`;
+Distribute questions across the allowed types. Number them sequentially starting at 1. For mcq include exactly 4 options prefixed "A) ", "B) ", "C) ", "D) ". For non-mcq, omit options or return empty array. Always include a concise "answer" for the teacher. Include a "diagram" object whenever the teacher's instructions ask for shapes/graphs/figures. Use type "part_question" with a populated "parts" array when teacher asks for (a)(b)(c) style part marks. Include "working" with step-by-step workings when teacher asks for workings.
+${text && String(text).trim() ? `\nSource text / extracted PDF text (ground the worksheet in this material, paraphrase — do not copy verbatim):\n${text}` : ""}
+${imgs.length ? `\n${imgs.length} image(s) of source material are attached — read them carefully (slides, handwritten notes, textbook pages, diagrams) and use them as source material.` : ""}`;
+
+    const userContent: any[] = [{ type: "text", text: userMsg }];
+    for (const url of imgs) userContent.push({ type: "image_url", image_url: { url } });
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -70,7 +78,7 @@ Distribute questions across the allowed types. Number them sequentially starting
         model: "openai/gpt-5-mini",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userMsg },
+          { role: "user", content: userContent },
         ],
         response_format: { type: "json_object" },
       }),
