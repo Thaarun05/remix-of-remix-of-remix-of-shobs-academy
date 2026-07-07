@@ -455,7 +455,7 @@ export function TeacherQuizMaker() {
           </div>
           <div className="space-y-1"><Label>Paste source text (optional)</Label><Textarea value={pastedText} onChange={(e) => setPastedText(e.target.value)} rows={4} placeholder="Lecture notes, textbook excerpt, etc." /></div>
           <div className="space-y-1">
-            <Label>Upload PDF / PNG / JPG (optional)</Label>
+            <Label>Upload source files</Label>
             <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg" onChange={handleFileSelect} className="hidden" />
             <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}><Upload className="h-4 w-4 mr-2" />Choose files</Button>
             {files.length > 0 && (
