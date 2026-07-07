@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Sparkles, Download, RefreshCw, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Sparkles, Download, RefreshCw, AlertTriangle, Upload, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { extractSourceFiles } from "@/lib/extractSource";
 import shobsLogo from "@/assets/shobs-academy-logo.png";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -60,6 +62,7 @@ export function TeacherWorksheetBuilder() {
   const { toast } = useToast();
   const previewRef = useRef<HTMLDivElement>(null);
   const docRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [subject, setSubject] = useState("");
   const [grade, setGrade] = useState("");
@@ -68,6 +71,8 @@ export function TeacherWorksheetBuilder() {
   const [difficulty, setDifficulty] = useState("Easy to Hard");
   const [types, setTypes] = useState<string[]>(["mcq", "short_answer"]);
   const [objective, setObjective] = useState("");
+  const [pastedText, setPastedText] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
@@ -76,6 +81,17 @@ export function TeacherWorksheetBuilder() {
     setTypes((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const list = Array.from(e.target.files || []);
+    const allowed = list.filter((f) => /\.(pdf|png|jpe?g)$/i.test(f.name) && f.size <= 20 * 1024 * 1024);
+    if (allowed.length !== list.length) {
+      toast({ title: "Some files skipped", description: "Only PDF / PNG / JPG up to 20MB each.", variant: "destructive" });
+    }
+    setFiles((prev) => [...prev, ...allowed]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+  const removeFile = (i: number) => setFiles((prev) => prev.filter((_, idx) => idx !== i));
+
   const handleGenerate = async () => {
     if (!subject || !grade || !topic || types.length === 0) {
       toast({ title: "Missing fields", description: "Subject, grade, topic and at least one question type are required.", variant: "destructive" });
@@ -83,6 +99,8 @@ export function TeacherWorksheetBuilder() {
     }
     setLoading(true);
     try {
+      const { text: extractedText, images } = files.length ? await extractSourceFiles(files) : { text: "", images: [] as string[] };
+      const combinedText = [pastedText.trim(), extractedText.trim()].filter(Boolean).join("\n\n");
       const { data, error } = await supabase.functions.invoke("generate-worksheet", {
         body: {
           subject, grade, topic,
@@ -90,6 +108,8 @@ export function TeacherWorksheetBuilder() {
           difficulty,
           types: types.map((t) => QUESTION_TYPES.find((q) => q.id === t)?.label ?? t),
           objective,
+          text: combinedText,
+          images,
         },
       });
       if (error) throw error;
