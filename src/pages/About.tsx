@@ -79,6 +79,17 @@ const subjects = [
 const About = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
+      <Seo
+        title="About Shobs Academy — Our Mission & Vision"
+        description="Learn about Shobs Academy: our mission to deliver personalized K-12 tutoring, our teaching approach, subjects offered, and the team empowering students worldwide."
+        path="/about"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "AboutPage",
+          name: "About Shobs Academy",
+          url: "https://learn-together-hub-16.lovable.app/about",
+        }}
+      />
       <Navbar showAboutLink={false} />
 
       {/* Back to Home Button */}
