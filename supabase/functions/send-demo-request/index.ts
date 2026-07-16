@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { escapeHtml } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,10 +41,34 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Length caps to mitigate abuse
+    for (const [k, v] of Object.entries(data)) {
+      if (typeof v !== "string" || v.length > 500) {
+        return new Response(JSON.stringify({ error: `Invalid field: ${k}` }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+    }
+
+    // Basic per-email rate limit: max 3 requests per hour
+    const supabaseUrlRL = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKeyRL = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const rlClient = createClient(supabaseUrlRL, supabaseServiceKeyRL);
+    const { count: recent } = await rlClient
+      .from("demo_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("parent_email", data.parentEmail)
+      .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString());
+    if ((recent ?? 0) >= 3) {
+      return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }),
+        { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY is not configured");
     }
+
+    const esc = escapeHtml;
 
     // Send email via Resend REST API
     const emailResponse = await fetch("https://api.resend.com/emails", {
@@ -55,7 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         from: "Shobs Academy <onboarding@resend.dev>",
         to: ["shoba.raaju@gmail.com"],
-        subject: `New Demo Class Request - ${data.studentName}`,
+        subject: `New Demo Class Request - ${data.studentName}`.slice(0, 150),
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #2563eb;">New Demo Class Request</h2>
@@ -65,39 +90,39 @@ const handler = async (req: Request): Promise<Response> => {
             <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
               <tr style="background-color: #f3f4f6;">
                 <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Student Name</td>
-                <td style="padding: 10px; border: 1px solid #e5e7eb;">${data.studentName}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${esc(data.studentName)}</td>
               </tr>
               <tr>
                 <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Age</td>
-                <td style="padding: 10px; border: 1px solid #e5e7eb;">${data.age}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${esc(data.age)}</td>
               </tr>
               <tr style="background-color: #f3f4f6;">
                 <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Class/Grade</td>
-                <td style="padding: 10px; border: 1px solid #e5e7eb;">${data.grade}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${esc(data.grade)}</td>
               </tr>
               <tr>
                 <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Parent Name</td>
-                <td style="padding: 10px; border: 1px solid #e5e7eb;">${data.parentName}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${esc(data.parentName)}</td>
               </tr>
               <tr style="background-color: #f3f4f6;">
                 <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Parent Email</td>
-                <td style="padding: 10px; border: 1px solid #e5e7eb;">${data.parentEmail}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${esc(data.parentEmail)}</td>
               </tr>
               <tr>
                 <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Phone</td>
-                <td style="padding: 10px; border: 1px solid #e5e7eb;">${data.phone}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${esc(data.phone)}</td>
               </tr>
               <tr style="background-color: #f3f4f6;">
                 <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Subject</td>
-                <td style="padding: 10px; border: 1px solid #e5e7eb;">${data.subject}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${esc(data.subject)}</td>
               </tr>
               <tr>
                 <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Preferred Timing</td>
-                <td style="padding: 10px; border: 1px solid #e5e7eb;">${data.timing}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${esc(data.timing)}</td>
               </tr>
               <tr style="background-color: #f3f4f6;">
                 <td style="padding: 10px; border: 1px solid #e5e7eb; font-weight: bold;">Preferred Days</td>
-                <td style="padding: 10px; border: 1px solid #e5e7eb;">${data.days}</td>
+                <td style="padding: 10px; border: 1px solid #e5e7eb;">${esc(data.days)}</td>
               </tr>
             </table>
             
