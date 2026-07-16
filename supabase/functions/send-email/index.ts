@@ -9,6 +9,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { sendEmailWithResendFallback } from "../_shared/email-sender.ts";
+import { requireUser, requireRole } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +29,17 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Only authenticated teachers/admins may send arbitrary emails.
+    const authRes = await requireUser(req);
+    if (authRes instanceof Response) {
+      const h = new Headers(authRes.headers); Object.entries(corsHeaders).forEach(([k,v])=>h.set(k,v));
+      return new Response(await authRes.text(), { status: authRes.status, headers: h });
+    }
+    const forbid = requireRole(authRes, ["teacher", "admin"]);
+    if (forbid) {
+      const h = new Headers(forbid.headers); Object.entries(corsHeaders).forEach(([k,v])=>h.set(k,v));
+      return new Response(await forbid.text(), { status: forbid.status, headers: h });
+    }
     const { to, subject, html }: EmailRequest = await req.json();
 
     // Validate required fields

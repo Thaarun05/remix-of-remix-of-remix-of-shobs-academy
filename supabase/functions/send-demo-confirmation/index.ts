@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
+import { escapeHtml } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,10 +26,35 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log("Sending confirmation email to:", data.parentEmail);
 
+    // Cap input length
+    for (const [k, v] of Object.entries(data)) {
+      if (typeof v !== "string" || v.length > 500) {
+        return new Response(JSON.stringify({ error: `Invalid field: ${k}` }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
+      }
+    }
+
+    // Only send confirmation for an email that actually submitted a request in the last hour.
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { count: matches } = await supabase
+      .from("demo_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("parent_email", data.parentEmail)
+      .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString());
+    if (!matches || matches === 0) {
+      return new Response(JSON.stringify({ error: "No matching demo request found" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } });
+    }
+
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY is not configured");
     }
+
+    const esc = escapeHtml;
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -38,7 +65,7 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         from: "Shobs Academy <onboarding@resend.dev>",
         to: [data.parentEmail],
-        subject: `Demo Class Confirmation - ${data.studentName} | Shobs Academy`,
+        subject: `Demo Class Confirmation - ${data.studentName} | Shobs Academy`.slice(0, 150),
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
@@ -48,24 +75,24 @@ const handler = async (req: Request): Promise<Response> => {
             
             <h2 style="color: #1f2937;">Thank You for Your Interest!</h2>
             
-            <p>Dear ${data.parentName},</p>
+            <p>Dear ${esc(data.parentName)},</p>
             
-            <p>Thank you for requesting a demo class for <strong>${data.studentName}</strong> at Shobs Academy. We're excited to help your child on their learning journey!</p>
+            <p>Thank you for requesting a demo class for <strong>${esc(data.studentName)}</strong> at Shobs Academy. We're excited to help your child on their learning journey!</p>
             
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="color: #1f2937; margin-top: 0;">Your Request Details:</h3>
               <table style="width: 100%;">
                 <tr>
                   <td style="padding: 5px 0; color: #6b7280;">Subject:</td>
-                  <td style="padding: 5px 0; font-weight: bold;">${data.subject}</td>
+                  <td style="padding: 5px 0; font-weight: bold;">${esc(data.subject)}</td>
                 </tr>
                 <tr>
                   <td style="padding: 5px 0; color: #6b7280;">Preferred Timing:</td>
-                  <td style="padding: 5px 0; font-weight: bold;">${data.timing}</td>
+                  <td style="padding: 5px 0; font-weight: bold;">${esc(data.timing)}</td>
                 </tr>
                 <tr>
                   <td style="padding: 5px 0; color: #6b7280;">Preferred Days:</td>
-                  <td style="padding: 5px 0; font-weight: bold;">${data.days}</td>
+                  <td style="padding: 5px 0; font-weight: bold;">${esc(data.days)}</td>
                 </tr>
               </table>
             </div>
