@@ -36,9 +36,15 @@ serve(async (req) => {
     const body: CreateAdminRequest = await req.json();
     console.log("Attempting to create initial admin for email:", body.email);
 
-    // Simple secret key check to prevent unauthorized access
-    // This should be a one-time setup key
-    const expectedSecretKey = "SHOBS_ADMIN_SETUP_2024";
+    // Setup key must be configured server-side via env var. If missing, refuse.
+    const expectedSecretKey = Deno.env.get("INITIAL_ADMIN_SETUP_KEY");
+    if (!expectedSecretKey || expectedSecretKey.length < 16) {
+      console.log("INITIAL_ADMIN_SETUP_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "Initial admin setup is disabled." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     if (body.secretKey !== expectedSecretKey) {
       console.log("Invalid secret key provided");
       return new Response(
