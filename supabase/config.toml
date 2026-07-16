@@ -25,10 +25,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.generate-notes]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-quiz]
-verify_jwt = false
+verify_jwt = true
+
+[functions.send-email]
+verify_jwt = true
 
 [functions.get-quiz-for-student]
 verify_jwt = false
