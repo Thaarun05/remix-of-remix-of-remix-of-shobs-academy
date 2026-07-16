@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { Seo } from "@/components/Seo";
 import { z } from "zod";
 import shobsLogo from "@/assets/shobs-academy-logo.png";
 const signInSchema = z.object({
@@ -92,6 +93,11 @@ const TeacherLogin = () => {
       </div>;
   }
   return <div className="min-h-screen flex flex-col auth-page-teacher">
+      <Seo
+        title="Teacher Login — Shobs Academy"
+        description="Sign in to your Shobs Academy teacher dashboard to manage classes, attendance, worksheets, quizzes, and student progress."
+        path="/teacher-login"
+      />
       <Navbar showAboutLink={false} />
 
       <div className="flex-1 flex items-center justify-center px-4 py-8 pt-24">
