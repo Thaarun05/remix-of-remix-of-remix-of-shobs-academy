@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireUser, requireRole } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,6 +40,16 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const authRes = await requireUser(req);
+    if (authRes instanceof Response) {
+      const h = new Headers(authRes.headers); Object.entries(corsHeaders).forEach(([k,v])=>h.set(k,v));
+      return new Response(await authRes.text(), { status: authRes.status, headers: h });
+    }
+    const forbid = requireRole(authRes, ["teacher", "admin"]);
+    if (forbid) {
+      const h = new Headers(forbid.headers); Object.entries(corsHeaders).forEach(([k,v])=>h.set(k,v));
+      return new Response(await forbid.text(), { status: forbid.status, headers: h });
+    }
     const { subject, grade, topics, count, difficulty, text, images, instructions } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
