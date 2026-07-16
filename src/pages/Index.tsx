@@ -95,7 +95,7 @@ const Index = () => {
         <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-4 brand-name-float animate-fade-in" style={{
         animationDelay: "0.1s"
       }}>
-          Shobs Academy — Expert Online Tutoring for K-12
+          Shobs Academy&nbsp;
         </h1>
 
         {/* Tagline */}
