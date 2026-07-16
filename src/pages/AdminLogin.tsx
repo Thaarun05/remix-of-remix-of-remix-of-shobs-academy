@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Shield, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { Seo } from "@/components/Seo";
 import { z } from "zod";
 import shobsLogo from "@/assets/shobs-academy-logo.png";
 const signInSchema = z.object({
@@ -92,6 +93,11 @@ const AdminLogin = () => {
       </div>;
   }
   return <div className="min-h-screen flex flex-col auth-page-admin">
+      <Seo
+        title="Admin Login — Shobs Academy"
+        description="Sign in to the Shobs Academy admin console to manage teachers, students, fees, and academy operations."
+        path="/admin-login"
+      />
       <Navbar showAboutLink={false} />
 
       <div className="flex-1 flex items-center justify-center px-4 py-8 pt-24">
@@ -122,7 +128,7 @@ const AdminLogin = () => {
               <label className="auth-label">Admin Password</label>
               <div className="relative">
                 <Input type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} className={`auth-input auth-input-admin pr-10 ${errors.password ? "auth-input-error" : ""}`} required />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                <button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>

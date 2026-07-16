@@ -1,0 +1,16 @@
+# Shobs Academy
+
+> Personalized online tutoring for K-12 students across Math, Science, English and more, with live classes, worksheets and quizzes from expert teachers.
+
+Shobs Academy is an online tutoring platform serving K-12 students globally. Teachers deliver one-on-one classes, share notes and worksheets, run interactive quizzes, and track attendance and progress.
+
+## Pages
+
+- [Home](/): Overview of Shobs Academy, subjects offered, and how to request a free demo class.
+- [About](/about): Mission, vision, teaching approach, subjects, and contact information.
+
+## Optional
+
+- [Student Login](/student-login): Sign-in page for existing students.
+- [Teacher Login](/teacher-login): Sign-in page for teachers.
+- [Admin Login](/admin-login): Sign-in page for academy administrators.

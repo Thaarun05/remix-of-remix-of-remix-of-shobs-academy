@@ -7,6 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { Seo } from "@/components/Seo";
 const countries = [{
   flagUrl: "https://flagcdn.com/w320/us.png",
   code: "US",
@@ -65,6 +66,11 @@ const Index = () => {
     }
   }, [user, role, loading, navigate]);
   return <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
+      <Seo
+        title="Shobs Academy — Expert Online Tutoring for K-12"
+        description="Personalized online tutoring for K-12 students across Math, Science, English and more. Live classes, homework help, worksheets and quizzes from expert teachers."
+        path="/"
+      />
       {/* Global Navbar */}
       <Navbar showAboutLink={true} />
 
@@ -89,7 +95,7 @@ const Index = () => {
         <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-4 brand-name-float animate-fade-in" style={{
         animationDelay: "0.1s"
       }}>
-          Shobs Academy
+          Shobs Academy — Expert Online Tutoring for K-12
         </h1>
 
         {/* Tagline */}

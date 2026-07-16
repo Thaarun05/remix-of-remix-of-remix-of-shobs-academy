@@ -7,6 +7,7 @@ import {
   GraduationCap, Users, Mail, ArrowLeft, Award, Globe, 
   Heart, Lightbulb, CheckCircle2, Star, Phone
 } from "lucide-react";
+import { Seo } from "@/components/Seo";
 
 const features = [
   {
@@ -78,6 +79,17 @@ const subjects = [
 const About = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
+      <Seo
+        title="About Shobs Academy — Our Mission & Vision"
+        description="Learn about Shobs Academy: our mission to deliver personalized K-12 tutoring, our teaching approach, subjects offered, and the team empowering students worldwide."
+        path="/about"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "AboutPage",
+          name: "About Shobs Academy",
+          url: "https://learn-together-hub-16.lovable.app/about",
+        }}
+      />
       <Navbar showAboutLink={false} />
 
       {/* Back to Home Button */}
@@ -118,7 +130,7 @@ const About = () => {
                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Target className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-2xl font-display font-bold text-foreground">Our Mission</h3>
+                <h2 className="text-2xl font-display font-bold text-foreground">Our Mission</h2>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 To provide accessible, high-quality, personalized education that empowers students 
@@ -133,7 +145,7 @@ const About = () => {
                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Star className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-2xl font-display font-bold text-foreground">Our Vision</h3>
+                <h2 className="text-2xl font-display font-bold text-foreground">Our Vision</h2>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 To become the leading global online tutoring platform, recognized for transforming 
