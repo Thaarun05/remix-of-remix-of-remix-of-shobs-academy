@@ -34,11 +34,9 @@ interface Quiz {
   questions: Question[];
 }
 
-const PDFJS_VERSION = "6.0.227";
-
 async function extractFromPdf(file: File): Promise<{ text: string; images: string[] }> {
   const pdfjs: any = await import("pdfjs-dist/build/pdf.mjs");
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.mjs`;
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.mjs`;
   const buf = await file.arrayBuffer();
   const doc = await pdfjs.getDocument({ data: buf }).promise;
   let combined = "";
