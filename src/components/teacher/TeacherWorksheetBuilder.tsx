@@ -24,32 +24,30 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { DiagramRenderer } from "./worksheet/diagrams/DiagramRenderer";
 import { DiagramV2, DiagramKind, validateDiagramSpec } from "@/lib/diagrams/schemas";
+import type { Question, Worksheet, RefineChatMessage } from "@/lib/worksheet/types";
+import { WorksheetRefineChat } from "./WorksheetRefineChat";
 
-interface Question {
-  number: number;
-  type: "mcq" | "short_answer" | "fill_blank" | "numerical" | "true_false" | "diagram" | "part_question";
-  prompt: string;
-  options?: string[];
-  answer?: string;
-  parts?: { label: string; prompt: string; marks?: number; answer?: string }[];
-  diagram?: DiagramV2;
-  marks?: number;
-  difficulty?: "easy" | "medium" | "hard";
-  blooms_level?: "remember" | "understand" | "apply" | "analyze" | "evaluate" | "create";
-  rubric?: string;
-  working?: string;
+type LoadingPhase = null | "extracting" | "generating" | "diagrams" | "refining";
+
+function toDiagramV2(d: Question["diagram"]): DiagramV2 | undefined {
+  if (!d) return undefined;
+  return {
+    kind: (d.kind as DiagramKind) || "geometry_2d",
+    spec: (d as DiagramV2).spec ?? null,
+    caption: d.caption,
+    description: d.description,
+    error: d.error,
+  };
 }
 
-interface WorksheetMetadata {
-  topic_tags: string[];
-  estimated_minutes: number;
-}
-
-interface Worksheet {
-  worksheet_title: string;
-  instructions: string;
-  metadata?: WorksheetMetadata;
-  questions: Question[];
+function normalizeIncomingQuestions(questions: Question[]): Question[] {
+  return questions.map((q, i) => ({
+    ...q,
+    number: i + 1,
+    options: q.options ?? [],
+    parts: q.parts ?? [],
+    diagram: q.diagram ? toDiagramV2(q.diagram) : undefined,
+  }));
 }
 
 const QUESTION_TYPES = [
@@ -71,7 +69,6 @@ const DIAGRAM_KINDS: DiagramKind[] = ["geometry_2d", "coordinate_graph", "number
 
 // Resolve diagram specs (Pass B) for questions that have diagram description but no valid spec yet.
 async function resolveDiagramSpecs(questions: Question[]): Promise<Question[]> {
-  const jobs: Promise<void>[] = [];
   const result = questions.map((q) => ({ ...q }));
   const runJob = async (idx: number) => {
     const q = result[idx];
@@ -85,14 +82,14 @@ async function resolveDiagramSpecs(questions: Question[]): Promise<Question[]> {
       if (check.success) { q.diagram = { ...q.diagram, kind, spec: check.data, error: undefined }; return; }
     }
     const description = q.diagram.description ?? q.diagram.caption ?? "";
-    let lastSpec: any = null;
+    let lastSpec: unknown = null;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const { data, error } = await supabase.functions.invoke("generate-diagram-spec", {
           body: { kind, description, question_prompt: q.prompt },
         });
         if (error) throw error;
-        lastSpec = (data as any)?.spec;
+        lastSpec = (data as { spec?: unknown })?.spec;
         const check = validateDiagramSpec(kind, lastSpec);
         if (check.success) {
           q.diagram = { kind, spec: check.data, caption: q.diagram.caption ?? "", description };
@@ -103,10 +100,9 @@ async function resolveDiagramSpecs(questions: Question[]): Promise<Question[]> {
     q.diagram = { kind, spec: null, caption: q.diagram.caption ?? "", description, error: "spec_invalid" };
   };
   // Concurrency-capped parallelism
-  const CONCURRENCY = 4;
   const indices = result.map((_, i) => i).filter((i) => result[i].diagram);
   let pointer = 0;
-  const workers = Array.from({ length: Math.min(CONCURRENCY, indices.length) }, async () => {
+  const workers = Array.from({ length: Math.min(4, indices.length || 1) }, async () => {
     while (pointer < indices.length) {
       const my = pointer++;
       await runJob(indices[my]);
@@ -131,12 +127,22 @@ export function TeacherWorksheetBuilder() {
   const [objective, setObjective] = useState("");
   const [pastedText, setPastedText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>(null);
   const [downloading, setDownloading] = useState<null | "student" | "answer">(null);
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
   const [sourceExcerpt, setSourceExcerpt] = useState<string>(""); // stored for regenerate
   const [regenIdx, setRegenIdx] = useState<number | null>(null);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [chatMessages, setChatMessages] = useState<RefineChatMessage[]>([]);
+
+  const loading = loadingPhase !== null;
+
+  const loadingLabel =
+    loadingPhase === "extracting" ? "Reading source files…"
+    : loadingPhase === "generating" ? "Generating with GPT-4.1…"
+    : loadingPhase === "diagrams" ? "Building diagrams…"
+    : loadingPhase === "refining" ? "Refining worksheet…"
+    : "Working…";
 
   const toggleType = (id: string) => {
     setTypes((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
@@ -155,16 +161,25 @@ export function TeacherWorksheetBuilder() {
 
   const renumber = (qs: Question[]) => qs.map((q, i) => ({ ...q, number: i + 1 }));
 
+  const applyWorksheet = async (ws: Worksheet, opts?: { resetChat?: boolean }) => {
+    setLoadingPhase("diagrams");
+    const resolved = await resolveDiagramSpecs(normalizeIncomingQuestions(ws.questions));
+    setWorksheet({ ...ws, questions: renumber(resolved) });
+    if (opts?.resetChat) setChatMessages([]);
+    setTimeout(() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+  };
+
   const handleGenerate = async () => {
     if (!subject || !grade || !topic || types.length === 0) {
       toast({ title: "Missing fields", description: "Subject, grade, topic and at least one question type are required.", variant: "destructive" });
       return;
     }
-    setLoading(true);
     try {
+      setLoadingPhase(files.length ? "extracting" : "generating");
       const { text: extractedText, images } = files.length ? await extractSourceFiles(files) : { text: "", images: [] as string[] };
       const combinedText = [pastedText.trim(), extractedText.trim()].filter(Boolean).join("\n\n");
       setSourceExcerpt(combinedText);
+      setLoadingPhase("generating");
       const { data, error } = await supabase.functions.invoke("generate-worksheet", {
         body: {
           subject, grade, topic,
@@ -177,17 +192,65 @@ export function TeacherWorksheetBuilder() {
         },
       });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      const ws = (data as any).worksheet as Worksheet;
+      if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
+      const ws = (data as { worksheet: Worksheet }).worksheet;
       if (!ws?.questions?.length) throw new Error("Generation failed — try a more specific topic.");
-      // Resolve diagram specs (Pass B) before showing preview.
-      const resolved = await resolveDiagramSpecs(ws.questions);
-      setWorksheet({ ...ws, questions: renumber(resolved) });
-      setTimeout(() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
-    } catch (e: any) {
-      toast({ title: "Generation failed", description: e.message ?? "Try a more specific topic.", variant: "destructive" });
+      await applyWorksheet(ws, { resetChat: true });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Try a more specific topic.";
+      toast({ title: "Generation failed", description: message, variant: "destructive" });
     } finally {
-      setLoading(false);
+      setLoadingPhase(null);
+    }
+  };
+
+  const handleChatRefine = async (message: string) => {
+    if (!worksheet) return;
+    const userMsg: RefineChatMessage = {
+      id: `u-${Date.now()}`,
+      role: "user",
+      content: message,
+    };
+    setChatMessages((prev) => [...prev, userMsg]);
+    setLoadingPhase("refining");
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-worksheet", {
+        body: {
+          mode: "chat_refine",
+          message,
+          worksheet,
+          form_context: {
+            subject,
+            grade,
+            topic,
+            difficulty,
+            types: types.map((t) => QUESTION_TYPES.find((q) => q.id === t)?.label ?? t),
+            objective,
+          },
+        },
+      });
+      if (error) throw error;
+      if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
+      const reply = (data as { assistant_reply?: string; worksheet: Worksheet }).assistant_reply
+        ?? "Updated the worksheet.";
+      const ws = (data as { worksheet: Worksheet }).worksheet;
+      if (!ws?.questions?.length) throw new Error("Refine failed — try a clearer request.");
+      setLoadingPhase("diagrams");
+      const resolved = await resolveDiagramSpecs(normalizeIncomingQuestions(ws.questions));
+      setWorksheet({ ...ws, questions: renumber(resolved) });
+      setChatMessages((prev) => [
+        ...prev,
+        { id: `a-${Date.now()}`, role: "assistant", content: reply },
+      ]);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Try again.";
+      setChatMessages((prev) => [
+        ...prev,
+        { id: `a-${Date.now()}`, role: "assistant", content: `Sorry — ${msg}` },
+      ]);
+      toast({ title: "Refine failed", description: msg, variant: "destructive" });
+    } finally {
+      setLoadingPhase(null);
     }
   };
 
@@ -213,18 +276,18 @@ export function TeacherWorksheetBuilder() {
         },
       });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      const q = (data as any).question as Question;
+      if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
+      const q = (data as { question: Question }).question;
       if (!q) throw new Error("No question returned");
-      let replaced: Question = { ...q, number: target.number };
+      let replaced: Question = { ...q, number: target.number, diagram: q.diagram ? toDiagramV2(q.diagram) : undefined };
       if (replaced.diagram) {
         const [withSpec] = await resolveDiagramSpecs([replaced]);
         replaced = withSpec;
       }
       setWorksheet((prev) => prev ? { ...prev, questions: prev.questions.map((qq, i) => i === idx ? replaced : qq) } : prev);
       toast({ title: "Question regenerated" });
-    } catch (e: any) {
-      toast({ title: "Regeneration failed", description: e?.message ?? "Try again.", variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Regeneration failed", description: e instanceof Error ? e.message : "Try again.", variant: "destructive" });
     } finally {
       setRegenIdx(null);
     }
@@ -278,6 +341,8 @@ export function TeacherWorksheetBuilder() {
     }
   };
 
+  const today = new Date().toLocaleDateString();
+
   const handleDownloadPDF = async (includeAnswers: boolean) => {
     if (!worksheet || downloading) return;
     setDownloading(includeAnswers ? "answer" : "student");
@@ -287,7 +352,7 @@ export function TeacherWorksheetBuilder() {
       const pageH = 297;
       const marginX = 18;
       const marginTop = 18;
-      const marginBottom = 18;
+      const marginBottom = 20;
       const contentW = pageW - marginX * 2;
       let y = marginTop;
 
@@ -297,7 +362,7 @@ export function TeacherWorksheetBuilder() {
 
       const writeWrapped = (
         text: string,
-        opts: { size?: number; style?: "normal" | "bold" | "italic"; font?: "helvetica" | "times" | "courier"; indent?: number; lineGap?: number } = {}
+        opts: { size?: number; style?: "normal" | "bold" | "italic"; font?: "helvetica" | "times" | "courier"; indent?: number; lineGap?: number; color?: [number, number, number] } = {}
       ) => {
         const size = opts.size ?? 11;
         const style = opts.style ?? "normal";
@@ -306,6 +371,8 @@ export function TeacherWorksheetBuilder() {
         const lineGap = opts.lineGap ?? 1.4;
         pdf.setFont(font, style);
         pdf.setFontSize(size);
+        if (opts.color) pdf.setTextColor(opts.color[0], opts.color[1], opts.color[2]);
+        else pdf.setTextColor(0);
         const lineH = (size * 0.3528) * lineGap;
         const lines = pdf.splitTextToSize(text, contentW - indent);
         for (const ln of lines) {
@@ -313,6 +380,7 @@ export function TeacherWorksheetBuilder() {
           pdf.text(ln, marginX + indent, y);
           y += lineH;
         }
+        pdf.setTextColor(0);
       };
 
       // Header
@@ -320,10 +388,12 @@ export function TeacherWorksheetBuilder() {
       if (logoData) { try { pdf.addImage(logoData, "PNG", marginX, y, 18, 18); } catch { /* noop */ } }
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(18);
+      pdf.setTextColor(20, 40, 80);
       pdf.text("SHOBS ACADEMY", pageW - marginX, y + 11, { align: "right" });
+      pdf.setTextColor(0);
       y += 22;
-      pdf.setDrawColor(0);
-      pdf.setLineWidth(0.6);
+      pdf.setDrawColor(43, 108, 176);
+      pdf.setLineWidth(0.8);
       pdf.line(marginX, y, pageW - marginX, y);
       y += 6;
 
@@ -334,6 +404,15 @@ export function TeacherWorksheetBuilder() {
       const titleLines = pdf.splitTextToSize(title + suffix, contentW);
       for (const ln of titleLines) { ensureSpace(8); pdf.text(ln, pageW / 2, y, { align: "center" }); y += 7; }
       y += 2;
+
+      if (includeAnswers) {
+        pdf.setFillColor(245, 247, 250);
+        pdf.roundedRect(marginX, y - 2, contentW, 7, 1, 1, "F");
+        writeWrapped("TEACHER ANSWER KEY — Do not distribute to students", {
+          size: 9, style: "bold", color: [80, 90, 110],
+        });
+        y += 2;
+      }
 
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(10);
@@ -360,14 +439,16 @@ export function TeacherWorksheetBuilder() {
         const vb = svg.viewBox?.baseVal;
         const ratio = vb && vb.width ? vb.height / vb.width : 0.66;
         const drawH = maxW * ratio;
-        ensureSpace(drawH + 4);
+        // Prefer starting diagrams near the top of a page when they won't fit
+        if (y + drawH + 8 > pageH - marginBottom) {
+          pdf.addPage();
+          y = marginTop;
+        }
         try {
-          // svg2pdf plugs into jsPDF prototype
-          await (pdf as any).svg(svg, { x: marginX + 6, y, width: maxW, height: drawH });
+          await (pdf as unknown as { svg: (el: SVGSVGElement, o: object) => Promise<void> }).svg(svg, { x: marginX + 6, y, width: maxW, height: drawH });
           y += drawH + 3;
           return;
         } catch {
-          // fallback: rasterize with html2canvas
           const host = docRef.current?.querySelector(`[data-diagram-q="${num}"]`) as HTMLElement | null;
           if (!host) return;
           try {
@@ -383,7 +464,14 @@ export function TeacherWorksheetBuilder() {
       };
 
       for (const q of worksheet.questions) {
-        y += 2;
+        const hasDiagram = !!(q.diagram && q.diagram.spec);
+        // Leave breathing room; start a new page if a diagram question would be cramped
+        if (hasDiagram && y > pageH - marginBottom - 70) {
+          pdf.addPage();
+          y = marginTop;
+        }
+
+        y += 3;
         const marks = typeof q.marks === "number" && q.marks > 0 ? ` [${q.marks} mark${q.marks === 1 ? "" : "s"}]` : "";
         writeWrapped(`${q.number}. ${q.prompt}${marks}`, { size: 11, style: "bold" });
 
@@ -391,7 +479,7 @@ export function TeacherWorksheetBuilder() {
           for (const opt of q.options) writeWrapped(opt, { size: 10, indent: 8 });
         }
         if (q.type === "true_false") writeWrapped("◯ True     ◯ False", { size: 10, indent: 8 });
-        if (!includeAnswers && (q.type === "short_answer" || q.type === "numerical")) {
+        if (!includeAnswers && (q.type === "short_answer" || q.type === "numerical" || q.type === "fill_blank")) {
           const lines = q.type === "short_answer" ? 3 : 2;
           for (let i = 0; i < lines; i++) {
             ensureSpace(8); y += 5;
@@ -412,17 +500,25 @@ export function TeacherWorksheetBuilder() {
               }
               y += 2;
             } else if (p.answer) {
-              writeWrapped(`Answer: ${p.answer}`, { size: 10, indent: 10, style: "italic" });
+              writeWrapped(`Answer (${p.label}): ${p.answer}`, {
+                size: 10, indent: 10, style: "italic", color: [20, 90, 50],
+              });
             }
           }
         }
-        if (q.diagram && q.diagram.spec) await embedDiagram(q.number);
+        if (hasDiagram) await embedDiagram(q.number);
 
         if (includeAnswers) {
+          y += 1;
+          pdf.setDrawColor(200);
+          pdf.setLineWidth(0.2);
+          ensureSpace(2);
+          pdf.line(marginX, y, pageW - marginX, y);
+          y += 4;
+
           if (q.answer) {
             let ans = q.answer;
             if (q.type === "mcq" && q.options?.length) {
-              // If answer is a letter, append full option
               const m = q.answer.trim().match(/^[A-D]$/i);
               if (m) {
                 const letter = q.answer.trim().toUpperCase();
@@ -430,12 +526,16 @@ export function TeacherWorksheetBuilder() {
                 if (opt) ans = `${letter} — ${opt.replace(/^[A-D]\)\s*/i, "")}`;
               }
             }
-            writeWrapped(`Answer: ${ans}`, { size: 10, style: "italic", indent: 4 });
+            writeWrapped(`Answer: ${ans}`, { size: 10, style: "bold", indent: 4, color: [20, 90, 50] });
           }
-          if (q.working) writeWrapped(`Working: ${q.working}`, { size: 10, indent: 4 });
-          if (q.rubric) writeWrapped(`Rubric: ${q.rubric}`, { size: 10, style: "italic", indent: 4 });
+          if (q.working) {
+            writeWrapped(`Working: ${q.working}`, { size: 10, indent: 4, color: [40, 40, 40] });
+          }
+          if (q.rubric) {
+            writeWrapped(`Rubric: ${q.rubric}`, { size: 9, style: "italic", indent: 4, color: [90, 90, 90] });
+          }
         }
-        y += 2;
+        y += 3;
       }
 
       const total = pdf.getNumberOfPages();
@@ -444,10 +544,15 @@ export function TeacherWorksheetBuilder() {
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(8);
         pdf.setTextColor(110);
+        pdf.setDrawColor(200);
+        pdf.setLineWidth(0.3);
+        pdf.line(marginX, pageH - 14, pageW - marginX, pageH - 14);
         pdf.text(
-          `Shobs Academy | For internal use only | Generated: ${today}   |   Page ${i} of ${total}`,
-          pageW / 2, pageH - 8, { align: "center" }
+          `Shobs Academy • ${includeAnswers ? "Answer Key" : "Student Worksheet"} • ${today}`,
+          marginX,
+          pageH - 8,
         );
+        pdf.text(`Page ${i} of ${total}`, pageW - marginX, pageH - 8, { align: "right" });
         pdf.setTextColor(0);
       }
 
@@ -455,14 +560,13 @@ export function TeacherWorksheetBuilder() {
       const filename = `shobs-academy-${safeTitle}${includeAnswers ? "-answer-key" : ""}.pdf`;
       pdf.save(filename);
       toast({ title: "Download started", description: `${includeAnswers ? "Answer key" : "Student"} PDF has been saved.` });
-    } catch (e: any) {
-      toast({ title: "Download failed", description: e?.message ?? "Could not generate PDF.", variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Download failed", description: e instanceof Error ? e.message : "Could not generate PDF.", variant: "destructive" });
     } finally {
       setDownloading(null);
     }
   };
 
-  const today = new Date().toLocaleDateString();
   const sortableIds = useMemo(() => (worksheet?.questions ?? []).map((q) => String(q.number)), [worksheet]);
 
   return (
@@ -475,15 +579,22 @@ export function TeacherWorksheetBuilder() {
       <Card className="form-panel">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-teacher" /> AI Worksheet Builder</CardTitle>
-          <CardDescription>Generate a fully branded Shobs Academy worksheet, ready to print.</CardDescription>
+          <CardDescription>Professional GPT-4.1 worksheets with Shobs Academy branding — generate, chat-refine, then print.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
             <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
             <p className="text-amber-900 dark:text-amber-200">
-              <strong>*</strong> Please do not change tabs or close your system while the worksheet is being created. Generation can take up to 45 seconds (includes diagram spec generation).
+              <strong>*</strong> Please do not change tabs or close your system while the worksheet is being created. Generation can take up to a minute (GPT-4.1 + diagram building).
             </p>
           </div>
+
+          {loading && (
+            <div className="flex items-center gap-2 rounded-lg border border-teacher/30 bg-teacher/5 p-3 text-sm">
+              <Loader2 className="h-4 w-4 animate-spin text-teacher" />
+              <span>{loadingLabel}</span>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><Label>Subject</Label><Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Mathematics" /></div>
@@ -546,7 +657,7 @@ export function TeacherWorksheetBuilder() {
 
           <div className="flex flex-wrap gap-2 pt-2">
             <Button variant="teacher" onClick={handleGenerate} disabled={loading}>
-              {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating your worksheet...</> : <><Sparkles className="h-4 w-4" /> Generate Worksheet</>}
+              {loading && loadingPhase !== "refining" ? <><Loader2 className="h-4 w-4 animate-spin" /> {loadingLabel}</> : <><Sparkles className="h-4 w-4" /> Generate Worksheet</>}
             </Button>
             {worksheet && (
               <>
@@ -563,9 +674,18 @@ export function TeacherWorksheetBuilder() {
             )}
           </div>
 
-          <p className="text-xs text-muted-foreground">AI-generated content — please review before distributing to students.</p>
+          <p className="text-xs text-muted-foreground">Powered by OpenAI GPT-4.1 — please review before distributing to students.</p>
         </CardContent>
       </Card>
+
+      {worksheet && (
+        <WorksheetRefineChat
+          messages={chatMessages}
+          refining={loadingPhase === "refining" || loadingPhase === "diagrams"}
+          disabled={loading && loadingPhase !== "refining" && loadingPhase !== "diagrams"}
+          onSend={handleChatRefine}
+        />
+      )}
 
       {worksheet && (
         <div ref={previewRef}>
@@ -716,7 +836,7 @@ function SortableQuestion({ id, q, idx, total, editing, regenerating, onEditTogg
           {!editing && q.diagram && (
             <div data-diagram-q={q.number} className="mt-3 border-2 border-dashed border-black/60 p-3">
               <div className="text-xs font-semibold mb-2 uppercase tracking-wide">Figure</div>
-              <DiagramRenderer diagram={q.diagram} />
+              <DiagramRenderer diagram={toDiagramV2(q.diagram) as DiagramV2} />
               {q.diagram.caption && (
                 <div className="text-xs italic mt-2">{q.diagram.caption}</div>
               )}
