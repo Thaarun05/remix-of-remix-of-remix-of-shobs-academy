@@ -74,7 +74,7 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/c
 
 ## AI Worksheet Builder (OpenAI)
 
-Teacher **Worksheet Builder** uses OpenAI GPT-4.1 (not Lovable AI).
+Teacher **Worksheet Builder** uses OpenAI GPT-5.6 Terra (not Lovable AI).
 
 1. Add secret `OPENAI_API_KEY` in Supabase Edge Function secrets (see [`supabase/functions/OPENAI_SETUP.md`](supabase/functions/OPENAI_SETUP.md)).
 2. Deploy `generate-worksheet` and `generate-diagram-spec`.

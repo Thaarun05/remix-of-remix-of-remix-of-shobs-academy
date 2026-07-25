@@ -12,7 +12,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MODEL_WORKSHEET = "gpt-4.1";
+const MODEL_WORKSHEET = "gpt-5.6-terra";
 
 const QUESTION_TYPE_ENUM = [
   "mcq",

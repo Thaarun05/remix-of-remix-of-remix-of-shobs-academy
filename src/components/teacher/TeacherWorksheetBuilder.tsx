@@ -140,7 +140,7 @@ export function TeacherWorksheetBuilder() {
 
   const loadingLabel =
     loadingPhase === "extracting" ? "Reading source files…"
-    : loadingPhase === "generating" ? "Generating with GPT-4.1…"
+    : loadingPhase === "generating" ? "Generating with GPT-5.6 Terra…"
     : loadingPhase === "diagrams" ? "Building diagrams…"
     : loadingPhase === "refining" ? "Refining worksheet…"
     : "Working…";
@@ -580,13 +580,13 @@ export function TeacherWorksheetBuilder() {
       <Card className="form-panel">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-teacher" /> AI Worksheet Builder</CardTitle>
-          <CardDescription>Professional GPT-4.1 worksheets with Shobs Academy branding — generate, chat-refine, then print.</CardDescription>
+          <CardDescription>Professional GPT-5.6 Terra worksheets with Shobs Academy branding — generate, chat-refine, then print.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
             <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
             <p className="text-amber-900 dark:text-amber-200">
-              <strong>*</strong> Please do not change tabs or close your system while the worksheet is being created. Generation can take up to a minute (GPT-4.1 + diagram building).
+              <strong>*</strong> Please do not change tabs or close your system while the worksheet is being created. Generation can take up to a minute (GPT-5.6 Terra + diagram building).
             </p>
           </div>
 
@@ -675,7 +675,7 @@ export function TeacherWorksheetBuilder() {
             )}
           </div>
 
-          <p className="text-xs text-muted-foreground">Powered by OpenAI GPT-4.1 — please review before distributing to students.</p>
+          <p className="text-xs text-muted-foreground">Powered by OpenAI GPT-5.6 Terra — please review before distributing to students.</p>
         </CardContent>
       </Card>
 

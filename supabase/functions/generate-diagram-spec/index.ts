@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MODEL_DIAGRAM = "gpt-4o-mini";
+const MODEL_DIAGRAM = "gpt-5.6-luna";
 
 const PROMPTS: Record<string, string> = {
   geometry_2d: `You convert a natural-language geometry description into a strict JSON spec.

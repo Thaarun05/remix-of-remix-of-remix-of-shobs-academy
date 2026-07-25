@@ -23,8 +23,8 @@ supabase functions deploy generate-diagram-spec
 
 ## Models
 
-- Worksheet generate / regenerate / chat refine → `gpt-4.1`
-- Diagram JSON specs → `gpt-4o-mini`
+- Worksheet generate / regenerate / chat refine → `gpt-5.6-terra`
+- Diagram JSON specs → `gpt-5.6-luna`
 
 ## Notes
 
