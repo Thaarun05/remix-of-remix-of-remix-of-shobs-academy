@@ -26,6 +26,7 @@ import { DiagramRenderer } from "./worksheet/diagrams/DiagramRenderer";
 import { DiagramV2, DiagramKind, validateDiagramSpec } from "@/lib/diagrams/schemas";
 import type { Question, Worksheet, RefineChatMessage } from "@/lib/worksheet/types";
 import { WorksheetRefineChat } from "./WorksheetRefineChat";
+import { edgeFunctionErrorMessage } from "@/lib/worksheet/edgeErrors";
 
 type LoadingPhase = null | "extracting" | "generating" | "diagrams" | "refining";
 
@@ -191,7 +192,7 @@ export function TeacherWorksheetBuilder() {
           images,
         },
       });
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error, data));
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
       const ws = (data as { worksheet: Worksheet }).worksheet;
       if (!ws?.questions?.length) throw new Error("Generation failed — try a more specific topic.");
@@ -229,7 +230,7 @@ export function TeacherWorksheetBuilder() {
           },
         },
       });
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error, data));
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
       const reply = (data as { assistant_reply?: string; worksheet: Worksheet }).assistant_reply
         ?? "Updated the worksheet.";
@@ -275,7 +276,7 @@ export function TeacherWorksheetBuilder() {
           original_source_excerpt: sourceExcerpt,
         },
       });
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error, data));
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
       const q = (data as { question: Question }).question;
       if (!q) throw new Error("No question returned");
