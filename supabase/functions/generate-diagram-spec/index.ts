@@ -1,10 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callOpenAI, openAIErrorResponse, OpenAICallError } from "../_shared/openai.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const MODEL_DIAGRAM = "gpt-4o-mini";
 
 const PROMPTS: Record<string, string> = {
   geometry_2d: `You convert a natural-language geometry description into a strict JSON spec.
@@ -24,7 +27,10 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -34,54 +40,52 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
     if (claimsErr || !claimsData?.claims?.sub) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
     const userId = claimsData.claims.sub as string;
     const { data: isTeacher } = await supabase.rpc("has_role", { _user_id: userId, _role: "teacher" });
     if (!isTeacher) {
-      return new Response(JSON.stringify({ error: "Only teachers can generate diagrams." }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Only teachers can generate diagrams." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const { kind, description, question_prompt } = await req.json();
     if (!kind || !PROMPTS[kind]) {
-      return new Response(JSON.stringify({ error: "Unsupported diagram kind" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Unsupported diagram kind" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const userMsg = `Question prompt: ${question_prompt ?? ""}
 Diagram description: ${description ?? ""}
 
 Return the strict JSON spec now.`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: PROMPTS[kind] },
-          { role: "user", content: userMsg },
-        ],
-        response_format: { type: "json_object" },
-      }),
+    const parsed = await callOpenAI({
+      model: MODEL_DIAGRAM,
+      temperature: 0.2,
+      jsonObject: true,
+      messages: [
+        { role: "system", content: PROMPTS[kind] },
+        { role: "user", content: userMsg },
+      ],
     });
-    if (!resp.ok) {
-      const t = await resp.text();
-      console.error("AI gateway error (diagram)", resp.status, t);
-      if (resp.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (resp.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      return new Response(JSON.stringify({ error: "AI gateway error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    const data = await resp.json();
-    const content = data.choices?.[0]?.message?.content ?? "";
-    let parsed;
-    try { parsed = JSON.parse(content); } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON from model" }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    return new Response(JSON.stringify({ spec: parsed }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    return new Response(JSON.stringify({ spec: parsed }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
+    if (e instanceof OpenAICallError) return openAIErrorResponse(e, corsHeaders);
     console.error(e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });
