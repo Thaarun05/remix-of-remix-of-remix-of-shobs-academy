@@ -70,7 +70,7 @@ serve(async (req) => {
 Diagram description: ${description ?? ""}
 
 Return the strict JSON spec now.
-(Provider: NVIDIA NIM ${NIM_MODEL}. If specs are often invalid, switch explicitly to ${NIM_LARGER_MODEL_SUGGESTION}.)`;
+(Provider: Lovable AI ${NIM_MODEL}. If specs are often invalid, switch explicitly to ${NIM_LARGER_MODEL_SUGGESTION}.)`;
 
     const parsed = await callNimChat({
       temperature: 0.2,
