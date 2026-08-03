@@ -1,5 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requireUser, requireRole } from "../_shared/auth.ts";
+import {
+  callNimChat,
+  nimErrorResponse,
+  NimCallError,
+  NIM_MODEL,
+  NIM_LARGER_MODEL_SUGGESTION,
+} from "../_shared/nim.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,74 +49,47 @@ serve(async (req) => {
   try {
     const authRes = await requireUser(req);
     if (authRes instanceof Response) {
-      const h = new Headers(authRes.headers); Object.entries(corsHeaders).forEach(([k,v])=>h.set(k,v));
+      const h = new Headers(authRes.headers); Object.entries(corsHeaders).forEach(([k, v]) => h.set(k, v));
       return new Response(await authRes.text(), { status: authRes.status, headers: h });
     }
     const forbid = requireRole(authRes, ["teacher", "admin"]);
     if (forbid) {
-      const h = new Headers(forbid.headers); Object.entries(corsHeaders).forEach(([k,v])=>h.set(k,v));
+      const h = new Headers(forbid.headers); Object.entries(corsHeaders).forEach(([k, v]) => h.set(k, v));
       return new Response(await forbid.text(), { status: forbid.status, headers: h });
     }
     const { subject, grade, topics, count, difficulty, text, images, instructions } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const imgs: string[] = Array.isArray(images) ? images.filter((s) => typeof s === "string" && s.startsWith("data:")) : [];
+    const imgCount = Array.isArray(images) ? images.length : 0;
+    const qCount = Math.min(Number(count) || 10, 12);
 
     const userText = `Create an MCQ quiz from the inputs below.
 Subject: ${subject || "(unspecified)"}
 Grade / Year group: ${grade || "(unspecified)"}
 Topics: ${topics || "(unspecified)"}
-Number of questions: ${count || 10}
+Number of questions: ${qCount}
 Difficulty: ${difficulty || "medium"}
 ${instructions ? `Teacher Instructions (follow precisely):\n${instructions}\n` : ""}
-${text ? `\nSource text / extracted PDF text:\n${text}` : ""}
-${imgs.length ? `\n${imgs.length} image(s) of source material attached — read them carefully.` : ""}`;
+${text ? `\nSource text / extracted PDF text:\n${String(text).slice(0, 12000)}` : ""}
+${imgCount ? `\nNote: ${imgCount} image(s) ignored — ${NIM_MODEL} is text-only.` : ""}
 
-    const userContent: any[] = [{ type: "text", text: userText }];
-    for (const url of imgs) userContent.push({ type: "image_url", image_url: { url } });
+Return ONLY the quiz JSON object.
+(Provider: NVIDIA NIM ${NIM_MODEL}. If JSON fails often, switch explicitly to ${NIM_LARGER_MODEL_SUGGESTION}.)`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userContent },
-        ],
-        response_format: { type: "json_object" },
-      }),
+    const parsed = await callNimChat({
+      temperature: 0.2,
+      top_p: 0.7,
+      max_tokens: 4096,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userText },
+      ],
     });
-
-    if (!resp.ok) {
-      const t = await resp.text();
-      console.error("AI gateway error", resp.status, t);
-      if (resp.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      if (resp.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits in workspace settings." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      return new Response(JSON.stringify({ error: "AI gateway error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    const data = await resp.json();
-    const content = data.choices?.[0]?.message?.content ?? "";
-    let parsed;
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      return new Response(JSON.stringify({ error: "Generation failed — try clearer source material." }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
 
     return new Response(JSON.stringify({ quiz: parsed }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
+    if (e instanceof NimCallError) return nimErrorResponse(e, corsHeaders);
     console.error(e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,

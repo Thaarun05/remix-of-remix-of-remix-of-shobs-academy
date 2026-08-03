@@ -72,10 +72,12 @@ To connect a domain, navigate to Project > Settings > Domains and click Connect 
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
 
-## AI Worksheet Builder (OpenAI)
+## AI Worksheet Builder (NVIDIA NIM)
 
-Teacher **Worksheet Builder** uses OpenAI GPT-5.6 Terra (not Lovable AI).
+Teacher **Worksheet Builder**, diagrams, Quiz Maker, and AI Notetaker use **NVIDIA NIM** (`meta/llama-3.2-1b-instruct`).
 
-1. Add secret `OPENAI_API_KEY` in Supabase Edge Function secrets (see [`supabase/functions/OPENAI_SETUP.md`](supabase/functions/OPENAI_SETUP.md)).
-2. Deploy `generate-worksheet` and `generate-diagram-spec`.
+1. Add secret `NVIDIA_API_KEY` in Supabase / Lovable Edge Function secrets (see [`supabase/functions/NIM_SETUP.md`](supabase/functions/NIM_SETUP.md)).
+2. Deploy `generate-worksheet`, `generate-diagram-spec`, `generate-quiz`, and `generate-notes`.
 3. Teachers: form generate → Refine with AI chat → Student / Answer Key PDF.
+
+If large worksheets fail with invalid JSON, the 1B model may be too small — switch explicitly to `meta/llama-3.1-8b-instruct` (no auto-fallback).
