@@ -1,155 +1,27 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  callOpenAI,
-  openAIErrorResponse,
-  OpenAICallError,
-  type OpenAIMessage,
-} from "../_shared/openai.ts";
+  callNimChat,
+  nimErrorResponse,
+  NimCallError,
+  NIM_MODEL,
+  NIM_LARGER_MODEL_SUGGESTION,
+  type NimMessage,
+} from "../_shared/nim.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MODEL_WORKSHEET = "google/gemini-3.6-flash";
-
-const QUESTION_TYPE_ENUM = [
-  "mcq",
-  "short_answer",
-  "fill_blank",
-  "numerical",
-  "true_false",
-  "diagram",
-  "part_question",
-] as const;
-
-const partSchema = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    label: { type: "string" },
-    prompt: { type: "string" },
-    marks: { type: "number" },
-    answer: { type: "string" },
-  },
-  required: ["label", "prompt", "marks", "answer"],
-};
-
-const diagramSchema = {
-  type: ["object", "null"],
-  additionalProperties: false,
-  properties: {
-    kind: { type: "string", enum: ["geometry_2d", "coordinate_graph", "number_line"] },
-    description: { type: "string" },
-    caption: { type: "string" },
-  },
-  required: ["kind", "description", "caption"],
-};
-
-const questionSchema = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    number: { type: "number" },
-    type: { type: "string", enum: [...QUESTION_TYPE_ENUM] },
-    prompt: { type: "string" },
-    options: {
-      type: "array",
-      items: { type: "string" },
-    },
-    answer: { type: "string" },
-    parts: {
-      type: "array",
-      items: partSchema,
-    },
-    diagram: diagramSchema,
-    marks: { type: "number" },
-    difficulty: { type: "string", enum: ["easy", "medium", "hard"] },
-    blooms_level: {
-      type: "string",
-      enum: ["remember", "understand", "apply", "analyze", "evaluate", "create"],
-    },
-    rubric: { type: "string" },
-    working: { type: "string" },
-  },
-  required: [
-    "number",
-    "type",
-    "prompt",
-    "options",
-    "answer",
-    "parts",
-    "diagram",
-    "marks",
-    "difficulty",
-    "blooms_level",
-    "rubric",
-    "working",
-  ],
-};
-
-const worksheetSchema = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    worksheet_title: { type: "string" },
-    instructions: { type: "string" },
-    metadata: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        topic_tags: { type: "array", items: { type: "string" } },
-        estimated_minutes: { type: "number" },
-      },
-      required: ["topic_tags", "estimated_minutes"],
-    },
-    questions: {
-      type: "array",
-      items: questionSchema,
-    },
-  },
-  required: ["worksheet_title", "instructions", "metadata", "questions"],
-};
-
-const fullResponseSchema = {
-  name: "worksheet_payload",
-  description: "A complete original Shobs Academy practice worksheet",
-  strict: true,
-  schema: worksheetSchema,
-};
-
-const regenResponseSchema = {
-  name: "regen_question_payload",
-  description: "A single replacement worksheet question",
-  strict: true,
-  schema: {
-    type: "object",
-    additionalProperties: false,
-    properties: {
-      question: questionSchema,
-    },
-    required: ["question"],
-  },
-};
-
-const chatRefineResponseSchema = {
-  name: "chat_refine_payload",
-  description: "Refined worksheet plus short assistant reply for the teacher",
-  strict: true,
-  schema: {
-    type: "object",
-    additionalProperties: false,
-    properties: {
-      assistant_reply: { type: "string" },
-      worksheet: worksheetSchema,
-    },
-    required: ["assistant_reply", "worksheet"],
-  },
-};
+// Capacity flag: Llama 3.2 1B often struggles with large nested worksheet JSON.
+// Do NOT auto-fallback. If parse/quality fails in prod, switch model explicitly to:
+// NIM_LARGER_MODEL_SUGGESTION (meta/llama-3.1-8b-instruct).
+const WORKSHEET_CAPACITY_NOTE =
+  `Provider: NVIDIA NIM (${NIM_MODEL}). If this fails repeatedly with invalid JSON, the model may be too small — switch to ${NIM_LARGER_MODEL_SUGGESTION} explicitly.`;
 
 const SYSTEM_PROMPT = `You are an expert curriculum designer and worksheet author for Shobs Academy, an international tutoring academy.
-Produce original, classroom-ready practice worksheets with ChatGPT-class clarity, variety, and pedagogical quality.
+Produce original, classroom-ready practice worksheets.
 
 Hard rules:
 - Do NOT reproduce textbook pages, past papers, or named publisher materials.
@@ -162,33 +34,28 @@ Hard rules:
 - For types that do not need options, return an empty options array.
 - For types that are not part_question, return an empty parts array.
 - For questions without a figure, set diagram to null.
-- When a figure is needed, set diagram to { kind, description, caption } using natural language only — NO coordinates, vertices arrays, or DSL. A later step converts description → drawable spec.
+- When a figure is needed, set diagram to { kind, description, caption } using natural language only — NO coordinates, vertices arrays, or DSL.
 - Use type "part_question" with a populated parts array for (a)(b)(c) style items.
-- Follow the teacher's Question Instructions precisely for style, depth, workings, and diagrams.
-- Difficulty progression (e.g. "Easy to Hard") controls ordering across the sheet; "Easy only" means all easy, etc.
-- Always populate marks, difficulty, blooms_level, rubric (may be empty string), answer, and working (may be empty string).`;
+- Follow the teacher's Question Instructions precisely.
+- Always populate marks, difficulty, blooms_level, rubric (may be empty string), answer, and working (may be empty string).
+- Return ONLY a valid JSON object (no markdown fences) with keys: worksheet_title, instructions, metadata { topic_tags, estimated_minutes }, questions [].`;
 
 const REGEN_SYSTEM_PROMPT = `You draft ONE replacement practice question for an existing Shobs Academy worksheet.
-Match pedagogical quality to a professional ChatGPT worksheet author.
 Do NOT duplicate any OTHER questions listed.
 Match the requested type when specified.
-If a figure is needed, set diagram to { kind, description, caption } — natural language only, no DSL/coordinates.
+If a figure is needed, set diagram to { kind, description, caption } — natural language only.
 If no figure is needed, set diagram to null.
 For non-MCQ, options must be []. For non-part_question, parts must be [].
-Always include marks, difficulty, blooms_level, rubric, answer, working.`;
+Always include marks, difficulty, blooms_level, rubric, answer, working.
+Return ONLY JSON: { "question": { ... } }.`;
 
-const CHAT_REFINE_SYSTEM_PROMPT = `You are a professional worksheet editor co-pilot for Shobs Academy teachers (ChatGPT-style refine).
-The teacher sends a natural-language request about the CURRENT worksheet JSON.
-Apply their request carefully and return the FULL updated worksheet plus a short assistant_reply (1–3 sentences) describing what you changed.
+const CHAT_REFINE_SYSTEM_PROMPT = `You are a professional worksheet editor co-pilot for Shobs Academy teachers.
+Apply the teacher's request carefully and return the FULL updated worksheet plus a short assistant_reply (1–3 sentences).
 Rules:
 - Preserve question numbers sequentially starting at 1 after edits.
-- Keep Shobs Academy quality: original content, clear prompts, fair marks, useful answers/workings.
-- Do not invent copyrighted textbook text.
-- If they ask to harden/simplify, adjust difficulty, blooms_level, and wording accordingly.
-- If they ask to add questions, append and renumber.
-- If they ask to remove questions, drop them and renumber.
-- diagram field: natural-language description only or null — never embed coordinate DSL.
-- Follow the same JSON field conventions as generation (empty options/parts arrays when unused).`;
+- Keep original content quality; do not invent copyrighted textbook text.
+- diagram: natural-language description only or null.
+- Return ONLY JSON: { "assistant_reply": string, "worksheet": { ... } }.`;
 
 async function requireTeacher(req: Request): Promise<
   | { ok: true; userId: string; supabase: ReturnType<typeof createClient> }
@@ -299,18 +166,18 @@ ${instructions ? `Teacher instructions: ${instructions}` : ""}
 OTHER existing questions (do NOT duplicate any of these prompts):
 ${(other_questions_summary ?? []).map((q: { number: number; type: string; prompt: string }) => `#${q.number} [${q.type}] ${q.prompt}`).join("\n")}
 
-${original_source_excerpt ? `Source excerpt:\n${String(original_source_excerpt).slice(0, 6000)}` : ""}
+${original_source_excerpt ? `Source excerpt:\n${String(original_source_excerpt).slice(0, 4000)}` : ""}
 
 Return a single replacement question with "number" = ${target_number}.`;
 
-      const parsed = await callOpenAI({
-        model: MODEL_WORKSHEET,
-        temperature: 0.75,
-        jsonSchema: regenResponseSchema,
+      const parsed = await callNimChat({
+        temperature: 0.2,
+        top_p: 0.7,
+        max_tokens: 2048,
         messages: [
           { role: "system", content: REGEN_SYSTEM_PROMPT },
           { role: "user", content: userMsg },
-        ],
+        ] as NimMessage[],
       }) as { question?: Record<string, unknown> };
 
       const q = normalizeQuestion(parsed.question ?? (parsed as Record<string, unknown>), target_number);
@@ -335,6 +202,7 @@ Return a single replacement question with "number" = ${target_number}.`;
       }
 
       const fc = form_context ?? {};
+      // Keep payload smaller for 1B context limits
       const userMsg = `Form context:
 Subject: ${fc.subject ?? ""}
 Grade: ${fc.grade ?? ""}
@@ -344,29 +212,32 @@ Allowed types: ${(fc.types ?? []).join(", ")}
 Teacher instructions: ${fc.objective ?? ""}
 
 CURRENT WORKSHEET JSON:
-${JSON.stringify(worksheet).slice(0, 100000)}
+${JSON.stringify(worksheet).slice(0, 24000)}
 
 TEACHER REQUEST:
 ${String(message).trim()}
 
-Return the full updated worksheet and a short assistant_reply.`;
+Return the full updated worksheet and a short assistant_reply.
+(${WORKSHEET_CAPACITY_NOTE})`;
 
-      const parsed = await callOpenAI({
-        model: MODEL_WORKSHEET,
-        temperature: 0.55,
-        jsonSchema: chatRefineResponseSchema,
+      const parsed = await callNimChat({
+        temperature: 0.2,
+        top_p: 0.7,
+        max_tokens: 4096,
         messages: [
           { role: "system", content: CHAT_REFINE_SYSTEM_PROMPT },
           { role: "user", content: userMsg },
-        ],
+        ] as NimMessage[],
       }) as { assistant_reply?: string; worksheet?: Record<string, unknown> };
 
       const ws = normalizeWorksheet(parsed.worksheet ?? {});
       if (!Array.isArray(ws.questions) || ws.questions.length === 0) {
-        return new Response(JSON.stringify({ error: "Refine failed — try a clearer request." }), {
-          status: 422,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            error: `Refine failed — try a clearer request. ${WORKSHEET_CAPACITY_NOTE}`,
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
 
       return new Response(
@@ -378,7 +249,7 @@ Return the full updated worksheet and a short assistant_reply.`;
       );
     }
 
-    // Full generation
+    // Full generation (text-only — Llama 3.2 1B has no vision; ignore images)
     const { subject, grade, topic, count, difficulty, types, objective, text, images } = body;
     if (!subject || !grade || !topic || !Array.isArray(types) || types.length === 0) {
       return new Response(
@@ -387,51 +258,47 @@ Return the full updated worksheet and a short assistant_reply.`;
       );
     }
 
-    const imgs: string[] = Array.isArray(images)
-      ? images.filter((s: unknown) => typeof s === "string" && (s as string).startsWith("data:"))
-      : [];
+    const imgCount = Array.isArray(images) ? images.length : 0;
+    const qCount = Math.min(Number(count) || 10, 15);
 
     const userText = `Create an original Shobs Academy practice worksheet.
 Subject: ${subject}
 Grade / Year group: ${grade}
 Topic: ${topic}
-Number of questions: ${count}
+Number of questions: ${qCount}
 Difficulty progression: ${difficulty}
 Allowed question types: ${types.join(", ")}
 ${objective ? `Question Instructions from teacher (follow precisely):\n${objective}` : ""}
 
 Distribute questions across the allowed types. Number them sequentially starting at 1.
 Always include a concise teacher "answer". Include a diagram object whenever figures are needed.
-Use part_question with parts when the teacher asks for (a)(b)(c). Include "working" with step-by-step solutions when asked.
+Use part_question with parts when the teacher asks for (a)(b)(c). Include "working" when asked.
 ${text && String(text).trim()
-      ? `\nSource text / extracted PDF text (ground the worksheet in this material, paraphrase — do not copy verbatim):\n${String(text).slice(0, 24000)}`
+      ? `\nSource text / extracted PDF text (paraphrase — do not copy verbatim):\n${String(text).slice(0, 12000)}`
       : ""}
-${imgs.length
-      ? `\n${imgs.length} image(s) of source material are attached — read them carefully and use them as source material.`
-      : ""}`;
+${imgCount
+      ? `\nNote: ${imgCount} image(s) were uploaded but are ignored — ${NIM_MODEL} is text-only. Use extracted text only.`
+      : ""}
 
-    const userContent: OpenAIMessage["content"] = [{ type: "text", text: userText }];
-    for (const url of imgs.slice(0, 8)) {
-      (userContent as Array<{ type: string; text?: string; image_url?: { url: string } }>).push({
-        type: "image_url",
-        image_url: { url },
-      });
-    }
+Return ONLY the worksheet JSON object.
+(${WORKSHEET_CAPACITY_NOTE})`;
 
-    const parsed = await callOpenAI({
-      model: MODEL_WORKSHEET,
-      temperature: 0.7,
-      jsonSchema: fullResponseSchema,
+    const parsed = await callNimChat({
+      temperature: 0.2,
+      top_p: 0.7,
+      max_tokens: 4096,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userContent },
-      ],
+        { role: "user", content: userText },
+      ] as NimMessage[],
     }) as Record<string, unknown>;
 
     const worksheet = normalizeWorksheet(parsed);
     if (!Array.isArray(worksheet.questions) || worksheet.questions.length === 0) {
       return new Response(
-        JSON.stringify({ error: "Generation failed — try a more specific topic." }),
+        JSON.stringify({
+          error: `Generation failed — try a more specific topic or fewer questions. ${WORKSHEET_CAPACITY_NOTE}`,
+        }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -440,7 +307,7 @@ ${imgs.length
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    if (e instanceof OpenAICallError) return openAIErrorResponse(e, corsHeaders);
+    if (e instanceof NimCallError) return nimErrorResponse(e, corsHeaders);
     console.error(e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),

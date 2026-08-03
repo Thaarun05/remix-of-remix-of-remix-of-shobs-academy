@@ -29,7 +29,7 @@ export async function edgeFunctionErrorMessage(
 
   if (error instanceof Error && error.message) {
     if (error.message.includes("non-2xx")) {
-      return "Worksheet service failed. Please try again in a moment.";
+      return "Worksheet service failed. Check NVIDIA_API_KEY in Lovable/Supabase Secrets and that generate-worksheet is redeployed.";
     }
     return error.message;
   }

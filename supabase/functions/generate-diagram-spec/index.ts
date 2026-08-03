@@ -1,13 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callOpenAI, openAIErrorResponse, OpenAICallError } from "../_shared/openai.ts";
+import {
+  callNimChat,
+  nimErrorResponse,
+  NimCallError,
+  NIM_MODEL,
+  NIM_LARGER_MODEL_SUGGESTION,
+} from "../_shared/nim.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const MODEL_DIAGRAM = "google/gemini-3.6-flash";
 
 const PROMPTS: Record<string, string> = {
   geometry_2d: `You convert a natural-language geometry description into a strict JSON spec.
@@ -65,12 +69,13 @@ serve(async (req) => {
     const userMsg = `Question prompt: ${question_prompt ?? ""}
 Diagram description: ${description ?? ""}
 
-Return the strict JSON spec now.`;
+Return the strict JSON spec now.
+(Provider: NVIDIA NIM ${NIM_MODEL}. If specs are often invalid, switch explicitly to ${NIM_LARGER_MODEL_SUGGESTION}.)`;
 
-    const parsed = await callOpenAI({
-      model: MODEL_DIAGRAM,
+    const parsed = await callNimChat({
       temperature: 0.2,
-      jsonObject: true,
+      top_p: 0.7,
+      max_tokens: 1024,
       messages: [
         { role: "system", content: PROMPTS[kind] },
         { role: "user", content: userMsg },
@@ -81,7 +86,7 @@ Return the strict JSON spec now.`;
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    if (e instanceof OpenAICallError) return openAIErrorResponse(e, corsHeaders);
+    if (e instanceof NimCallError) return nimErrorResponse(e, corsHeaders);
     console.error(e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
