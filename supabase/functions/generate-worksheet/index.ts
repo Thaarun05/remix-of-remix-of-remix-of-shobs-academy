@@ -18,7 +18,7 @@ const corsHeaders = {
 // Do NOT auto-fallback. If parse/quality fails in prod, switch model explicitly to:
 // NIM_LARGER_MODEL_SUGGESTION (meta/llama-3.1-8b-instruct).
 const WORKSHEET_CAPACITY_NOTE =
-  `Provider: NVIDIA NIM (${NIM_MODEL}). If this fails repeatedly with invalid JSON, the model may be too small — switch to ${NIM_LARGER_MODEL_SUGGESTION} explicitly.`;
+  `Provider: Lovable AI (${NIM_MODEL}). If this fails repeatedly with invalid JSON, the model may be too small — switch to ${NIM_LARGER_MODEL_SUGGESTION} explicitly.`;
 
 const SYSTEM_PROMPT = `You are an expert curriculum designer and worksheet author for Shobs Academy, an international tutoring academy.
 Produce original, classroom-ready practice worksheets.

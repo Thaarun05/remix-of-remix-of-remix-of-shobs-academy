@@ -71,7 +71,7 @@ ${text ? `\nLecture text / extracted PDF text:\n${String(text).slice(0, 12000)}`
 ${imgCount ? `\nNote: ${imgCount} image(s) ignored — ${NIM_MODEL} is text-only. Prefer pasted/extracted text.` : ""}
 
 Return ONLY the notes JSON object.
-(Provider: NVIDIA NIM ${NIM_MODEL}. If JSON fails often, switch explicitly to ${NIM_LARGER_MODEL_SUGGESTION}.)`;
+(Provider: Lovable AI ${NIM_MODEL}. If JSON fails often, switch explicitly to ${NIM_LARGER_MODEL_SUGGESTION}.)`;
 
     const parsed = await callNimChat({
       temperature: 0.2,
