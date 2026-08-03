@@ -1,33 +1,23 @@
-# OpenAI secrets for AI Worksheet Builder
+# AI setup for the Worksheet Builder
 
-The teacher **Worksheet Builder** and diagram-spec pass use OpenAI (not the Lovable AI gateway).
+All AI features now run through the **Lovable AI Gateway** — no third-party API key is required.
 
 ## Required secret
 
 | Secret | Used by | Purpose |
 |--------|---------|---------|
-| `OPENAI_API_KEY` | `generate-worksheet`, `generate-diagram-spec` | GPT-4.1 worksheet generation / chat refine; GPT-4o-mini diagram specs |
+| `LOVABLE_API_KEY` | `generate-worksheet`, `generate-diagram-spec`, `generate-quiz`, `generate-notes` | All chat-completion calls |
 
-Set it in the **Supabase Dashboard → Project Settings → Edge Functions → Secrets**, or via CLI:
-
-```bash
-supabase secrets set OPENAI_API_KEY=sk-...
-```
-
-Then redeploy:
-
-```bash
-supabase functions deploy generate-worksheet
-supabase functions deploy generate-diagram-spec
-```
+This key is auto-provisioned by Lovable; nobody needs to set it manually.
 
 ## Models
 
-- Worksheet generate / regenerate / chat refine → `gpt-5.6-terra`
-- Diagram JSON specs → `gpt-5.6-luna`
+- Worksheet generate / regenerate / chat refine → `google/gemini-3.6-flash`
+- Diagram JSON specs → `google/gemini-3.6-flash`
+- Quiz Maker / AI Notetaker → `google/gemini-2.5-flash`
 
 ## Notes
 
-- Never put the API key in the Vite frontend or commit it to git.
-- Quiz Maker and AI Notetaker still use `LOVABLE_API_KEY` until migrated separately.
-- Teachers without a configured key will see a clear configuration error from the edge function.
+- Never expose `LOVABLE_API_KEY` to the Vite frontend.
+- Rate limits surface as HTTP 429 and exhausted credits as HTTP 402; both are shown to the teacher as readable errors.
+- The legacy `OPENAI_API_KEY` secret is no longer used by any edge function.

@@ -1,6 +1,8 @@
 /**
- * Shared OpenAI Chat Completions helper for Supabase Edge Functions.
- * Uses OPENAI_API_KEY from secrets. Never expose this key to the client.
+ * Shared Lovable AI Gateway chat-completions helper for Supabase Edge Functions.
+ * Uses LOVABLE_API_KEY from secrets. Never expose this key to the client.
+ * The exported names keep the historical `OpenAI*` prefix so existing call sites
+ * stay unchanged; all traffic goes to the Lovable AI Gateway.
  */
 
 export type OpenAIMessageContent =
@@ -51,14 +53,14 @@ export class OpenAICallError extends Error {
 export function mapOpenAIHttpError(status: number, bodyText: string): OpenAICallError {
   if (status === 401) {
     return new OpenAICallError(
-      "OpenAI API key is missing or invalid. Ask an admin to set OPENAI_API_KEY in Supabase secrets.",
+      "AI gateway key is missing or invalid. Ask an admin to check LOVABLE_API_KEY.",
       401,
       "unauthorized",
     );
   }
   if (status === 429) {
     return new OpenAICallError(
-      "OpenAI rate limit exceeded. Please try again in a moment.",
+      "Rate limit exceeded. Please try again in a moment.",
       429,
       "rate_limit",
     );
@@ -67,62 +69,72 @@ export function mapOpenAIHttpError(status: number, bodyText: string): OpenAICall
     const lower = bodyText.toLowerCase();
     if (lower.includes("quota") || lower.includes("billing") || lower.includes("credit") || status === 402) {
       return new OpenAICallError(
-        "OpenAI billing or quota issue. Please check the OpenAI account billing settings.",
+        "AI credits exhausted. Please add credits in workspace settings.",
         402,
         "billing",
       );
     }
   }
-  console.error("OpenAI upstream error", status, bodyText.slice(0, 800));
+  console.error("AI gateway upstream error", status, bodyText.slice(0, 800));
   return new OpenAICallError(
-    "OpenAI request failed. Please try again.",
+    "AI request failed. Please try again.",
     status >= 400 && status < 600 ? status : 500,
     "upstream",
   );
 }
 
 export async function callOpenAI(opts: CallOpenAIOptions): Promise<unknown> {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) {
     throw new OpenAICallError(
-      "OPENAI_API_KEY is not configured. Add it in Supabase Edge Function secrets.",
+      "LOVABLE_API_KEY is not configured.",
       500,
       "config",
     );
   }
 
-  const body: Record<string, unknown> = {
-    model: opts.model,
-    messages: opts.messages,
-    temperature: opts.temperature ?? 0.7,
+  const buildBody = (useSchema: boolean): Record<string, unknown> => {
+    const body: Record<string, unknown> = {
+      model: opts.model,
+      messages: opts.messages,
+      temperature: opts.temperature ?? 0.7,
+    };
+    if (typeof opts.maxTokens === "number") body.max_tokens = opts.maxTokens;
+
+    if (useSchema && opts.jsonSchema) {
+      body.response_format = {
+        type: "json_schema",
+        json_schema: {
+          name: opts.jsonSchema.name,
+          description: opts.jsonSchema.description,
+          schema: opts.jsonSchema.schema,
+          strict: opts.jsonSchema.strict ?? true,
+        },
+      };
+    } else if (opts.jsonSchema || opts.jsonObject !== false) {
+      body.response_format = { type: "json_object" };
+    }
+    return body;
   };
 
-  if (typeof opts.maxTokens === "number") {
-    body.max_tokens = opts.maxTokens;
-  }
-
-  if (opts.jsonSchema) {
-    body.response_format = {
-      type: "json_schema",
-      json_schema: {
-        name: opts.jsonSchema.name,
-        description: opts.jsonSchema.description,
-        schema: opts.jsonSchema.schema,
-        strict: opts.jsonSchema.strict ?? true,
+  const post = (body: Record<string, unknown>) =>
+    fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
-    };
-  } else if (opts.jsonObject !== false) {
-    body.response_format = { type: "json_object" };
-  }
+      body: JSON.stringify(body),
+    });
 
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  let resp = await post(buildBody(true));
+
+  // Some models reject strict json_schema; retry once in plain JSON mode.
+  if (resp.status === 400 && opts.jsonSchema) {
+    const detail = await resp.text();
+    console.warn("json_schema rejected, retrying with json_object", detail.slice(0, 400));
+    resp = await post(buildBody(false));
+  }
 
   if (!resp.ok) {
     const t = await resp.text();
@@ -132,14 +144,21 @@ export async function callOpenAI(opts: CallOpenAIOptions): Promise<unknown> {
   const data = await resp.json();
   const content = data.choices?.[0]?.message?.content ?? "";
   if (typeof content !== "string" || !content.trim()) {
-    throw new OpenAICallError("Empty response from OpenAI.", 422, "parse");
+    throw new OpenAICallError("Empty response from the AI model.", 422, "parse");
   }
 
   try {
     return JSON.parse(content);
   } catch {
+    // Tolerate ```json fences or surrounding prose.
+    const match = content.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch { /* fall through */ }
+    }
     throw new OpenAICallError(
-      "OpenAI returned invalid JSON. Please try again.",
+      "The AI returned invalid JSON. Please try again.",
       422,
       "parse",
     );
