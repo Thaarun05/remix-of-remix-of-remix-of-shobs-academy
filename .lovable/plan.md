@@ -1,108 +1,59 @@
-# Worksheet Builder v2 — Edit Loop, Answer Key, Real Diagrams
+# AI Feature Audit — Shobs Academy
 
-Scoped to Worksheet Builder only. Notemaker, Quiz Maker, and the shared `src/lib/extractSource.ts` are untouched.
+## Summary
+Four AI generation features exist. Two work (Quiz Maker, AI Notetaker — both on Lovable AI, confirmed by successful gateway calls as recently as 2026-08-02). Two are broken (Worksheet Builder and its diagram pass) because they bypass Lovable AI and call OpenAI directly with model ids that do not exist in OpenAI's catalog.
 
-## Part A — Foundation & Edit Loop
+---
 
-### A1. Auth hardening on `generate-worksheet`
-- `supabase/config.toml`: change `[functions.generate-worksheet]` to `verify_jwt = true`.
-- In `supabase/functions/generate-worksheet/index.ts`:
-  - Read `Authorization: Bearer <jwt>`.
-  - Build a Supabase client with anon key + the caller's Authorization header.
-  - `getClaims(token)` to get `sub`; then check role using the existing `public.has_role(user_id, 'teacher')` RPC.
-  - Non-teacher → 403 JSON `{ error: "Only teachers can generate worksheets." }`.
-- Client (`TeacherWorksheetBuilder.tsx`) already invokes via `supabase.functions.invoke`, which forwards the JWT automatically. No client change beyond surfacing the 403 toast.
+## 1. AI Worksheet Builder
+2. **Location**: UI `src/components/teacher/TeacherWorksheetBuilder.tsx` + `WorksheetRefineChat.tsx`; backend `supabase/functions/generate-worksheet/index.ts`; shared client `supabase/functions/_shared/openai.ts`
+3. **Provider/model**: direct `api.openai.com/v1/chat/completions`, `MODEL_WORKSHEET = "gpt-5.6-terra"`
+4. **Status**: broken
+5. **Why**: `gpt-5.6-terra` is not an OpenAI API model id. Every call (generate, regenerate, chat refine) is rejected upstream; `_shared/openai.ts` maps that to a non-2xx, which the UI shows as "Edge Function returned a non-2xx status code". Zero AI Gateway traffic for this feature confirms it never reaches Lovable AI. A wrong or unset `OPENAI_API_KEY` would be a second failure point, but the model id fails regardless.
+6. **Fix**: route it through Lovable AI (`https://ai.gateway.lovable.dev/v1`, `LOVABLE_API_KEY`) using `google/gemini-3.6-flash`, matching the two working functions. Keep the JSON-schema / `json_object` response format and the existing auth + role checks. Remove the direct-OpenAI path so an invented id cannot be reintroduced.
+7. **Free model?**: Yes — Lovable AI's Gemini Flash is already included; no NVIDIA NIM or OpenRouter key needed.
+8. **Needs paid GPT 5.6 Terra Pro?**: No.
 
-### A2. Schema v2 (additive — no breaking field renames)
-Every question object gains:
-- `marks: number` (already present for some — make it consistently required)
-- `difficulty: "easy" | "medium" | "hard"`
-- `blooms_level: "remember" | "understand" | "apply" | "analyze" | "evaluate" | "create"`
-- `rubric?: string` (optional short marking guidance)
+## 2. Worksheet Diagram Specs
+2. **Location**: `supabase/functions/generate-diagram-spec/index.ts`; renderers in `src/components/teacher/worksheet/diagrams/`
+3. **Provider/model**: direct OpenAI, `MODEL_DIAGRAM = "gpt-5.6-luna"`
+4. **Status**: broken (same root cause)
+5. **Why**: `gpt-5.6-luna` is not an OpenAI model id.
+6. **Fix**: same migration to Lovable AI + `google/gemini-3.6-flash`, JSON object mode, existing teacher role check preserved.
+7. **Free model?**: Yes.
+8. **Paid?**: No.
 
-Top-level worksheet gains:
-- `metadata: { topic_tags: string[], estimated_minutes: number }`
+## 3. AI Quiz Maker
+2. **Location**: `src/components/teacher/TeacherQuizMaker.tsx` -> `supabase/functions/generate-quiz/index.ts`
+3. **Provider/model**: Lovable AI Gateway, `google/gemini-2.5-flash` (multimodal, `json_object`)
+4. **Status**: working (gateway 200s, ~7s, 2026-08-02)
+5/6. No fix required. Optional: bump to `google/gemini-3.6-flash`, the current default.
+7/8. Already on an included model; no paid model needed.
 
-All existing fields (`number`, `type`, `prompt`, `options`, `parts`, `answer`, `working`, `diagram`) remain exactly as today. System prompt + JSON schema in the edge function extended to require the new fields.
+## 4. AI Notetaker
+2. **Location**: `src/components/teacher/TeacherAiNotetaker.tsx` -> `supabase/functions/generate-notes/index.ts`
+3. **Provider/model**: Lovable AI Gateway, `google/gemini-2.5-flash`
+4. **Status**: working
+5/6. No fix required. Optional model bump as above.
+7/8. No paid model needed.
 
-### A3. Per-question edit loop in the preview
-In `TeacherWorksheetBuilder.tsx` question cards, add a per-card toolbar:
-- **Edit** — toggles inline editable fields (prompt textarea; option inputs for MCQ; answer / working textareas; parts editor for `part_question`). Saves back into local `worksheet.questions[i]`.
-- **Regenerate** — calls `generate-worksheet` with a new `mode: "regenerate_question"` body (see below); replaces only that question on success.
-- **Delete** — removes the question and renumbers `number` sequentially.
-- **Drag to reorder** — use `@dnd-kit/core` + `@dnd-kit/sortable` (add as deps). On drop, reorder and renumber. Renumbering must not mutate any other field.
+## Non-AI generation (for completeness)
+Quiz taking and grading (`start-quiz-attempt`, `go-to-question`, `save-answer`, `submit-quiz`), PDF export (jsPDF), and PDF/image text extraction (`src/lib/extractSource.ts`, pdfjs) are deterministic — no model calls.
 
-Regenerate-question mode in the same edge function:
-- Request body switches on `mode`:
-  - default (`"full"` or missing) → current behavior.
-  - `"regenerate_question"` → payload includes `worksheet_title`, `subject`, `grade`, `topic`, `difficulty`, `allowed_types`, `other_questions_summary` (array of `{ number, type, prompt }`), `target_number`, `original_source_excerpt` (pasted text + any previously extracted text — not re-uploading images), and optional `instructions`.
-  - Returns `{ question: <single question object in schema v2> }`.
-- The single-question call uses a shorter system prompt that reuses the same schema rules but instructs the model to return one question only, avoid duplicating any of the other prompts, and match the requested `type` when provided.
+## Config findings
+- Secrets present: `LOVABLE_API_KEY`, `OPENAI_API_KEY`, `RESEND_API_KEY`.
+- Auth config is correct: all four generate functions have `verify_jwt = true` and validate teacher/admin roles.
+- No feature flags or disabled AI code paths found. `supabase/functions/OPENAI_SETUP.md` documents the dead OpenAI path and goes stale after the fix.
+- The two working functions already handle 429 (rate limit) and 402 (credits exhausted) explicitly; the same handling will be applied to the worksheet functions.
 
-Rule: editing or regenerating one card only mutates `worksheet.questions[i]`. React state updates use functional setters and shallow-copy arrays so untouched questions keep referential identity.
+## Priority
+Fix the **Worksheet Builder** first — it is the feature teachers are hitting errors on, and the diagram function is part of the same flow, so both are fixed in one change.
 
-### A4. Teacher Answer-Key PDF
-- Extend `handleDownloadPDF(includeAnswers: boolean)` in `TeacherWorksheetBuilder.tsx`.
-- Two buttons above the preview: **Download Student PDF** (`includeAnswers=false`) and **Download Answer Key PDF** (`includeAnswers=true`).
-- Same layout, branding, header, student-info row, footer, page-break logic.
-- When `includeAnswers`:
-  - Under each question, print `Answer:`, `Working:` (multi-line, page-break aware), and `Rubric:` when present.
-  - Filename: `shobs-academy-{slug}-answer-key.pdf`.
-- Preview stays student-view; answer key exists only in the PDF.
+## Proposed change set
+1. Rewrite `generate-worksheet/index.ts` and `generate-diagram-spec/index.ts` to call the Lovable AI Gateway with `google/gemini-3.6-flash`, preserving prompts, schemas, auth, and response shapes.
+2. Replace `_shared/openai.ts` with a shared Lovable AI helper (same error mapping, plus 429/402 handling).
+3. Update `OPENAI_SETUP.md` to describe the gateway setup.
+4. Redeploy both functions and run one real worksheet generation to confirm a 200 in the gateway logs.
+5. Frontend untouched apart from the stale OpenAI error hint in `src/lib/worksheet/edgeErrors.ts`.
 
-## Part B — Real Diagrams (spec-driven, SVG-first)
-
-### B1. Diagram Spec Language (DSL)
-Question schema's `diagram` becomes `{ kind, spec, caption }` with three kinds in this pass:
-
-- `geometry_2d`
-  - `spec: { vertices: [{id, x, y, label?}], edges: [{from, to, length_label?}], angles: [{at_vertex, from, to, label?, mark?: "arc" | "right"}], circles?: [{center:{x,y}, radius, label?}], bearings?: [{from, to, degrees}], units?: "cm"|"m"|"" }`
-- `coordinate_graph`
-  - `spec: { x_range:[min,max], y_range:[min,max], x_step, y_step, grid:boolean, functions?: [{ expr, domain?:[a,b], label? }], points?: [{x,y,label?}], segments?: [{from:{x,y}, to:{x,y}, label?}] }`
-  - `expr` is a plain math expression in `x` (e.g. `2*x+1`, `x^2-3`). Evaluated safely (see B3).
-- `number_line`
-  - `spec: { range:[min,max], step, ticks?: number[], points?: [{value, label?, filled?:boolean}], intervals?: [{from, to, open_from?:boolean, open_to?:boolean, label?}] }`
-
-Each kind has a strict Zod schema in `src/lib/diagrams/schemas.ts`. Parsing failure = "spec invalid".
-
-### B2. Two-pass generation
-- **Pass A** — existing worksheet generation. For any figure question, the model outputs `diagram: { kind, description }` only. Coordinates/lengths are NOT requested here.
-- **Pass B** — new edge function `generate-diagram-spec` (small, focused). Input: `{ kind, description, question_prompt }`. Output: strict DSL JSON validated against the Zod schema on the client after return. Uses `openai/gpt-5-mini` with a tight per-kind system prompt and `response_format: json_object`. `verify_jwt = true`, teacher-role check.
-- Client orchestration in `TeacherWorksheetBuilder.tsx`:
-  1. Call `generate-worksheet` as today.
-  2. Walk `questions`; for each with a Pass-A `diagram`, call `generate-diagram-spec`. Run these in parallel with a small concurrency cap (e.g. 4).
-  3. Validate returned spec with Zod. On failure, retry once. On second failure, replace the diagram with `{ kind, spec: null, caption, error: "diagram could not be generated" }` — preview shows an inline warning card, the rest of the worksheet renders normally.
-- Regenerate-question flow re-runs Pass B for that one question's diagram if present.
-
-### B3. SVG renderers (replace html2canvas-first flow)
-New folder `src/components/teacher/worksheet/diagrams/`:
-- `Geometry2D.tsx`, `CoordinateGraph.tsx`, `NumberLine.tsx` — pure React SVG, driven only by validated spec.
-- `DiagramRenderer.tsx` — switches on `kind`, renders the matching component, or the "could not be generated" fallback card.
-- Sizing: fixed viewBox per kind (e.g. 480×320), `preserveAspectRatio="xMidYMid meet"`, wrapper max-width so it never exceeds the worksheet column.
-- `CoordinateGraph` uses a tiny safe expression evaluator: whitelist `+ - * / ^ ( )`, `x`, and functions `sin cos tan sqrt abs log ln exp`. Parse with a minimal shunting-yard or `mathjs` (add dep) restricted to `evaluate` on `{x}`. No `eval`, no `new Function`.
-- Preview renders these components directly (no html2canvas for the three implemented kinds).
-
-PDF export:
-- Add `svg2pdf.js` (works with jsPDF) to embed SVG as vector into the existing jsPDF document — keeps text crisp, respects A4 margins, page-break aware.
-- If `svg2pdf` fails for a given node, fall back to rasterizing that single SVG at 2× DPR via `html2canvas` and embed as PNG.
-- `html2canvas` remains only as a last-resort fallback and only for `diagram.kind` values not yet implemented (none in this pass, but the code path stays for future kinds).
-- Margin guard: compute available width from current jsPDF margins; scale SVG width to fit; if height would overflow the page, insert a page break before drawing.
-
-## Scope guardrails (enforced by this plan)
-- No changes to `TeacherAiNotetaker.tsx`, `TeacherQuizMaker.tsx`, `generate-notes`, `generate-quiz`, or `src/lib/extractSource.ts`.
-- No worksheet persistence, no student assignment, no template library.
-- No bar/line/pie charts. No KaTeX. Those are explicitly deferred.
-
-## File-level change list
-- `supabase/config.toml` — flip `generate-worksheet` to `verify_jwt = true`; add `[functions.generate-diagram-spec]` with `verify_jwt = true`.
-- `supabase/functions/generate-worksheet/index.ts` — teacher-role check; schema v2; `mode: "regenerate_question"` branch.
-- `supabase/functions/generate-diagram-spec/index.ts` — new, per-kind tight prompts, strict JSON.
-- `src/lib/diagrams/schemas.ts` — Zod schemas for the 3 kinds + shared types.
-- `src/lib/diagrams/mathExpr.ts` — safe expression evaluator for `coordinate_graph`.
-- `src/components/teacher/worksheet/diagrams/` — `Geometry2D.tsx`, `CoordinateGraph.tsx`, `NumberLine.tsx`, `DiagramRenderer.tsx`.
-- `src/components/teacher/TeacherWorksheetBuilder.tsx` — per-question edit/regenerate/delete/reorder toolbar; two PDF buttons; Pass-B orchestration; use `DiagramRenderer` in preview; `svg2pdf`-first export.
-- `package.json` — add `@dnd-kit/core`, `@dnd-kit/sortable`, `svg2pdf.js`, `mathjs` (or a minimal parser).
-
-## Open questions before build
-1. For "drag to reorder", is a keyboard-accessible handle enough, or do you also want up/down arrow buttons on each card as a fallback?
-2. For the answer-key PDF, should MCQ answers be shown as just the letter (e.g. `Answer: B`), the full option text, or both?
+No NVIDIA NIM, OpenRouter, or GPT 5.6 Terra Pro credentials are needed — Lovable AI covers every feature here.
