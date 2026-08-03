@@ -12,7 +12,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MODEL_WORKSHEET = "gpt-5.6-terra";
+const MODEL_WORKSHEET = "google/gemini-3.6-flash";
 
 const QUESTION_TYPE_ENUM = [
   "mcq",
