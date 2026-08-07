@@ -666,7 +666,7 @@ export function TeacherWorksheetBuilder() {
       <Card className="form-panel">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-teacher" /> AI Worksheet Builder</CardTitle>
-          <CardDescription>Professional worksheets via NVIDIA NIM (Llama 3.2 1B) with Shobs Academy branding — generate, chat-refine, then print.</CardDescription>
+          <CardDescription>Professional worksheets with Shobs Academy branding — generate, chat-refine, then print.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
@@ -765,7 +765,7 @@ export function TeacherWorksheetBuilder() {
             )}
           </div>
 
-          <p className="text-xs text-muted-foreground">Powered by NVIDIA NIM (meta/llama-3.2-1b-instruct) — please review before distributing to students. Large sheets may need a larger NIM model if JSON fails.</p>
+          <p className="text-xs text-muted-foreground">Powered by Lovable AI — please review before distributing to students. Sheets above 10 questions are generated in batches.</p>
         </CardContent>
       </Card>
 
