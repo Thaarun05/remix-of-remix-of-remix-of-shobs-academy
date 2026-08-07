@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Download, RefreshCw, AlertTriangle, Upload, X, Pencil, Trash2, GripVertical, ArrowUp, ArrowDown, Save } from "lucide-react";
+import { ToastAction } from "@/components/ui/toast";
+import { Loader2, Sparkles, Download, RefreshCw, AlertTriangle, Upload, X, Pencil, Trash2, GripVertical, ArrowUp, ArrowDown, Save, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { extractSourceFiles } from "@/lib/extractSource";
@@ -44,11 +45,26 @@ function toDiagramV2(d: Question["diagram"]): DiagramV2 | undefined {
 function normalizeIncomingQuestions(questions: Question[]): Question[] {
   return questions.map((q, i) => ({
     ...q,
+    uid: q.uid ?? newUid(),
     number: i + 1,
     options: q.options ?? [],
     parts: q.parts ?? [],
     diagram: q.diagram ? toDiagramV2(q.diagram) : undefined,
   }));
+}
+
+let uidCounter = 0;
+function newUid(): string {
+  uidCounter += 1;
+  return `q-${Date.now().toString(36)}-${uidCounter}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Remove client-only fields before sending to the server or exporting. */
+function stripUids(ws: Worksheet): Worksheet {
+  return {
+    ...ws,
+    questions: ws.questions.map(({ uid: _uid, ...rest }) => rest),
+  };
 }
 
 const QUESTION_TYPES = [
@@ -132,15 +148,16 @@ export function TeacherWorksheetBuilder() {
   const [downloading, setDownloading] = useState<null | "student" | "answer">(null);
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
   const [sourceExcerpt, setSourceExcerpt] = useState<string>(""); // stored for regenerate
-  const [regenIdx, setRegenIdx] = useState<number | null>(null);
-  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [regenUid, setRegenUid] = useState<string | null>(null);
+  const [editingUid, setEditingUid] = useState<string | null>(null);
+  const [batchProgress, setBatchProgress] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<RefineChatMessage[]>([]);
 
   const loading = loadingPhase !== null;
 
   const loadingLabel =
     loadingPhase === "extracting" ? "Reading source files…"
-    : loadingPhase === "generating" ? "Generating with NVIDIA NIM…"
+    : loadingPhase === "generating" ? (batchProgress || "Generating worksheet…")
     : loadingPhase === "diagrams" ? "Building diagrams…"
     : loadingPhase === "refining" ? "Refining worksheet…"
     : "Working…";
@@ -175,16 +192,27 @@ export function TeacherWorksheetBuilder() {
       toast({ title: "Missing fields", description: "Subject, grade, topic and at least one question type are required.", variant: "destructive" });
       return;
     }
+    const requested = Number(count);
+    if (!Number.isFinite(requested) || requested < 1 || requested > 60) {
+      toast({ title: "Invalid question count", description: "Choose between 1 and 60 questions.", variant: "destructive" });
+      return;
+    }
     try {
       setLoadingPhase(files.length ? "extracting" : "generating");
       const { text: extractedText, images } = files.length ? await extractSourceFiles(files) : { text: "", images: [] as string[] };
       const combinedText = [pastedText.trim(), extractedText.trim()].filter(Boolean).join("\n\n");
       setSourceExcerpt(combinedText);
       setLoadingPhase("generating");
+      const batches = Math.ceil(requested / 10);
+      setBatchProgress(
+        batches > 1
+          ? `Generating ${requested} questions in ${batches} batches — this can take a couple of minutes…`
+          : `Generating ${requested} questions…`,
+      );
       const { data, error } = await supabase.functions.invoke("generate-worksheet", {
         body: {
           subject, grade, topic,
-          count: Number(count),
+          count: requested,
           difficulty,
           types: types.map((t) => QUESTION_TYPES.find((q) => q.id === t)?.label ?? t),
           objective,
@@ -196,12 +224,17 @@ export function TeacherWorksheetBuilder() {
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
       const ws = (data as { worksheet: Worksheet }).worksheet;
       if (!ws?.questions?.length) throw new Error("Generation failed — try a more specific topic.");
+      const warnings = (data as { warnings?: string[] }).warnings ?? [];
       await applyWorksheet(ws, { resetChat: true });
+      if (warnings.length) {
+        toast({ title: "Generated with warnings", description: warnings.join(" ") });
+      }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Try a more specific topic.";
       toast({ title: "Generation failed", description: message, variant: "destructive" });
     } finally {
       setLoadingPhase(null);
+      setBatchProgress("");
     }
   };
 
@@ -219,7 +252,7 @@ export function TeacherWorksheetBuilder() {
         body: {
           mode: "chat_refine",
           message,
-          worksheet,
+          worksheet: stripUids(worksheet),
           form_context: {
             subject,
             grade,
@@ -255,9 +288,11 @@ export function TeacherWorksheetBuilder() {
     }
   };
 
-  const regenerateQuestion = async (idx: number) => {
+  const regenerateQuestion = async (uid: string) => {
     if (!worksheet) return;
-    setRegenIdx(idx);
+    const idx = worksheet.questions.findIndex((q) => q.uid === uid);
+    if (idx < 0) return;
+    setRegenUid(uid);
     try {
       const target = worksheet.questions[idx];
       const others = worksheet.questions
@@ -280,35 +315,83 @@ export function TeacherWorksheetBuilder() {
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
       const q = (data as { question: Question }).question;
       if (!q) throw new Error("No question returned");
-      let replaced: Question = { ...q, number: target.number, diagram: q.diagram ? toDiagramV2(q.diagram) : undefined };
+      let replaced: Question = { ...q, uid, number: target.number, diagram: q.diagram ? toDiagramV2(q.diagram) : undefined };
       if (replaced.diagram) {
         const [withSpec] = await resolveDiagramSpecs([replaced]);
-        replaced = withSpec;
+        replaced = { ...withSpec, uid };
       }
-      setWorksheet((prev) => prev ? { ...prev, questions: prev.questions.map((qq, i) => i === idx ? replaced : qq) } : prev);
+      setWorksheet((prev) => prev ? { ...prev, questions: prev.questions.map((qq) => qq.uid === uid ? replaced : qq) } : prev);
       toast({ title: "Question regenerated" });
     } catch (e: unknown) {
       toast({ title: "Regeneration failed", description: e instanceof Error ? e.message : "Try again.", variant: "destructive" });
     } finally {
-      setRegenIdx(null);
+      setRegenUid(null);
     }
   };
 
-  const deleteQuestion = (idx: number) => {
-    setWorksheet((prev) => prev ? { ...prev, questions: renumber(prev.questions.filter((_, i) => i !== idx)) } : prev);
+  const deleteQuestion = (uid: string) => {
+    if (!worksheet) return;
+    const idx = worksheet.questions.findIndex((q) => q.uid === uid);
+    if (idx < 0) return;
+    if (worksheet.questions.length <= 1) {
+      toast({ title: "Cannot delete", description: "A worksheet needs at least one question.", variant: "destructive" });
+      return;
+    }
+    const removed = worksheet.questions[idx];
+    if (editingUid === uid) setEditingUid(null);
+    setWorksheet((prev) => prev ? { ...prev, questions: renumber(prev.questions.filter((q) => q.uid !== uid)) } : prev);
+    toast({
+      title: `Question ${removed.number} removed`,
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={() => setWorksheet((prev) => {
+            if (!prev) return prev;
+            if (prev.questions.some((q) => q.uid === uid)) return prev;
+            const next = [...prev.questions];
+            next.splice(Math.min(idx, next.length), 0, removed);
+            return { ...prev, questions: renumber(next) };
+          })}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
-  const moveQuestion = (idx: number, dir: -1 | 1) => {
+  const moveQuestion = (uid: string, dir: -1 | 1) => {
     setWorksheet((prev) => {
       if (!prev) return prev;
+      const idx = prev.questions.findIndex((q) => q.uid === uid);
+      if (idx < 0) return prev;
       const to = idx + dir;
       if (to < 0 || to >= prev.questions.length) return prev;
       return { ...prev, questions: renumber(arrayMove(prev.questions, idx, to)) };
     });
   };
 
-  const updateQuestion = (idx: number, patch: Partial<Question>) => {
-    setWorksheet((prev) => prev ? { ...prev, questions: prev.questions.map((q, i) => i === idx ? { ...q, ...patch } : q) } : prev);
+  const updateQuestion = (uid: string, patch: Partial<Question>) => {
+    setWorksheet((prev) => prev ? { ...prev, questions: prev.questions.map((q) => q.uid === uid ? { ...q, ...patch } : q) } : prev);
+  };
+
+  const addQuestion = () => {
+    const uid = newUid();
+    setWorksheet((prev) => {
+      if (!prev) return prev;
+      const blank: Question = {
+        uid,
+        number: prev.questions.length + 1,
+        type: "short_answer",
+        prompt: "New question — click the pencil to edit.",
+        options: [],
+        parts: [],
+        answer: "",
+        working: "",
+        marks: 1,
+      };
+      return { ...prev, questions: renumber([...prev.questions, blank]) };
+    });
+    setEditingUid(uid);
   };
 
   const sensors = useSensors(
@@ -320,8 +403,8 @@ export function TeacherWorksheetBuilder() {
     if (!over || active.id === over.id) return;
     setWorksheet((prev) => {
       if (!prev) return prev;
-      const oldIdx = prev.questions.findIndex((q) => String(q.number) === String(active.id));
-      const newIdx = prev.questions.findIndex((q) => String(q.number) === String(over.id));
+      const oldIdx = prev.questions.findIndex((q) => q.uid === String(active.id));
+      const newIdx = prev.questions.findIndex((q) => q.uid === String(over.id));
       if (oldIdx < 0 || newIdx < 0) return prev;
       return { ...prev, questions: renumber(arrayMove(prev.questions, oldIdx, newIdx)) };
     });
@@ -568,7 +651,10 @@ export function TeacherWorksheetBuilder() {
     }
   };
 
-  const sortableIds = useMemo(() => (worksheet?.questions ?? []).map((q) => String(q.number)), [worksheet]);
+  const sortableIds = useMemo(
+    () => (worksheet?.questions ?? []).map((q) => q.uid ?? String(q.number)),
+    [worksheet],
+  );
 
   return (
     <div className="space-y-6">
@@ -580,7 +666,7 @@ export function TeacherWorksheetBuilder() {
       <Card className="form-panel">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-teacher" /> AI Worksheet Builder</CardTitle>
-          <CardDescription>Professional worksheets via NVIDIA NIM (Llama 3.2 1B) with Shobs Academy branding — generate, chat-refine, then print.</CardDescription>
+          <CardDescription>Professional worksheets with Shobs Academy branding — generate, chat-refine, then print.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
@@ -601,7 +687,11 @@ export function TeacherWorksheetBuilder() {
             <div><Label>Subject</Label><Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Mathematics" /></div>
             <div><Label>Grade / Year group</Label><Input value={grade} onChange={(e) => setGrade(e.target.value)} placeholder="e.g. Grade 5" /></div>
             <div className="md:col-span-2"><Label>Topic</Label><Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Fractions, Photosynthesis" /></div>
-            <div><Label>Number of questions</Label><Input type="number" min={1} value={count} onChange={(e) => setCount(e.target.value)} placeholder="e.g. 10" /></div>
+            <div>
+              <Label>Number of questions</Label>
+              <Input type="number" min={1} max={60} value={count} onChange={(e) => setCount(e.target.value)} placeholder="e.g. 10" />
+              <p className="text-xs text-muted-foreground mt-1">1–60. Large sheets are generated in batches of 10 and take longer.</p>
+            </div>
             <div>
               <Label>Difficulty</Label>
               <Select value={difficulty} onValueChange={setDifficulty}>
@@ -675,7 +765,7 @@ export function TeacherWorksheetBuilder() {
             )}
           </div>
 
-          <p className="text-xs text-muted-foreground">Powered by NVIDIA NIM (meta/llama-3.2-1b-instruct) — please review before distributing to students. Large sheets may need a larger NIM model if JSON fails.</p>
+          <p className="text-xs text-muted-foreground">Powered by Lovable AI — please review before distributing to students. Sheets above 10 questions are generated in batches.</p>
         </CardContent>
       </Card>
 
@@ -710,26 +800,35 @@ export function TeacherWorksheetBuilder() {
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
                     <ol className="space-y-5 list-none p-0">
-                      {worksheet.questions.map((q, idx) => (
-                        <SortableQuestion
-                          key={q.number}
-                          id={String(q.number)}
-                          q={q}
-                          idx={idx}
-                          total={worksheet.questions.length}
-                          editing={editingIdx === idx}
-                          regenerating={regenIdx === idx}
-                          onEditToggle={() => setEditingIdx((v) => v === idx ? null : idx)}
-                          onSave={(patch) => { updateQuestion(idx, patch); setEditingIdx(null); }}
-                          onDelete={() => deleteQuestion(idx)}
-                          onRegenerate={() => regenerateQuestion(idx)}
-                          onMoveUp={() => moveQuestion(idx, -1)}
-                          onMoveDown={() => moveQuestion(idx, 1)}
-                        />
-                      ))}
+                      {worksheet.questions.map((q, idx) => {
+                        const uid = q.uid ?? String(q.number);
+                        return (
+                          <SortableQuestion
+                            key={uid}
+                            id={uid}
+                            q={q}
+                            idx={idx}
+                            total={worksheet.questions.length}
+                            editing={editingUid === uid}
+                            regenerating={regenUid === uid}
+                            onEditToggle={() => setEditingUid((v) => v === uid ? null : uid)}
+                            onSave={(patch) => { updateQuestion(uid, patch); setEditingUid(null); }}
+                            onDelete={() => deleteQuestion(uid)}
+                            onRegenerate={() => regenerateQuestion(uid)}
+                            onMoveUp={() => moveQuestion(uid, -1)}
+                            onMoveDown={() => moveQuestion(uid, 1)}
+                          />
+                        );
+                      })}
                     </ol>
                   </SortableContext>
                 </DndContext>
+
+                <div className="mt-4 print:hidden">
+                  <Button size="sm" variant="outline" onClick={addQuestion}>
+                    <Plus className="h-4 w-4" /> Add question
+                  </Button>
+                </div>
 
                 <div className="mt-12 pt-3 border-t border-black text-center text-xs">
                   Shobs Academy | For internal use only | Generated: {today}
@@ -769,6 +868,16 @@ function SortableQuestion({ id, q, idx, total, editing, regenerating, onEditTogg
   const [draftOptions, setDraftOptions] = useState<string[]>(q.options ?? []);
   const [draftWorking, setDraftWorking] = useState(q.working ?? "");
   const [draftParts, setDraftParts] = useState(q.parts ?? []);
+
+  // A reused component instance must never keep another question's drafts.
+  useEffect(() => {
+    setDraftPrompt(q.prompt);
+    setDraftAnswer(q.answer ?? "");
+    setDraftOptions(q.options ?? []);
+    setDraftWorking(q.working ?? "");
+    setDraftParts(q.parts ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   // Re-sync drafts when opening edit mode
   const openEdit = () => {
@@ -905,7 +1014,17 @@ function SortableQuestion({ id, q, idx, total, editing, regenerating, onEditTogg
           <Button size="icon" variant="ghost" onClick={onRegenerate} disabled={regenerating} title="Regenerate">
             {regenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
           </Button>
-          <Button size="icon" variant="ghost" onClick={onDelete} title="Delete"><Trash2 className="h-3.5 w-3.5" /></Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            disabled={total <= 1}
+            onClick={() => {
+              if (window.confirm(`Remove question ${q.number}?`)) onDelete();
+            }}
+            title={total <= 1 ? "A worksheet needs at least one question" : "Delete"}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </div>
     </li>
