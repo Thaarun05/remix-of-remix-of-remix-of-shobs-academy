@@ -30,7 +30,14 @@ export type CallNimChatOptions = {
 
 export class NimCallError extends Error {
   status: number;
-  code: "unauthorized" | "rate_limit" | "billing" | "config" | "upstream" | "parse";
+  code:
+    | "unauthorized"
+    | "rate_limit"
+    | "billing"
+    | "config"
+    | "upstream"
+    | "parse"
+    | "truncated";
 
   constructor(message: string, status: number, code: NimCallError["code"]) {
     super(message);
@@ -72,6 +79,9 @@ function extractJson(content: string): unknown {
 const PARSE_HINT =
   "Generation returned invalid JSON. Try fewer questions or simpler inputs, then generate again.";
 
+export const TRUNCATION_MESSAGE =
+  "The worksheet was too long to finish generating. Reduce the number of questions (or shorten the source text) and try again.";
+
 export async function callNimChat(opts: CallNimChatOptions): Promise<unknown> {
   const client = getClient();
   const parseJson = opts.parseJson !== false;
@@ -83,7 +93,7 @@ export async function callNimChat(opts: CallNimChatOptions): Promise<unknown> {
       messages: opts.messages,
       temperature: opts.temperature ?? 0.2,
       top_p: opts.top_p ?? 0.7,
-      max_tokens: opts.max_tokens ?? 4096,
+      max_tokens: opts.max_tokens ?? 16000,
       stream: false,
       ...(opts.jsonObject !== false
         ? { response_format: { type: "json_object" as const } }
@@ -124,7 +134,11 @@ export async function callNimChat(opts: CallNimChatOptions): Promise<unknown> {
   }
 
   const content = completion.choices?.[0]?.message?.content ?? "";
+  const finishReason = completion.choices?.[0]?.finish_reason;
   if (typeof content !== "string" || !content.trim()) {
+    if (finishReason === "length") {
+      throw new NimCallError(TRUNCATION_MESSAGE, 422, "truncated");
+    }
     throw new NimCallError(`Empty AI response. ${PARSE_HINT}`, 422, "parse");
   }
 
@@ -133,6 +147,21 @@ export async function callNimChat(opts: CallNimChatOptions): Promise<unknown> {
   try {
     return extractJson(content);
   } catch {
+    if (finishReason === "length") {
+      console.error(
+        "AI response truncated (finish_reason=length). Tail:",
+        content.slice(-500),
+      );
+      throw new NimCallError(TRUNCATION_MESSAGE, 422, "truncated");
+    }
+    console.error(
+      "AI response failed JSON parse. finish_reason:",
+      finishReason,
+      "head:",
+      content.slice(0, 300),
+      "tail:",
+      content.slice(-300),
+    );
     throw new NimCallError(PARSE_HINT, 422, "parse");
   }
 }
@@ -145,7 +174,7 @@ export function nimErrorResponse(
     return new Response(JSON.stringify({ error: e.message }), {
       status: [401, 429, 402, 403].includes(e.status)
         ? e.status
-        : e.code === "parse"
+        : e.code === "parse" || e.code === "truncated"
         ? 422
         : 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
