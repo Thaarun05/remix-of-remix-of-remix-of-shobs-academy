@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Download, RefreshCw, AlertTriangle, Upload, X, Pencil, Trash2, GripVertical, ArrowUp, ArrowDown, Save } from "lucide-react";
+import { Loader2, Sparkles, Download, RefreshCw, AlertTriangle, Upload, X, Pencil, Trash2, GripVertical, ArrowUp, ArrowDown, Save, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { extractSourceFiles } from "@/lib/extractSource";
@@ -44,11 +44,26 @@ function toDiagramV2(d: Question["diagram"]): DiagramV2 | undefined {
 function normalizeIncomingQuestions(questions: Question[]): Question[] {
   return questions.map((q, i) => ({
     ...q,
+    uid: q.uid ?? newUid(),
     number: i + 1,
     options: q.options ?? [],
     parts: q.parts ?? [],
     diagram: q.diagram ? toDiagramV2(q.diagram) : undefined,
   }));
+}
+
+let uidCounter = 0;
+function newUid(): string {
+  uidCounter += 1;
+  return `q-${Date.now().toString(36)}-${uidCounter}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Remove client-only fields before sending to the server or exporting. */
+function stripUids(ws: Worksheet): Worksheet {
+  return {
+    ...ws,
+    questions: ws.questions.map(({ uid: _uid, ...rest }) => rest),
+  };
 }
 
 const QUESTION_TYPES = [
