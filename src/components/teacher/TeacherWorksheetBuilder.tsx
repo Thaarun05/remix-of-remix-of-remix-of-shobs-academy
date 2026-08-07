@@ -192,16 +192,27 @@ export function TeacherWorksheetBuilder() {
       toast({ title: "Missing fields", description: "Subject, grade, topic and at least one question type are required.", variant: "destructive" });
       return;
     }
+    const requested = Number(count);
+    if (!Number.isFinite(requested) || requested < 1 || requested > 60) {
+      toast({ title: "Invalid question count", description: "Choose between 1 and 60 questions.", variant: "destructive" });
+      return;
+    }
     try {
       setLoadingPhase(files.length ? "extracting" : "generating");
       const { text: extractedText, images } = files.length ? await extractSourceFiles(files) : { text: "", images: [] as string[] };
       const combinedText = [pastedText.trim(), extractedText.trim()].filter(Boolean).join("\n\n");
       setSourceExcerpt(combinedText);
       setLoadingPhase("generating");
+      const batches = Math.ceil(requested / 10);
+      setBatchProgress(
+        batches > 1
+          ? `Generating ${requested} questions in ${batches} batches — this can take a couple of minutes…`
+          : `Generating ${requested} questions…`,
+      );
       const { data, error } = await supabase.functions.invoke("generate-worksheet", {
         body: {
           subject, grade, topic,
-          count: Number(count),
+          count: requested,
           difficulty,
           types: types.map((t) => QUESTION_TYPES.find((q) => q.id === t)?.label ?? t),
           objective,
@@ -213,12 +224,17 @@ export function TeacherWorksheetBuilder() {
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
       const ws = (data as { worksheet: Worksheet }).worksheet;
       if (!ws?.questions?.length) throw new Error("Generation failed — try a more specific topic.");
+      const warnings = (data as { warnings?: string[] }).warnings ?? [];
       await applyWorksheet(ws, { resetChat: true });
+      if (warnings.length) {
+        toast({ title: "Generated with warnings", description: warnings.join(" ") });
+      }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Try a more specific topic.";
       toast({ title: "Generation failed", description: message, variant: "destructive" });
     } finally {
       setLoadingPhase(null);
+      setBatchProgress("");
     }
   };
 
@@ -236,7 +252,7 @@ export function TeacherWorksheetBuilder() {
         body: {
           mode: "chat_refine",
           message,
-          worksheet,
+          worksheet: stripUids(worksheet),
           form_context: {
             subject,
             grade,
