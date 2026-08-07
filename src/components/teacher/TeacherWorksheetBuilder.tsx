@@ -849,6 +849,16 @@ function SortableQuestion({ id, q, idx, total, editing, regenerating, onEditTogg
   const [draftWorking, setDraftWorking] = useState(q.working ?? "");
   const [draftParts, setDraftParts] = useState(q.parts ?? []);
 
+  // A reused component instance must never keep another question's drafts.
+  useEffect(() => {
+    setDraftPrompt(q.prompt);
+    setDraftAnswer(q.answer ?? "");
+    setDraftOptions(q.options ?? []);
+    setDraftWorking(q.working ?? "");
+    setDraftParts(q.parts ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   // Re-sync drafts when opening edit mode
   const openEdit = () => {
     setDraftPrompt(q.prompt);
@@ -984,7 +994,17 @@ function SortableQuestion({ id, q, idx, total, editing, regenerating, onEditTogg
           <Button size="icon" variant="ghost" onClick={onRegenerate} disabled={regenerating} title="Regenerate">
             {regenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
           </Button>
-          <Button size="icon" variant="ghost" onClick={onDelete} title="Delete"><Trash2 className="h-3.5 w-3.5" /></Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            disabled={total <= 1}
+            onClick={() => {
+              if (window.confirm(`Remove question ${q.number}?`)) onDelete();
+            }}
+            title={total <= 1 ? "A worksheet needs at least one question" : "Delete"}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </div>
     </li>
