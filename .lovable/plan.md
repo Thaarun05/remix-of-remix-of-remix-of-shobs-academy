@@ -1,59 +1,77 @@
-# Support 50+ question worksheets
+# Worksheet Builder: reliable question editing + 50-question support
 
-## Why it fails today
+## Part 1 — Why "remove question" appears broken
 
-Two hard ceilings:
+Every question in the builder is identified by its **question number**, and the number is recomputed (`renumber`) after every delete, move and drag:
 
-1. `supabase/functions/generate-worksheet/index.ts` clamps the request: `Math.min(Number(count) || 10, 15)`. Anything above 15 is silently cut to 15.
-2. One single AI call must emit the whole worksheet JSON. A rich question (prompt, options, parts, marks, difficulty, blooms level, rubric, answer, working, diagram) costs roughly 250-450 output tokens. 50 questions is therefore ~15k-22k output tokens — at or beyond the practical single-response output limit, so the JSON gets truncated mid-object and the parse fails.
+- `TeacherWorksheetBuilder.tsx` line 713: `key={q.number}` and `id={String(q.number)}`
+- `deleteQuestion` (line 297) filters the array, then renumbers 1..N
 
-Raising `max_tokens` alone will not reliably get to 50+. The fix is batching.
+So after deleting question 3 of 10, the remaining keys are 1..9 — exactly the keys that existed before, minus the last one. React therefore does **not** unmount the deleted row; it keeps rows 1-9 mounted and re-renders them with shifted content. Three visible symptoms follow:
 
-## The plan
+1. It looks like the **last** question disappeared, not the one you clicked — so "remove isn't working".
+2. `SortableQuestion` holds its edit drafts in local state seeded once from props (lines 767-771). Because the component is reused rather than remounted, those drafts now belong to the previous question — editing after a delete can write the wrong text into the wrong question.
+3. `editingIdx` is an array index and is never cleared on delete (line 297), so an open editor stays open and jumps to a different question.
 
-### 1. Remove the cap
-Allow up to 60 questions end to end: raise the clamp in the edge function, and validate the input in the builder form (1-60) so the UI matches what the backend accepts.
+Drag-and-drop has the same root cause: `handleDragEnd` matches by `q.number` (line 323), which is a value it just rewrote.
 
-### 2. Generate in batches (the core change)
-Split the request into chunks of 10 questions and run them as sequential AI calls inside the same edge function:
+## The fix
+
+**Give every question a stable identity that never changes.**
+
+- When a worksheet arrives (generation, refine, regenerate), attach a client-only `uid` to each question — a one-time random id, kept out of the exported PDF/JSON payloads.
+- Use `uid` for the React `key`, the dnd-kit sortable `id`, and for all lookups in `handleDragEnd`.
+- Keep `number` as a purely **display** value, still renumbered 1..N after each change.
+
+**Make edit/delete target the question, not the index.**
+
+- `deleteQuestion(uid)`, `moveQuestion(uid, dir)`, `updateQuestion(uid, patch)` and `regenerateQuestion(uid)` all resolve by `uid`.
+- `editingIdx` becomes `editingUid`; it is cleared when that question is deleted, so an editor can never end up attached to a different question.
+- Deleting the question currently being edited closes the editor first.
+
+**Polish while we are in there**
+
+- Confirm before deleting, plus an "Undo" action on the toast that restores the removed question at its original position.
+- Disable delete when only one question remains.
+- Add an "Add question" button (blank editable question appended at the end) so teachers can build up as well as trim down.
+- Drafts in `SortableQuestion` re-sync from props whenever the question's `uid` changes, so a reused component can never show stale text.
+
+## Part 2 — Generating 50+ questions
+
+Today `generate-worksheet/index.ts` clamps the request to 15: `Math.min(Number(count) || 10, 15)`. Beyond that, a single AI call has to emit the entire worksheet JSON; a rich question (prompt, options, parts, marks, rubric, answer, working, diagram) runs roughly 250-450 output tokens, so 50 questions is ~15k-22k output tokens and the response truncates mid-JSON.
+
+Raising the token cap alone will not get there reliably. Batch instead:
 
 ```text
 50 questions -> batch 1 (Q1-10) -> batch 2 (Q11-20) -> ... -> batch 5 (Q41-50)
-                          |
-              each batch gets: subject/grade/topic/types/difficulty,
-              the source text, the target number range, and a short list
-              of prompts already generated (so it does not repeat itself)
+                        |
+        each batch receives subject/grade/topic/types, the source text,
+        its slot in the difficulty ramp, and the prompts already produced
+        (so it does not repeat earlier questions)
 ```
 
-Each batch returns a small JSON array that comfortably fits in the output budget. The function then merges the batches, renumbers questions 1..N sequentially, and returns one worksheet object. The frontend contract does not change.
-
-Difficulty progression is preserved by telling each batch where it sits in the ramp (batch 1 = easiest, last batch = hardest).
-
-### 3. Resilience
-- If one batch fails or truncates, retry that batch once with 5 questions instead of 10 — only that batch, not the whole worksheet.
-- If a batch still fails, return the worksheet with the questions that succeeded plus a warning, rather than throwing everything away.
-- Title, instructions and metadata are produced once (with batch 1) and reused.
-
-### 4. Timeout safety
-5 sequential calls take longer than one. Batches run with limited concurrency (2 at a time) to keep total wall time inside the edge function limit, and the builder shows "Generating 50 questions (batch 3 of 5)..." so a longer wait is expected rather than alarming.
-
-### 5. Chat refine
-Refining a 50-question worksheet by resending the whole JSON will hit the same ceiling. Refine on large worksheets will target only the questions the request mentions and splice them back in, instead of regenerating the full document.
+- Raise the clamp to 60 and validate 1-60 in the form.
+- Run batches inside the same edge function with concurrency 2, merge the results, renumber 1..N, return one worksheet — the frontend contract is unchanged.
+- If a batch truncates, retry **that batch** once at half size; if it still fails, return the questions that succeeded plus a warning instead of discarding everything.
+- Title, instructions and metadata come from batch 1 only.
+- Progress text in the builder: "Generating 50 questions (batch 3 of 5)…".
+- Chat refine on a large worksheet edits only the questions the request names and splices them back, rather than resending the whole document.
 
 ## Cost
 
-Yes — AI generation consumes credits, and cost scales with tokens.
+Yes, AI generation draws credits from your existing workspace balance — no new service, key or subscription.
 
-- Every worksheet generation already costs credits from your workspace balance; this is the Lovable AI Gateway usage you can see in the AI usage logs.
-- A 50-question worksheet costs roughly 4-5x a 10-question one, because it produces roughly 4-5x the output tokens. Batching adds a small extra overhead: each batch resends the instructions and topic context (~600-900 input tokens per batch). Input tokens are much cheaper than output tokens, so the overhead is minor relative to the total.
-- The model stays `google/gemini-3.6-flash`, which is the low-cost tier — no model upgrade is proposed, so per-token cost is unchanged.
-- Failed/truncated generations are still billed for the tokens produced. Batching actually reduces waste: today a truncation burns a full 16k-token response and returns nothing; with batching only the failed 10-question batch is retried.
-
-No new paid service, no new API key, no subscription — it draws on the same workspace credit balance already in use.
+- A 50-question worksheet costs roughly 4-5x a 10-question one, because it produces roughly 4-5x the output tokens.
+- Batching adds ~600-900 input tokens per batch (the instructions and context are resent). Input tokens are far cheaper than output tokens, so this overhead is small.
+- The model stays `google/gemini-3.6-flash`, the low-cost tier — per-token pricing is unchanged.
+- Failures are still billed for tokens produced, but batching wastes less: today one truncation burns a full 16k response and returns nothing; with batching only the failed 10-question batch is retried.
+- The editing/delete fix is pure frontend state — zero AI cost.
 
 ## Technical details
 
-- `supabase/functions/generate-worksheet/index.ts`: raise the clamp to 60; add a `generateBatch(start, end, priorPrompts, rampPosition)` helper; run batches with concurrency 2; merge + renumber; per-batch retry at half size; partial-success response with a `warnings` array.
-- `supabase/functions/_shared/nim.ts`: no model change; keep `max_tokens` at 16000 (a 10-question batch fits well inside it).
-- `src/components/teacher/TeacherWorksheetBuilder.tsx`: input `min=1 max=60`, clamp on submit, batch progress text during generation, surface `warnings` as a non-blocking toast.
-- Redeploy `generate-worksheet` and verify a real 50-question run, checking the usage log for per-batch output tokens staying under the cap.
+- `src/components/teacher/TeacherWorksheetBuilder.tsx`: add `uid` on ingest (generation, refine, regenerate); switch `key`/sortable `id`/`handleDragEnd` lookups to `uid`; convert `deleteQuestion`/`moveQuestion`/`updateQuestion`/`regenerateQuestion` to uid-based; replace `editingIdx`/`regenIdx` with uid state; strip `uid` before PDF export and before sending the worksheet to `chat_refine`; delete confirm + undo toast; "Add question" button; count input `min=1 max=60`; batch progress label; surface `warnings`.
+- `src/lib/worksheet/types.ts`: add optional client-only `uid?: string` to `Question`.
+- `src/components/teacher/WorksheetRefineChat.tsx`: ensure refined worksheets get fresh uids on merge.
+- `supabase/functions/generate-worksheet/index.ts`: clamp to 60; `generateBatch(start, end, priorPrompts, rampPosition)`; concurrency 2; merge + renumber; per-batch half-size retry; partial-success `warnings` array.
+- `supabase/functions/_shared/nim.ts`: unchanged — `max_tokens` 16000 comfortably fits a 10-question batch.
+- Redeploy `generate-worksheet`; verify a real 50-question run and check per-batch output tokens stay under the cap.
