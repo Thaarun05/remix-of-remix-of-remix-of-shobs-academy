@@ -173,7 +173,7 @@ Return a single replacement question with "number" = ${target_number}.`;
       const parsed = await callNimChat({
         temperature: 0.2,
         top_p: 0.7,
-        max_tokens: 2048,
+        max_tokens: 4096,
         messages: [
           { role: "system", content: REGEN_SYSTEM_PROMPT },
           { role: "user", content: userMsg },
@@ -223,7 +223,7 @@ Return the full updated worksheet and a short assistant_reply.
       const parsed = await callNimChat({
         temperature: 0.2,
         top_p: 0.7,
-        max_tokens: 4096,
+        max_tokens: 16000,
         messages: [
           { role: "system", content: CHAT_REFINE_SYSTEM_PROMPT },
           { role: "user", content: userMsg },
@@ -261,11 +261,11 @@ Return the full updated worksheet and a short assistant_reply.
     const imgCount = Array.isArray(images) ? images.length : 0;
     const qCount = Math.min(Number(count) || 10, 15);
 
-    const userText = `Create an original Shobs Academy practice worksheet.
+    const buildUserText = (n: number) => `Create an original Shobs Academy practice worksheet.
 Subject: ${subject}
 Grade / Year group: ${grade}
 Topic: ${topic}
-Number of questions: ${qCount}
+Number of questions: ${n}
 Difficulty progression: ${difficulty}
 Allowed question types: ${types.join(", ")}
 ${objective ? `Question Instructions from teacher (follow precisely):\n${objective}` : ""}
@@ -283,15 +283,30 @@ ${imgCount
 Return ONLY the worksheet JSON object.
 (${WORKSHEET_CAPACITY_NOTE})`;
 
-    const parsed = await callNimChat({
-      temperature: 0.2,
-      top_p: 0.7,
-      max_tokens: 4096,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userText },
-      ] as NimMessage[],
-    }) as Record<string, unknown>;
+    const runGeneration = (n: number) =>
+      callNimChat({
+        temperature: 0.2,
+        top_p: 0.7,
+        max_tokens: 16000,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: buildUserText(n) },
+        ] as NimMessage[],
+      }) as Promise<Record<string, unknown>>;
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = await runGeneration(qCount);
+    } catch (err) {
+      // One automatic retry with a smaller worksheet when the model ran out of room.
+      if (err instanceof NimCallError && err.code === "truncated" && qCount > 5) {
+        const reduced = Math.max(5, Math.floor(qCount / 2));
+        console.warn(`Worksheet truncated at ${qCount} questions — retrying with ${reduced}.`);
+        parsed = await runGeneration(reduced);
+      } else {
+        throw err;
+      }
+    }
 
     const worksheet = normalizeWorksheet(parsed);
     if (!Array.isArray(worksheet.questions) || worksheet.questions.length === 0) {
