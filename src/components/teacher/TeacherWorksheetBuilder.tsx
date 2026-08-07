@@ -635,7 +635,10 @@ export function TeacherWorksheetBuilder() {
     }
   };
 
-  const sortableIds = useMemo(() => (worksheet?.questions ?? []).map((q) => String(q.number)), [worksheet]);
+  const sortableIds = useMemo(
+    () => (worksheet?.questions ?? []).map((q) => q.uid ?? String(q.number)),
+    [worksheet],
+  );
 
   return (
     <div className="space-y-6">
@@ -777,26 +780,35 @@ export function TeacherWorksheetBuilder() {
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
                     <ol className="space-y-5 list-none p-0">
-                      {worksheet.questions.map((q, idx) => (
-                        <SortableQuestion
-                          key={q.number}
-                          id={String(q.number)}
-                          q={q}
-                          idx={idx}
-                          total={worksheet.questions.length}
-                          editing={editingIdx === idx}
-                          regenerating={regenIdx === idx}
-                          onEditToggle={() => setEditingIdx((v) => v === idx ? null : idx)}
-                          onSave={(patch) => { updateQuestion(idx, patch); setEditingIdx(null); }}
-                          onDelete={() => deleteQuestion(idx)}
-                          onRegenerate={() => regenerateQuestion(idx)}
-                          onMoveUp={() => moveQuestion(idx, -1)}
-                          onMoveDown={() => moveQuestion(idx, 1)}
-                        />
-                      ))}
+                      {worksheet.questions.map((q, idx) => {
+                        const uid = q.uid ?? String(q.number);
+                        return (
+                          <SortableQuestion
+                            key={uid}
+                            id={uid}
+                            q={q}
+                            idx={idx}
+                            total={worksheet.questions.length}
+                            editing={editingUid === uid}
+                            regenerating={regenUid === uid}
+                            onEditToggle={() => setEditingUid((v) => v === uid ? null : uid)}
+                            onSave={(patch) => { updateQuestion(uid, patch); setEditingUid(null); }}
+                            onDelete={() => deleteQuestion(uid)}
+                            onRegenerate={() => regenerateQuestion(uid)}
+                            onMoveUp={() => moveQuestion(uid, -1)}
+                            onMoveDown={() => moveQuestion(uid, 1)}
+                          />
+                        );
+                      })}
                     </ol>
                   </SortableContext>
                 </DndContext>
+
+                <div className="mt-4 print:hidden">
+                  <Button size="sm" variant="outline" onClick={addQuestion}>
+                    <Plus className="h-4 w-4" /> Add question
+                  </Button>
+                </div>
 
                 <div className="mt-12 pt-3 border-t border-black text-center text-xs">
                   Shobs Academy | For internal use only | Generated: {today}
