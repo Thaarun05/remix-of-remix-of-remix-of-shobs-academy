@@ -25,6 +25,8 @@ export interface WorksheetDiagram {
 }
 
 export interface Question {
+  /** Client-only stable identity; stripped before sending to the server / PDF. */
+  uid?: string;
   number: number;
   type: QuestionType;
   prompt: string;
