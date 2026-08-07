@@ -147,15 +147,16 @@ export function TeacherWorksheetBuilder() {
   const [downloading, setDownloading] = useState<null | "student" | "answer">(null);
   const [worksheet, setWorksheet] = useState<Worksheet | null>(null);
   const [sourceExcerpt, setSourceExcerpt] = useState<string>(""); // stored for regenerate
-  const [regenIdx, setRegenIdx] = useState<number | null>(null);
-  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [regenUid, setRegenUid] = useState<string | null>(null);
+  const [editingUid, setEditingUid] = useState<string | null>(null);
+  const [batchProgress, setBatchProgress] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<RefineChatMessage[]>([]);
 
   const loading = loadingPhase !== null;
 
   const loadingLabel =
     loadingPhase === "extracting" ? "Reading source files…"
-    : loadingPhase === "generating" ? "Generating with NVIDIA NIM…"
+    : loadingPhase === "generating" ? (batchProgress || "Generating worksheet…")
     : loadingPhase === "diagrams" ? "Building diagrams…"
     : loadingPhase === "refining" ? "Refining worksheet…"
     : "Working…";
