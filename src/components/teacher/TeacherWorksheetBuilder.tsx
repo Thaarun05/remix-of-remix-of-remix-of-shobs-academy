@@ -271,9 +271,11 @@ export function TeacherWorksheetBuilder() {
     }
   };
 
-  const regenerateQuestion = async (idx: number) => {
+  const regenerateQuestion = async (uid: string) => {
     if (!worksheet) return;
-    setRegenIdx(idx);
+    const idx = worksheet.questions.findIndex((q) => q.uid === uid);
+    if (idx < 0) return;
+    setRegenUid(uid);
     try {
       const target = worksheet.questions[idx];
       const others = worksheet.questions
@@ -296,35 +298,83 @@ export function TeacherWorksheetBuilder() {
       if ((data as { error?: string })?.error) throw new Error((data as { error: string }).error);
       const q = (data as { question: Question }).question;
       if (!q) throw new Error("No question returned");
-      let replaced: Question = { ...q, number: target.number, diagram: q.diagram ? toDiagramV2(q.diagram) : undefined };
+      let replaced: Question = { ...q, uid, number: target.number, diagram: q.diagram ? toDiagramV2(q.diagram) : undefined };
       if (replaced.diagram) {
         const [withSpec] = await resolveDiagramSpecs([replaced]);
-        replaced = withSpec;
+        replaced = { ...withSpec, uid };
       }
-      setWorksheet((prev) => prev ? { ...prev, questions: prev.questions.map((qq, i) => i === idx ? replaced : qq) } : prev);
+      setWorksheet((prev) => prev ? { ...prev, questions: prev.questions.map((qq) => qq.uid === uid ? replaced : qq) } : prev);
       toast({ title: "Question regenerated" });
     } catch (e: unknown) {
       toast({ title: "Regeneration failed", description: e instanceof Error ? e.message : "Try again.", variant: "destructive" });
     } finally {
-      setRegenIdx(null);
+      setRegenUid(null);
     }
   };
 
-  const deleteQuestion = (idx: number) => {
-    setWorksheet((prev) => prev ? { ...prev, questions: renumber(prev.questions.filter((_, i) => i !== idx)) } : prev);
+  const deleteQuestion = (uid: string) => {
+    if (!worksheet) return;
+    const idx = worksheet.questions.findIndex((q) => q.uid === uid);
+    if (idx < 0) return;
+    if (worksheet.questions.length <= 1) {
+      toast({ title: "Cannot delete", description: "A worksheet needs at least one question.", variant: "destructive" });
+      return;
+    }
+    const removed = worksheet.questions[idx];
+    if (editingUid === uid) setEditingUid(null);
+    setWorksheet((prev) => prev ? { ...prev, questions: renumber(prev.questions.filter((q) => q.uid !== uid)) } : prev);
+    toast({
+      title: `Question ${removed.number} removed`,
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={() => setWorksheet((prev) => {
+            if (!prev) return prev;
+            if (prev.questions.some((q) => q.uid === uid)) return prev;
+            const next = [...prev.questions];
+            next.splice(Math.min(idx, next.length), 0, removed);
+            return { ...prev, questions: renumber(next) };
+          })}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
-  const moveQuestion = (idx: number, dir: -1 | 1) => {
+  const moveQuestion = (uid: string, dir: -1 | 1) => {
     setWorksheet((prev) => {
       if (!prev) return prev;
+      const idx = prev.questions.findIndex((q) => q.uid === uid);
+      if (idx < 0) return prev;
       const to = idx + dir;
       if (to < 0 || to >= prev.questions.length) return prev;
       return { ...prev, questions: renumber(arrayMove(prev.questions, idx, to)) };
     });
   };
 
-  const updateQuestion = (idx: number, patch: Partial<Question>) => {
-    setWorksheet((prev) => prev ? { ...prev, questions: prev.questions.map((q, i) => i === idx ? { ...q, ...patch } : q) } : prev);
+  const updateQuestion = (uid: string, patch: Partial<Question>) => {
+    setWorksheet((prev) => prev ? { ...prev, questions: prev.questions.map((q) => q.uid === uid ? { ...q, ...patch } : q) } : prev);
+  };
+
+  const addQuestion = () => {
+    const uid = newUid();
+    setWorksheet((prev) => {
+      if (!prev) return prev;
+      const blank: Question = {
+        uid,
+        number: prev.questions.length + 1,
+        type: "short_answer",
+        prompt: "New question — click the pencil to edit.",
+        options: [],
+        parts: [],
+        answer: "",
+        working: "",
+        marks: 1,
+      };
+      return { ...prev, questions: renumber([...prev.questions, blank]) };
+    });
+    setEditingUid(uid);
   };
 
   const sensors = useSensors(
@@ -336,8 +386,8 @@ export function TeacherWorksheetBuilder() {
     if (!over || active.id === over.id) return;
     setWorksheet((prev) => {
       if (!prev) return prev;
-      const oldIdx = prev.questions.findIndex((q) => String(q.number) === String(active.id));
-      const newIdx = prev.questions.findIndex((q) => String(q.number) === String(over.id));
+      const oldIdx = prev.questions.findIndex((q) => q.uid === String(active.id));
+      const newIdx = prev.questions.findIndex((q) => q.uid === String(over.id));
       if (oldIdx < 0 || newIdx < 0) return prev;
       return { ...prev, questions: renumber(arrayMove(prev.questions, oldIdx, newIdx)) };
     });
