@@ -109,30 +109,30 @@ export async function callNimChat(opts: CallNimChatOptions): Promise<unknown> {
       ?? (e as { statusCode?: number })?.statusCode
       ?? 500;
     const msg = e instanceof Error ? e.message : String(e);
+    console.error("OpenRouter error", status, msg.slice(0, 800));
     if (status === 401 || status === 403) {
       throw new NimCallError(
-        "AI request was not authorized. Please contact an admin.",
+        "OpenRouter rejected the API key (401). Check OPENROUTER_API_KEY in the backend secrets.",
         401,
         "unauthorized",
       );
     }
     if (status === 429) {
       throw new NimCallError(
-        "AI rate limit exceeded. Please try again in a moment.",
+        "OpenRouter rate limit exceeded. Please try again in a moment.",
         429,
         "rate_limit",
       );
     }
     if (status === 402) {
       throw new NimCallError(
-        "AI credits exhausted. Please top up credits in workspace settings.",
+        "OpenRouter credits exhausted. Add credits to your OpenRouter account (openrouter.ai/credits) and try again.",
         402,
         "billing",
       );
     }
-    console.error("AI gateway error", status, msg.slice(0, 800));
     throw new NimCallError(
-      "AI request failed. Please try again.",
+      `OpenRouter request failed (${status}). Please try again.`,
       status >= 400 && status < 600 ? status : 500,
       "upstream",
     );
