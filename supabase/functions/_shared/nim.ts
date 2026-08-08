@@ -1,7 +1,7 @@
 /**
  * Shared AI chat helper for Supabase Edge Functions.
- * Routes through the Lovable AI Gateway (OpenAI-compatible) using LOVABLE_API_KEY.
- * Model: google/gemini-3.6-flash
+ * Routes through OpenRouter (OpenAI-compatible) using OPENROUTER_API_KEY.
+ * Model: openai/gpt-5.6-terra-pro
  *
  * Exported names keep their historical "Nim" prefix so existing call sites
  * (generate-worksheet / -quiz / -notes / -diagram-spec) work unchanged.
@@ -9,8 +9,8 @@
 
 import OpenAI from "https://esm.sh/openai@4.73.0";
 
-export const NIM_MODEL = "google/gemini-3.6-flash";
-export const NIM_LARGER_MODEL_SUGGESTION = "google/gemini-3-pro-preview";
+export const NIM_MODEL = "openai/gpt-5.6-terra-pro";
+export const NIM_LARGER_MODEL_SUGGESTION = "openai/gpt-5.6-terra-pro";
 
 export type NimMessage = {
   role: "system" | "user" | "assistant";
@@ -48,18 +48,21 @@ export class NimCallError extends Error {
 }
 
 function getClient(): OpenAI {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!apiKey) {
     throw new NimCallError(
-      "LOVABLE_API_KEY is not configured. Add it in the backend secrets.",
+      "OPENROUTER_API_KEY is not configured. Add it in the backend secrets.",
       500,
       "config",
     );
   }
   return new OpenAI({
-    baseURL: "https://ai.gateway.lovable.dev/v1",
+    baseURL: "https://openrouter.ai/api/v1",
     apiKey,
-    defaultHeaders: { "Lovable-API-Key": apiKey },
+    defaultHeaders: {
+      "HTTP-Referer": "https://learn-together-hub-16.lovable.app",
+      "X-Title": "Shobs Academy",
+    },
   });
 }
 
@@ -95,10 +98,12 @@ export async function callNimChat(opts: CallNimChatOptions): Promise<unknown> {
       top_p: opts.top_p ?? 0.7,
       max_tokens: opts.max_tokens ?? 16000,
       stream: false,
+      // OpenRouter-specific: enable the model's thinking tokens.
+      reasoning: { enabled: true },
       ...(opts.jsonObject !== false
         ? { response_format: { type: "json_object" as const } }
         : {}),
-    });
+    } as never);
   } catch (e: unknown) {
     const status = (e as { status?: number })?.status
       ?? (e as { statusCode?: number })?.statusCode
