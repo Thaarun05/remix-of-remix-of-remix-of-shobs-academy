@@ -173,14 +173,14 @@ export function TeacherWorksheetBuilder() {
   const [sourceExcerpt, setSourceExcerpt] = useState<string>(""); // stored for regenerate
   const [regenUid, setRegenUid] = useState<string | null>(null);
   const [editingUid, setEditingUid] = useState<string | null>(null);
-  const [batchProgress, setBatchProgress] = useState<string>("");
+  const [progressNote, setProgressNote] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<RefineChatMessage[]>([]);
 
   const loading = loadingPhase !== null;
 
   const loadingLabel =
     loadingPhase === "extracting" ? "Reading source files…"
-    : loadingPhase === "generating" ? (batchProgress || "Generating worksheet…")
+    : loadingPhase === "generating" ? (progressNote || "Generating worksheet…")
     : loadingPhase === "diagrams" ? "Building diagrams…"
     : loadingPhase === "refining" ? "Refining worksheet…"
     : "Working…";
@@ -216,20 +216,15 @@ export function TeacherWorksheetBuilder() {
       return;
     }
     const requested = Number(count);
-    if (!Number.isFinite(requested) || requested < 1 || requested > 60) {
-      toast({ title: "Invalid question count", description: "Choose between 1 and 60 questions.", variant: "destructive" });
-      return;
-    }
     try {
       setLoadingPhase(files.length ? "extracting" : "generating");
       const { text: extractedText, images } = files.length ? await extractSourceFiles(files) : { text: "", images: [] as string[] };
       const combinedText = [pastedText.trim(), extractedText.trim()].filter(Boolean).join("\n\n");
       setSourceExcerpt(combinedText);
       setLoadingPhase("generating");
-      const batches = Math.ceil(requested / 10);
-      setBatchProgress(
-        batches > 1
-          ? `Generating ${requested} questions in ${batches} batches — this can take a couple of minutes…`
+      setProgressNote(
+        requested >= 25
+          ? `Generating ${requested} questions — larger sheets can take a couple of minutes…`
           : `Generating ${requested} questions…`,
       );
       const { data, error } = await supabase.functions.invoke("generate-worksheet", {
@@ -257,7 +252,7 @@ export function TeacherWorksheetBuilder() {
       toast({ title: "Generation failed", description: message, variant: "destructive" });
     } finally {
       setLoadingPhase(null);
-      setBatchProgress("");
+      setProgressNote("");
     }
   };
 
