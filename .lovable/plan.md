@@ -1,39 +1,23 @@
-# Switch AI generation back to Lovable AI
+# Fix: worksheet questions print as "undefined"
 
-## Why
-Your OpenRouter invoice is still Processing, so every generation returns 402 and the app is unusable for worksheets, quizzes, diagrams and notes. Your Lovable workspace has ~182 credits spendable on AI Gateway right now, and the entire previous billing period of AI generation cost only 6.49 credits — so moving back unblocks generation today at negligible cost.
+## What is happening
 
-Estimated cost after the switch:
-- One 50-question worksheet: roughly 0.3–0.6 credits
-- One quiz or notes run: roughly 0.05–0.15 credits
+The worksheet generated fine — titles, instructions, marks and numbering are all correct. Only the question text is missing, printing as `undefined`.
 
-## What changes
-Only the shared AI helper. Every prompt, JSON schema, batching rule, auth check and response shape stays exactly as it is, so all four features behave identically.
+The generation request asks the model for JSON but does not enforce a strict schema (`supabase/functions/_shared/nim.ts` only sets `response_format: json_object`). The app reads each question's text from a field named `prompt`. When the model returns the text under a different name — `question`, `text`, `statement`, `question_text` — nothing populates `prompt`, and every render path (`q.prompt` in the preview and in the PDF writer at line 560) prints `undefined`.
 
-Affected features (all share the helper):
-- AI Worksheet Builder (`generate-worksheet`)
-- Worksheet diagram specs (`generate-diagram-spec`)
-- AI Quiz Maker (`generate-quiz`)
-- AI Notetaker (`generate-notes`)
+## The fix
+
+1. Normalise question fields on the server. In `normalizeQuestion` (`supabase/functions/generate-worksheet/index.ts`), accept the common aliases and map the first non-empty one into `prompt`: `question`, `question_text`, `text`, `statement`, `body`. Do the same for question parts (`parts[].prompt`) and for options/answer aliases.
+2. Drop empty questions. If a question still has no usable text after normalisation, exclude it rather than emitting a numbered blank, and renumber the survivors so the sheet stays sequential.
+3. Tighten the prompt. Restate in the system prompt that each question object must use the exact key `prompt` for the question text, with a short example object.
+4. Client-side safety net. In `TeacherWorksheetBuilder.tsx`, never render a bare `undefined` — fall back to an empty string in the preview and skip the line in the PDF writer, so a bad response can never print `undefined` on a student worksheet.
+5. Redeploy `generate-worksheet` and run a real 10-question generation to confirm the question text appears in both preview and exported PDF.
 
 ## Technical details
 
-`supabase/functions/_shared/nim.ts`:
-- Base URL -> `https://ai.gateway.lovable.dev/v1`, auth header -> `Lovable-API-Key: ${LOVABLE_API_KEY}`. Drop the OpenRouter ranking headers.
-- Model -> `google/gemini-3.6-flash` (the Gateway default; fast, cheap, strong at structured JSON).
-- Remove the OpenRouter-only `reasoning: { enabled: true }` field.
-- Keep `response_format: { type: "json_object" }`, `max_tokens: 16000`, the JSON-extraction fallback, and truncation detection (`finish_reason === "length"`).
-- Rewrite the 401 / 402 / 429 error strings for Lovable AI: 402 points to Settings -> Plans & credits instead of openrouter.ai/credits.
-- Startup guard: missing `LOVABLE_API_KEY` returns a clear configuration error.
+- `supabase/functions/generate-worksheet/index.ts`: extend `normalizeQuestion` with alias resolution and part-level normalisation; filter empty-prompt questions inside `normalizeWorksheet` before renumbering.
+- `supabase/functions/_shared/nim.ts`: unchanged.
+- `src/components/teacher/TeacherWorksheetBuilder.tsx`: guard `q.prompt` / `p.prompt` at the render and PDF-write sites.
 
-`src/lib/worksheet/edgeErrors.ts`: update the OpenRouter-specific hint text to the Lovable AI wording.
-
-Docs: replace `supabase/functions/OPENROUTER_SETUP.md` with Lovable AI setup notes.
-
-`OPENROUTER_API_KEY` stays in secrets, unused — nothing to delete, and switching back later is a one-line change.
-
-## Verification
-Deploy all four functions, then run one real worksheet generation and one notes generation and read the actual responses. Report the real outcome rather than assuming success.
-
-## Frontend
-No frontend changes apart from the one error-message string above.
+No layout, styling or workflow changes.
