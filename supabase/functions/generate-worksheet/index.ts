@@ -349,7 +349,22 @@ Return ONLY the worksheet JSON object.
       ? parsed.questions as Record<string, unknown>[]
       : [];
 
-    const worksheet = normalizeWorksheet({ ...shell, questions: mergedQuestions });
+    let worksheet = normalizeWorksheet({ ...shell, questions: mergedQuestions });
+    if (!includeAnswers) {
+      worksheet = {
+        ...worksheet,
+        questions: (worksheet.questions as Record<string, unknown>[]).map((q) => ({
+          ...q,
+          answer: "",
+          working: "",
+          parts: (Array.isArray(q.parts) ? q.parts : []).map((p) => ({
+            ...(p as Record<string, unknown>),
+            answer: "",
+            working: "",
+          })),
+        })),
+      };
+    }
     if (!Array.isArray(worksheet.questions) || worksheet.questions.length === 0) {
       return new Response(
         JSON.stringify({
