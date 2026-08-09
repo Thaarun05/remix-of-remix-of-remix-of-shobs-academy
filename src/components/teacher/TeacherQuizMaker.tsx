@@ -458,6 +458,13 @@ export function TeacherQuizMaker() {
             <div className="space-y-1"><Label>Number of Questions</Label><Input type="number" min={1} max={50} value={count} onChange={(e) => setCount(e.target.value)} /></div>
             <div className="space-y-1"><Label>Instructions to students (optional)</Label><Input value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="e.g. Choose the best answer." /></div>
           </div>
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <div>
+              <Label>Answer explanations required</Label>
+              <p className="text-xs text-muted-foreground">When off, no explanations are generated or shown to students in the review screen.</p>
+            </div>
+            <Switch checked={includeExplanations} onCheckedChange={setIncludeExplanations} />
+          </div>
           <div className="space-y-1"><Label>Paste source text (optional)</Label><Textarea value={pastedText} onChange={(e) => setPastedText(e.target.value)} rows={4} placeholder="Lecture notes, textbook excerpt, etc." /></div>
           <div className="space-y-1">
             <Label>Upload source files</Label>
