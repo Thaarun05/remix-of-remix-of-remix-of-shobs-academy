@@ -76,7 +76,7 @@ Return ONLY the notes JSON object.
     const parsed = await callNimChat({
       temperature: 0.2,
       top_p: 0.7,
-      max_tokens: 4096,
+      max_tokens: 16000,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userText },
