@@ -104,11 +104,32 @@ async function requireTeacher(req: Request): Promise<
   return { ok: true, userId, supabase };
 }
 
+const PROMPT_ALIASES = ["prompt", "question", "question_text", "text", "statement", "body"];
+
+function pickText(src: Record<string, unknown>): string {
+  for (const key of PROMPT_ALIASES) {
+    const v = src[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
+}
+
 function normalizeQuestion(q: Record<string, unknown>, fallbackNumber?: number) {
   const out = { ...q };
   if (fallbackNumber != null) out.number = fallbackNumber;
+  out.prompt = pickText(q);
   if (!Array.isArray(out.options)) out.options = [];
   if (!Array.isArray(out.parts)) out.parts = [];
+  out.parts = (out.parts as unknown[]).map((p, i) => {
+    const part = (p && typeof p === "object" ? p : {}) as Record<string, unknown>;
+    return {
+      ...part,
+      label: typeof part.label === "string" && part.label.trim()
+        ? part.label
+        : String.fromCharCode(97 + i),
+      prompt: pickText(part),
+    };
+  }).filter((p) => (p.prompt as string).length > 0);
   if (out.diagram === undefined) out.diagram = null;
   if (typeof out.answer !== "string") out.answer = String(out.answer ?? "");
   if (typeof out.working !== "string") out.working = String(out.working ?? "");
@@ -118,11 +139,13 @@ function normalizeQuestion(q: Record<string, unknown>, fallbackNumber?: number) 
 
 function normalizeWorksheet(ws: Record<string, unknown>) {
   const questions = Array.isArray(ws.questions) ? ws.questions : [];
+  const cleaned = questions
+    .map((q: Record<string, unknown>) => normalizeQuestion(q))
+    .filter((q) => typeof q.prompt === "string" && (q.prompt as string).length > 0)
+    .map((q, i) => ({ ...q, number: i + 1 }));
   return {
     ...ws,
-    questions: questions.map((q: Record<string, unknown>, i: number) =>
-      normalizeQuestion(q, i + 1)
-    ),
+    questions: cleaned,
     metadata: ws.metadata ?? { topic_tags: [], estimated_minutes: 30 },
   };
 }
