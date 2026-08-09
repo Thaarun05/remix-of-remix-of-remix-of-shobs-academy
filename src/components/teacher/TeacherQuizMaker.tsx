@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, Sparkles, Upload, X, Plus, Trash2, Send, AlertTriangle, RefreshCw, Pencil, Save } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -89,6 +90,7 @@ export function TeacherQuizMaker() {
   const [topics, setTopics] = useState("");
   const [count, setCount] = useState("10");
   const [difficulty, setDifficulty] = useState("Medium");
+  const [includeExplanations, setIncludeExplanations] = useState(true);
   const [instructions, setInstructions] = useState("");
   const [pastedText, setPastedText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -217,7 +219,12 @@ export function TeacherQuizMaker() {
       }
       const combinedText = [pastedText.trim(), extractedText.trim()].filter(Boolean).join("\n\n");
       const { data, error } = await supabase.functions.invoke("generate-quiz", {
-        body: { subject, grade, topics, count: parseInt(count) || 10, difficulty, text: combinedText, images, instructions },
+        body: {
+          subject, grade, topics,
+          count: Math.max(1, Math.min(parseInt(count) || 10, 50)),
+          difficulty, text: combinedText, images, instructions,
+          include_explanations: includeExplanations,
+        },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -235,7 +242,7 @@ export function TeacherQuizMaker() {
         question: qq.question || "",
         options: Array.isArray(qq.options) && qq.options.length === 4 ? qq.options : ["A) ", "B) ", "C) ", "D) "],
         correct_option: (["A","B","C","D"].includes(qq.correct_option) ? qq.correct_option : "A") as any,
-        explanation: qq.explanation || "",
+        explanation: includeExplanations ? (qq.explanation || "") : "",
       }));
       setQuiz(q);
       setQuizId(null);
