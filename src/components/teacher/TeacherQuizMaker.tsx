@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, Sparkles, Upload, X, Plus, Trash2, Send, AlertTriangle, RefreshCw, Pencil, Save } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -89,6 +90,7 @@ export function TeacherQuizMaker() {
   const [topics, setTopics] = useState("");
   const [count, setCount] = useState("10");
   const [difficulty, setDifficulty] = useState("Medium");
+  const [includeExplanations, setIncludeExplanations] = useState(true);
   const [instructions, setInstructions] = useState("");
   const [pastedText, setPastedText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -217,7 +219,12 @@ export function TeacherQuizMaker() {
       }
       const combinedText = [pastedText.trim(), extractedText.trim()].filter(Boolean).join("\n\n");
       const { data, error } = await supabase.functions.invoke("generate-quiz", {
-        body: { subject, grade, topics, count: parseInt(count) || 10, difficulty, text: combinedText, images, instructions },
+        body: {
+          subject, grade, topics,
+          count: Math.max(1, Math.min(parseInt(count) || 10, 50)),
+          difficulty, text: combinedText, images, instructions,
+          include_explanations: includeExplanations,
+        },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -235,7 +242,7 @@ export function TeacherQuizMaker() {
         question: qq.question || "",
         options: Array.isArray(qq.options) && qq.options.length === 4 ? qq.options : ["A) ", "B) ", "C) ", "D) "],
         correct_option: (["A","B","C","D"].includes(qq.correct_option) ? qq.correct_option : "A") as any,
-        explanation: qq.explanation || "",
+        explanation: includeExplanations ? (qq.explanation || "") : "",
       }));
       setQuiz(q);
       setQuizId(null);
@@ -451,6 +458,13 @@ export function TeacherQuizMaker() {
             <div className="space-y-1"><Label>Number of Questions</Label><Input type="number" min={1} max={50} value={count} onChange={(e) => setCount(e.target.value)} /></div>
             <div className="space-y-1"><Label>Instructions to students (optional)</Label><Input value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="e.g. Choose the best answer." /></div>
           </div>
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <div>
+              <Label>Answer explanations required</Label>
+              <p className="text-xs text-muted-foreground">When off, no explanations are generated or shown to students in the review screen.</p>
+            </div>
+            <Switch checked={includeExplanations} onCheckedChange={setIncludeExplanations} />
+          </div>
           <div className="space-y-1"><Label>Paste source text (optional)</Label><Textarea value={pastedText} onChange={(e) => setPastedText(e.target.value)} rows={4} placeholder="Lecture notes, textbook excerpt, etc." /></div>
           <div className="space-y-1">
             <Label>Upload source files</Label>
@@ -508,7 +522,9 @@ export function TeacherQuizMaker() {
                     </div>
                     <div className="space-y-1"><Label>Topic</Label><Input value={q.topic || ""} onChange={(e) => updateQuiz((qq) => { qq.questions[i].topic = e.target.value; })} /></div>
                   </div>
-                  <div className="space-y-1"><Label>Explanation</Label><Textarea value={q.explanation} onChange={(e) => updateQuiz((qq) => { qq.questions[i].explanation = e.target.value; })} rows={2} /></div>
+                  {includeExplanations && (
+                    <div className="space-y-1"><Label>Explanation</Label><Textarea value={q.explanation} onChange={(e) => updateQuiz((qq) => { qq.questions[i].explanation = e.target.value; })} rows={2} /></div>
+                  )}
                 </div>
               ))}
               <Button variant="outline" onClick={addQuestion}><Plus className="h-4 w-4 mr-2" />Add question</Button>
