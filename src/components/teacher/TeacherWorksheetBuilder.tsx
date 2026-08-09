@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ToastAction } from "@/components/ui/toast";
 import { Loader2, Sparkles, Download, RefreshCw, AlertTriangle, Upload, X, Pencil, Trash2, GripVertical, ArrowUp, ArrowDown, Save, Plus } from "lucide-react";
@@ -162,6 +163,7 @@ export function TeacherWorksheetBuilder() {
   const [grade, setGrade] = useState("");
   const [topic, setTopic] = useState("");
   const [count, setCount] = useState("10");
+  const [includeAnswerKey, setIncludeAnswerKey] = useState(true);
   const [difficulty, setDifficulty] = useState("Easy to Hard");
   const [types, setTypes] = useState<string[]>(["mcq", "short_answer"]);
   const [objective, setObjective] = useState("");
@@ -216,6 +218,10 @@ export function TeacherWorksheetBuilder() {
       return;
     }
     const requested = Number(count);
+    if (!Number.isInteger(requested) || requested < 1 || requested > 50) {
+      toast({ title: "Invalid question count", description: "Enter a whole number between 1 and 50.", variant: "destructive" });
+      return;
+    }
     try {
       setLoadingPhase(files.length ? "extracting" : "generating");
       const { text: extractedText, images } = files.length ? await extractSourceFiles(files) : { text: "", images: [] as string[] };
@@ -231,6 +237,7 @@ export function TeacherWorksheetBuilder() {
         body: {
           subject, grade, topic,
           count: requested,
+          include_answers: includeAnswerKey,
           difficulty,
           types: types.map((t) => QUESTION_TYPES.find((q) => q.id === t)?.label ?? t),
           objective,
@@ -709,14 +716,15 @@ export function TeacherWorksheetBuilder() {
             <div className="md:col-span-2"><Label>Topic</Label><Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Fractions, Photosynthesis" /></div>
             <div>
               <Label>Number of questions</Label>
-              <Select value={count} onValueChange={setCount}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10 questions</SelectItem>
-                  <SelectItem value="25">25 questions</SelectItem>
-                  <SelectItem value="50">50 questions</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input
+                type="number"
+                min={1}
+                max={50}
+                step={1}
+                value={count}
+                onChange={(e) => setCount(e.target.value)}
+                placeholder="e.g. 15"
+              />
               <p className="text-xs text-muted-foreground mt-1">Larger sheets take longer to generate.</p>
             </div>
             <div>
@@ -726,6 +734,16 @@ export function TeacherWorksheetBuilder() {
                 <SelectContent>{DIFFICULTY_OPTIONS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label className="cursor-pointer" htmlFor="answer-key-toggle">Answer key required</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                When on, teacher answers and workings are generated and an answer key PDF is available.
+              </p>
+            </div>
+            <Switch id="answer-key-toggle" checked={includeAnswerKey} onCheckedChange={setIncludeAnswerKey} />
           </div>
 
           <div>
@@ -785,14 +803,16 @@ export function TeacherWorksheetBuilder() {
                 <Button variant="outline" onClick={() => handleDownloadPDF(false)} disabled={!!downloading || loading}>
                   {downloading === "student" ? <><Loader2 className="h-4 w-4 animate-spin" /> Preparing...</> : <><Download className="h-4 w-4" /> Download Student PDF</>}
                 </Button>
-                <Button variant="outline" onClick={() => handleDownloadPDF(true)} disabled={!!downloading || loading}>
-                  {downloading === "answer" ? <><Loader2 className="h-4 w-4 animate-spin" /> Preparing...</> : <><Download className="h-4 w-4" /> Download Answer Key PDF</>}
-                </Button>
+                {includeAnswerKey && (
+                  <Button variant="outline" onClick={() => handleDownloadPDF(true)} disabled={!!downloading || loading}>
+                    {downloading === "answer" ? <><Loader2 className="h-4 w-4 animate-spin" /> Preparing...</> : <><Download className="h-4 w-4" /> Download Answer Key PDF</>}
+                  </Button>
+                )}
               </>
             )}
           </div>
 
-          <p className="text-xs text-muted-foreground">Powered by Lovable AI — please review before distributing to students. Sheets above 10 questions are generated in batches.</p>
+          <p className="text-xs text-muted-foreground">Powered by Lovable AI — please review before distributing to students.</p>
         </CardContent>
       </Card>
 
