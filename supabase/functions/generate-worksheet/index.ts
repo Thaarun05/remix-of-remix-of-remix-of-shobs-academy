@@ -199,7 +199,7 @@ Return a single replacement question with "number" = ${target_number}.`;
       const parsed = await callNimChat({
         temperature: 0.2,
         top_p: 0.7,
-        max_tokens: 4096,
+        max_tokens: 16000,
         messages: [
           { role: "system", content: REGEN_SYSTEM_PROMPT },
           { role: "user", content: userMsg },
