@@ -277,6 +277,7 @@ Return the full updated worksheet and a short assistant_reply.
 
     // Full generation (text-only — Llama 3.2 1B has no vision; ignore images)
     const { subject, grade, topic, count, difficulty, types, objective, text, images } = body;
+    const includeAnswers = body?.include_answers !== false;
     if (!subject || !grade || !topic || !Array.isArray(types) || types.length === 0) {
       return new Response(
         JSON.stringify({ error: "Subject, grade, topic and at least one question type are required." }),
@@ -285,13 +286,8 @@ Return the full updated worksheet and a short assistant_reply.
     }
 
     const imgCount = Array.isArray(images) ? images.length : 0;
-    const ALLOWED_COUNTS = [10, 25, 50];
-    const requestedCount = Number(count) || 10;
-    const qCount = ALLOWED_COUNTS.includes(requestedCount)
-      ? requestedCount
-      : ALLOWED_COUNTS.reduce((best, c) =>
-        Math.abs(c - requestedCount) < Math.abs(best - requestedCount) ? c : best
-      , 10);
+    const requestedCount = Math.round(Number(count)) || 10;
+    const qCount = Math.min(50, Math.max(1, requestedCount));
 
     const buildUserText = (n: number) => `Create an original Shobs Academy practice worksheet.
 Subject: ${subject}
@@ -304,7 +300,10 @@ ${objective ? `Question Instructions from teacher (follow precisely):\n${objecti
 
 Produce EXACTLY ${n} questions in a single JSON object.
 Distribute questions across the allowed types. Number them sequentially starting at 1.
-Always include a concise teacher "answer". Include a diagram object whenever figures are needed.
+${includeAnswers
+      ? `Always include a concise teacher "answer". Include "working" when useful.`
+      : `Do NOT include any answers or workings: set "answer" to "" and "working" to "" for every question and part.`}
+Include a diagram object whenever figures are needed.
 Use part_question with parts when the teacher asks for (a)(b)(c). Include "working" when asked.
 Keep each question concise so the full ${n}-question JSON fits in one response.
 ${text && String(text).trim()
@@ -335,8 +334,8 @@ Return ONLY the worksheet JSON object.
     try {
       parsed = await runGeneration(qCount);
     } catch (err) {
-      if (err instanceof NimCallError && (err.code === "truncated" || err.code === "parse") && qCount > 10) {
-        const reduced = qCount === 50 ? 25 : 10;
+      if (err instanceof NimCallError && (err.code === "truncated" || err.code === "parse") && qCount > 5) {
+        const reduced = Math.max(5, Math.floor(qCount / 2));
         console.warn(`Worksheet failed (${err.code}) at ${qCount} questions — retrying with ${reduced}.`);
         parsed = await runGeneration(reduced);
         warnings.push(`Only ${reduced} questions could be generated — the response ran out of room.`);
