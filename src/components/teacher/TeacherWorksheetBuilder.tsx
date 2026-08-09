@@ -707,8 +707,15 @@ export function TeacherWorksheetBuilder() {
             <div className="md:col-span-2"><Label>Topic</Label><Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Fractions, Photosynthesis" /></div>
             <div>
               <Label>Number of questions</Label>
-              <Input type="number" min={1} max={60} value={count} onChange={(e) => setCount(e.target.value)} placeholder="e.g. 10" />
-              <p className="text-xs text-muted-foreground mt-1">1–60. Large sheets are generated in batches of 10 and take longer.</p>
+              <Select value={count} onValueChange={setCount}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 questions</SelectItem>
+                  <SelectItem value="25">25 questions</SelectItem>
+                  <SelectItem value="50">50 questions</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Larger sheets take longer to generate.</p>
             </div>
             <div>
               <Label>Difficulty</Label>
