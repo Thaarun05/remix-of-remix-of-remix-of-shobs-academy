@@ -285,13 +285,15 @@ Return the full updated worksheet and a short assistant_reply.
     }
 
     const imgCount = Array.isArray(images) ? images.length : 0;
-    const qCount = Math.max(1, Math.min(Number(count) || 10, 60));
-    const BATCH_SIZE = 10;
+    const ALLOWED_COUNTS = [10, 25, 50];
+    const requestedCount = Number(count) || 10;
+    const qCount = ALLOWED_COUNTS.includes(requestedCount)
+      ? requestedCount
+      : ALLOWED_COUNTS.reduce((best, c) =>
+        Math.abs(c - requestedCount) < Math.abs(best - requestedCount) ? c : best
+      , 10);
 
-    const buildUserText = (
-      n: number,
-      batch?: { start: number; end: number; index: number; total: number; priorPrompts: string[] },
-    ) => `Create an original Shobs Academy practice worksheet.
+    const buildUserText = (n: number) => `Create an original Shobs Academy practice worksheet.
 Subject: ${subject}
 Grade / Year group: ${grade}
 Topic: ${topic}
@@ -299,19 +301,12 @@ Number of questions: ${n}
 Difficulty progression: ${difficulty}
 Allowed question types: ${types.join(", ")}
 ${objective ? `Question Instructions from teacher (follow precisely):\n${objective}` : ""}
-${batch
-      ? `\nThis is BATCH ${batch.index} of ${batch.total} for a ${qCount}-question worksheet.
-Produce EXACTLY ${n} questions covering worksheet positions ${batch.start}–${batch.end}.
-Number them ${batch.start} through ${batch.end}.
-Position them correctly within the "${difficulty}" difficulty ramp across the whole ${qCount}-question sheet.
-${batch.priorPrompts.length
-        ? `Do NOT repeat or paraphrase any of these questions already written:\n${batch.priorPrompts.map((p, i) => `- ${p}`).join("\n").slice(0, 6000)}`
-        : ""}`
-      : ""}
 
+Produce EXACTLY ${n} questions in a single JSON object.
 Distribute questions across the allowed types. Number them sequentially starting at 1.
 Always include a concise teacher "answer". Include a diagram object whenever figures are needed.
 Use part_question with parts when the teacher asks for (a)(b)(c). Include "working" when asked.
+Keep each question concise so the full ${n}-question JSON fits in one response.
 ${text && String(text).trim()
       ? `\nSource text / extracted PDF text (paraphrase — do not copy verbatim):\n${String(text).slice(0, 12000)}`
       : ""}
@@ -322,107 +317,38 @@ ${imgCount
 Return ONLY the worksheet JSON object.
 (${WORKSHEET_CAPACITY_NOTE})`;
 
-    const runGeneration = (n: number, batch?: Parameters<typeof buildUserText>[1]) =>
+    const runGeneration = (n: number) =>
       callNimChat({
         temperature: 0.2,
         top_p: 0.7,
-        max_tokens: 16000,
+        max_tokens: 60000,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: buildUserText(n, batch) },
+          { role: "user", content: buildUserText(n) },
         ] as NimMessage[],
       }) as Promise<Record<string, unknown>>;
 
     const warnings: string[] = [];
 
-    // --- Single-shot path (<= BATCH_SIZE) -------------------------------
-    let mergedQuestions: Record<string, unknown>[] = [];
-    let shell: Record<string, unknown> = {};
-
-    if (qCount <= BATCH_SIZE) {
-      let parsed: Record<string, unknown>;
-      try {
-        parsed = await runGeneration(qCount);
-      } catch (err) {
-        if (err instanceof NimCallError && err.code === "truncated" && qCount > 5) {
-          const reduced = Math.max(5, Math.floor(qCount / 2));
-          console.warn(`Worksheet truncated at ${qCount} questions — retrying with ${reduced}.`);
-          parsed = await runGeneration(reduced);
-          warnings.push(`Only ${reduced} questions could be generated — the response ran out of room.`);
-        } else {
-          throw err;
-        }
-      }
-      shell = parsed;
-      mergedQuestions = Array.isArray(parsed.questions) ? parsed.questions as Record<string, unknown>[] : [];
-    } else {
-      // --- Batched path -------------------------------------------------
-      const batchCount = Math.ceil(qCount / BATCH_SIZE);
-      const plans = Array.from({ length: batchCount }, (_, i) => {
-        const start = i * BATCH_SIZE + 1;
-        const end = Math.min(qCount, start + BATCH_SIZE - 1);
-        return { index: i + 1, total: batchCount, start, end, size: end - start + 1 };
-      });
-
-      const results: (Record<string, unknown> | null)[] = new Array(batchCount).fill(null);
-      const promptsSoFar: string[] = [];
-
-      const runPlan = async (planIdx: number) => {
-        const plan = plans[planIdx];
-        const batchArg = {
-          start: plan.start,
-          end: plan.end,
-          index: plan.index,
-          total: plan.total,
-          priorPrompts: [...promptsSoFar],
-        };
-        let parsed: Record<string, unknown> | null = null;
-        try {
-          parsed = await runGeneration(plan.size, batchArg);
-        } catch (err) {
-          if (err instanceof NimCallError && (err.code === "truncated" || err.code === "parse")) {
-            const half = Math.max(3, Math.floor(plan.size / 2));
-            console.warn(`Batch ${plan.index} failed (${err.code}) — retrying with ${half} questions.`);
-            try {
-              parsed = await runGeneration(half, { ...batchArg, end: plan.start + half - 1 });
-              warnings.push(`Batch ${plan.index} produced ${half} of ${plan.size} questions.`);
-            } catch (err2) {
-              console.error(`Batch ${plan.index} retry failed`, err2);
-              warnings.push(`Batch ${plan.index} could not be generated.`);
-              parsed = null;
-            }
-          } else {
-            throw err;
-          }
-        }
-        results[planIdx] = parsed;
-        const qs = Array.isArray(parsed?.questions) ? parsed!.questions as Record<string, unknown>[] : [];
-        for (const q of qs) {
-          const p = typeof q?.prompt === "string" ? q.prompt : "";
-          if (p) promptsSoFar.push(p.slice(0, 180));
-        }
-      };
-
-      // Concurrency 2
-      let pointer = 0;
-      const workers = Array.from({ length: Math.min(2, batchCount) }, async () => {
-        while (pointer < batchCount) {
-          const my = pointer++;
-          await runPlan(my);
-        }
-      });
-      await Promise.all(workers);
-
-      shell = results.find((r) => r && (r.worksheet_title || r.instructions)) ?? results[0] ?? {};
-      for (const r of results) {
-        if (!r) continue;
-        const qs = Array.isArray(r.questions) ? r.questions as Record<string, unknown>[] : [];
-        mergedQuestions.push(...qs);
-      }
-      if (mergedQuestions.length && mergedQuestions.length < qCount) {
-        warnings.push(`${mergedQuestions.length} of ${qCount} questions were generated.`);
+    // --- Single-shot generation for the whole worksheet -----------------
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = await runGeneration(qCount);
+    } catch (err) {
+      if (err instanceof NimCallError && (err.code === "truncated" || err.code === "parse") && qCount > 10) {
+        const reduced = qCount === 50 ? 25 : 10;
+        console.warn(`Worksheet failed (${err.code}) at ${qCount} questions — retrying with ${reduced}.`);
+        parsed = await runGeneration(reduced);
+        warnings.push(`Only ${reduced} questions could be generated — the response ran out of room.`);
+      } else {
+        throw err;
       }
     }
+
+    const shell = parsed;
+    const mergedQuestions = Array.isArray(parsed.questions)
+      ? parsed.questions as Record<string, unknown>[]
+      : [];
 
     const worksheet = normalizeWorksheet({ ...shell, questions: mergedQuestions });
     if (!Array.isArray(worksheet.questions) || worksheet.questions.length === 0) {
