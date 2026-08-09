@@ -11,12 +11,11 @@ All four generators already route through one shared helper on OpenRouter (`open
 
 ## 3. Answer key on/off toggle
 - Quiz Maker: add an "Include explanations" switch. When on, each question gets its explanation as today. When off, explanations are skipped in generation and hidden in the student review screen. Correct answers themselves stay, since auto-grading depends on them.
-- AI Notetaker: add an "Include worked answers" switch for solved examples in the generated notes; when off, only the notes content is produced.
 
 ## Technical notes
 - `supabase/functions/_shared/nim.ts`: provider/model unchanged; shared by all generators.
 - `supabase/functions/generate-quiz/index.ts`: remove the hard 12-question cap, honour `include_explanations`, raise `max_tokens`, add truncation retry at half count.
-- `supabase/functions/generate-notes/index.ts`: honour `include_answers`, raise `max_tokens`.
-- `src/components/teacher/TeacherQuizMaker.tsx` and `src/components/teacher/TeacherAiNotetaker.tsx`: add the toggles and pass the flags in the request body.
+- `supabase/functions/generate-notes/index.ts`: raise `max_tokens`.
+- `src/components/teacher/TeacherQuizMaker.tsx`: add the toggle and pass the flag in the request body.
 - `src/components/student/StudentQuizzes.tsx`: hide the explanation block when a quiz has none.
 - Redeploy `generate-quiz` and `generate-notes`.
