@@ -38,6 +38,9 @@ Hard rules:
 - Use type "part_question" with a populated parts array for (a)(b)(c) style items.
 - Follow the teacher's Question Instructions precisely.
 - Always populate marks, difficulty, blooms_level, rubric (may be empty string), answer, and working (may be empty string).
+- The question text MUST be under the exact key "prompt". Never use "question", "text" or "statement".
+- Each question object looks exactly like:
+  { "number": 1, "type": "short_answer", "prompt": "Work out -7 + 12.", "options": [], "parts": [], "diagram": null, "marks": 2, "difficulty": "easy", "blooms_level": "apply", "rubric": "", "answer": "5", "working": "" }
 - Return ONLY a valid JSON object (no markdown fences) with keys: worksheet_title, instructions, metadata { topic_tags, estimated_minutes }, questions [].`;
 
 const REGEN_SYSTEM_PROMPT = `You draft ONE replacement practice question for an existing Shobs Academy worksheet.
