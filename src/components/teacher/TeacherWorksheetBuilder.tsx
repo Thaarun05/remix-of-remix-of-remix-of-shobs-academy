@@ -573,9 +573,11 @@ export function TeacherWorksheetBuilder() {
           y = marginTop;
         }
 
+        const promptText = (q.prompt ?? "").trim();
+        if (!promptText) continue;
         y += 3;
         const marks = typeof q.marks === "number" && q.marks > 0 ? ` [${q.marks} mark${q.marks === 1 ? "" : "s"}]` : "";
-        writeWrapped(`${q.number}. ${q.prompt}${marks}`, { size: 11, style: "bold" });
+        writeWrapped(`${q.number}. ${promptText}${marks}`, { size: 11, style: "bold" });
 
         if (q.type === "mcq" && q.options?.length) {
           for (const opt of q.options) writeWrapped(opt, { size: 10, indent: 8 });
