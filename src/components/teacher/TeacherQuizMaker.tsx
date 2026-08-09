@@ -522,7 +522,9 @@ export function TeacherQuizMaker() {
                     </div>
                     <div className="space-y-1"><Label>Topic</Label><Input value={q.topic || ""} onChange={(e) => updateQuiz((qq) => { qq.questions[i].topic = e.target.value; })} /></div>
                   </div>
-                  <div className="space-y-1"><Label>Explanation</Label><Textarea value={q.explanation} onChange={(e) => updateQuiz((qq) => { qq.questions[i].explanation = e.target.value; })} rows={2} /></div>
+                  {includeExplanations && (
+                    <div className="space-y-1"><Label>Explanation</Label><Textarea value={q.explanation} onChange={(e) => updateQuiz((qq) => { qq.questions[i].explanation = e.target.value; })} rows={2} /></div>
+                  )}
                 </div>
               ))}
               <Button variant="outline" onClick={addQuestion}><Plus className="h-4 w-4 mr-2" />Add question</Button>
