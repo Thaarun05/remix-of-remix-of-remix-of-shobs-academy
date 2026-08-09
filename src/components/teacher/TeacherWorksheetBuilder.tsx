@@ -42,15 +42,38 @@ function toDiagramV2(d: Question["diagram"]): DiagramV2 | undefined {
   };
 }
 
+const PROMPT_ALIASES = ["prompt", "question", "question_text", "text", "statement", "body"] as const;
+
+/** Question text can arrive under a few different keys — resolve it defensively. */
+function resolvePrompt(src: unknown): string {
+  if (!src || typeof src !== "object") return "";
+  const rec = src as Record<string, unknown>;
+  for (const key of PROMPT_ALIASES) {
+    const v = rec[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
+}
+
 function normalizeIncomingQuestions(questions: Question[]): Question[] {
-  return questions.map((q, i) => ({
-    ...q,
-    uid: q.uid ?? newUid(),
-    number: i + 1,
-    options: q.options ?? [],
-    parts: q.parts ?? [],
-    diagram: q.diagram ? toDiagramV2(q.diagram) : undefined,
-  }));
+  return questions
+    .map((q) => ({
+      ...q,
+      prompt: resolvePrompt(q),
+      parts: (q.parts ?? []).map((p, i) => ({
+        ...p,
+        label: p.label?.trim() || String.fromCharCode(97 + i),
+        prompt: resolvePrompt(p),
+      })),
+    }))
+    .filter((q) => q.prompt.length > 0)
+    .map((q, i) => ({
+      ...q,
+      uid: q.uid ?? newUid(),
+      number: i + 1,
+      options: q.options ?? [],
+      diagram: q.diagram ? toDiagramV2(q.diagram) : undefined,
+    }));
 }
 
 let uidCounter = 0;
