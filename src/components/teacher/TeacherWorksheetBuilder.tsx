@@ -42,15 +42,38 @@ function toDiagramV2(d: Question["diagram"]): DiagramV2 | undefined {
   };
 }
 
+const PROMPT_ALIASES = ["prompt", "question", "question_text", "text", "statement", "body"] as const;
+
+/** Question text can arrive under a few different keys — resolve it defensively. */
+function resolvePrompt(src: unknown): string {
+  if (!src || typeof src !== "object") return "";
+  const rec = src as Record<string, unknown>;
+  for (const key of PROMPT_ALIASES) {
+    const v = rec[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
+}
+
 function normalizeIncomingQuestions(questions: Question[]): Question[] {
-  return questions.map((q, i) => ({
-    ...q,
-    uid: q.uid ?? newUid(),
-    number: i + 1,
-    options: q.options ?? [],
-    parts: q.parts ?? [],
-    diagram: q.diagram ? toDiagramV2(q.diagram) : undefined,
-  }));
+  return questions
+    .map((q) => ({
+      ...q,
+      prompt: resolvePrompt(q),
+      parts: (q.parts ?? []).map((p, i) => ({
+        ...p,
+        label: p.label?.trim() || String.fromCharCode(97 + i),
+        prompt: resolvePrompt(p),
+      })),
+    }))
+    .filter((q) => q.prompt.length > 0)
+    .map((q, i) => ({
+      ...q,
+      uid: q.uid ?? newUid(),
+      number: i + 1,
+      options: q.options ?? [],
+      diagram: q.diagram ? toDiagramV2(q.diagram) : undefined,
+    }));
 }
 
 let uidCounter = 0;
@@ -150,14 +173,14 @@ export function TeacherWorksheetBuilder() {
   const [sourceExcerpt, setSourceExcerpt] = useState<string>(""); // stored for regenerate
   const [regenUid, setRegenUid] = useState<string | null>(null);
   const [editingUid, setEditingUid] = useState<string | null>(null);
-  const [batchProgress, setBatchProgress] = useState<string>("");
+  const [progressNote, setProgressNote] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<RefineChatMessage[]>([]);
 
   const loading = loadingPhase !== null;
 
   const loadingLabel =
     loadingPhase === "extracting" ? "Reading source files…"
-    : loadingPhase === "generating" ? (batchProgress || "Generating worksheet…")
+    : loadingPhase === "generating" ? (progressNote || "Generating worksheet…")
     : loadingPhase === "diagrams" ? "Building diagrams…"
     : loadingPhase === "refining" ? "Refining worksheet…"
     : "Working…";
@@ -193,20 +216,15 @@ export function TeacherWorksheetBuilder() {
       return;
     }
     const requested = Number(count);
-    if (!Number.isFinite(requested) || requested < 1 || requested > 60) {
-      toast({ title: "Invalid question count", description: "Choose between 1 and 60 questions.", variant: "destructive" });
-      return;
-    }
     try {
       setLoadingPhase(files.length ? "extracting" : "generating");
       const { text: extractedText, images } = files.length ? await extractSourceFiles(files) : { text: "", images: [] as string[] };
       const combinedText = [pastedText.trim(), extractedText.trim()].filter(Boolean).join("\n\n");
       setSourceExcerpt(combinedText);
       setLoadingPhase("generating");
-      const batches = Math.ceil(requested / 10);
-      setBatchProgress(
-        batches > 1
-          ? `Generating ${requested} questions in ${batches} batches — this can take a couple of minutes…`
+      setProgressNote(
+        requested >= 25
+          ? `Generating ${requested} questions — larger sheets can take a couple of minutes…`
           : `Generating ${requested} questions…`,
       );
       const { data, error } = await supabase.functions.invoke("generate-worksheet", {
@@ -234,7 +252,7 @@ export function TeacherWorksheetBuilder() {
       toast({ title: "Generation failed", description: message, variant: "destructive" });
     } finally {
       setLoadingPhase(null);
-      setBatchProgress("");
+      setProgressNote("");
     }
   };
 
@@ -555,9 +573,11 @@ export function TeacherWorksheetBuilder() {
           y = marginTop;
         }
 
+        const promptText = (q.prompt ?? "").trim();
+        if (!promptText) continue;
         y += 3;
         const marks = typeof q.marks === "number" && q.marks > 0 ? ` [${q.marks} mark${q.marks === 1 ? "" : "s"}]` : "";
-        writeWrapped(`${q.number}. ${q.prompt}${marks}`, { size: 11, style: "bold" });
+        writeWrapped(`${q.number}. ${promptText}${marks}`, { size: 11, style: "bold" });
 
         if (q.type === "mcq" && q.options?.length) {
           for (const opt of q.options) writeWrapped(opt, { size: 10, indent: 8 });
@@ -689,8 +709,15 @@ export function TeacherWorksheetBuilder() {
             <div className="md:col-span-2"><Label>Topic</Label><Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Fractions, Photosynthesis" /></div>
             <div>
               <Label>Number of questions</Label>
-              <Input type="number" min={1} max={60} value={count} onChange={(e) => setCount(e.target.value)} placeholder="e.g. 10" />
-              <p className="text-xs text-muted-foreground mt-1">1–60. Large sheets are generated in batches of 10 and take longer.</p>
+              <Select value={count} onValueChange={setCount}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 questions</SelectItem>
+                  <SelectItem value="25">25 questions</SelectItem>
+                  <SelectItem value="50">50 questions</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Larger sheets take longer to generate.</p>
             </div>
             <div>
               <Label>Difficulty</Label>
