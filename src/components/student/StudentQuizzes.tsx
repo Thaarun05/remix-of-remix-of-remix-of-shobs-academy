@@ -482,7 +482,7 @@ export function StudentQuizzes() {
                     className={[
                       "h-8 w-8 rounded-md text-xs font-medium border transition-colors",
                       active
-                        ? "bg-student text-white border-student ring-2 ring-student/40"
+                        ? "bg-student text-student-foreground border-student ring-2 ring-student/40"
                         : answered
                           ? "bg-student/10 text-student border-student/40 hover:bg-student/20"
                           : "bg-background text-muted-foreground border-border hover:bg-muted",

@@ -2144,7 +2144,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
           )}
 
           {activeSessionId && (
-            <span className="px-2 py-1 rounded-full bg-green-500/10 text-green-600 text-xs font-bold animate-pulse">● LIVE</span>
+            <span className="px-2 py-1 rounded-full bg-success/10 text-success text-xs font-bold animate-pulse">● LIVE</span>
           )}
 
           {isFullscreen && (
