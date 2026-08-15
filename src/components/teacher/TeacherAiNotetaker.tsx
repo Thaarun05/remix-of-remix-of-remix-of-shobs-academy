@@ -522,9 +522,9 @@ export function TeacherAiNotetaker() {
           <CardDescription>Turn lecture material into branded Shobs Academy study notes.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-            <p className="text-amber-900 dark:text-amber-200">
+          <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+            <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+            <p className="text-foreground">
               <strong>*</strong> Please do not change tabs or close your system while notes are being created. Generation can take up to 30 seconds.
             </p>
           </div>

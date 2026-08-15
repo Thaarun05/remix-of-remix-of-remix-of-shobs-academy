@@ -91,9 +91,9 @@ function getKind(fileName: string, fileType: string): "pdf" | "ppt" | "doc" | "o
 function KindBadge({ fileName, fileType }: { fileName: string; fileType: string }) {
   const kind = getKind(fileName, fileType);
   const map = {
-    pdf: { label: "PDF", cls: "bg-red-500/15 text-red-600 border-red-500/30", Icon: FileText },
-    ppt: { label: "PPT", cls: "bg-orange-500/15 text-orange-600 border-orange-500/30", Icon: Presentation },
-    doc: { label: "DOC", cls: "bg-blue-500/15 text-blue-600 border-blue-500/30", Icon: FileType },
+    pdf: { label: "PDF", cls: "bg-destructive/10 text-destructive border-destructive/25", Icon: FileText },
+    ppt: { label: "PPT", cls: "bg-warning/10 text-warning border-warning/25", Icon: Presentation },
+    doc: { label: "DOC", cls: "bg-primary/10 text-primary border-primary/25", Icon: FileType },
     other: { label: "FILE", cls: "bg-muted text-muted-foreground border-border", Icon: FileIcon },
   } as const;
   const { label, cls, Icon } = map[kind];

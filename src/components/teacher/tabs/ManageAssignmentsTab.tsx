@@ -88,7 +88,7 @@ export default function ManageAssignmentsTab({ ctx }: { ctx: TabContext }) {
                         </Button>
                       </>
                     ) : assignment.status === "viewed" ? (
-                      <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                      <Badge className="bg-primary/10 text-primary border-primary/20">
                         <Eye className="h-3 w-3 mr-1" />Viewed
                       </Badge>
                     ) : (

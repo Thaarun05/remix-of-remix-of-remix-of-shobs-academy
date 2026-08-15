@@ -6,7 +6,7 @@ import { NumberLine } from "./NumberLine";
 export function DiagramRenderer({ diagram }: { diagram: DiagramV2 }) {
   if (!diagram || !diagram.spec || diagram.error) {
     return (
-      <div className="text-xs italic text-red-700 border border-red-400 bg-red-50 rounded p-2">
+      <div className="text-xs italic text-destructive border border-destructive/40 bg-destructive/10 rounded p-2">
         Diagram could not be generated for this question.
         {diagram?.description ? <> Intended figure: {diagram.description}</> : null}
       </div>

@@ -295,7 +295,7 @@ export const FeeSheetCalculator = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "draft": return <Badge variant="outline">Draft</Badge>;
-      case "sent": return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Sent</Badge>;
+      case "sent": return <Badge className="bg-primary/10 text-primary border-primary/20">Sent</Badge>;
       case "correct": return <Badge className="bg-success/10 text-success border-success/20">Confirmed</Badge>;
       case "correction_needed": return <Badge className="bg-warning/10 text-warning border-warning/20">Needs Correction</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
