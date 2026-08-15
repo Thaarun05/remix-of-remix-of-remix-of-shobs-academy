@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import shobsLogo from "@/assets/shobs-academy-logo.png";
 import jsPDF from "jspdf";
+import { downloadPdf } from "@/lib/downloadPdf";
 
 // Convert imported PNG asset to a data URL so jsPDF can embed it.
 async function urlToDataUrl(url: string): Promise<string | null> {
@@ -416,7 +417,7 @@ export function TeacherAiNotetaker() {
     setDownloading(true);
     try {
       const { pdf, safeTitle } = await buildPdf();
-      pdf.save(`shobs-academy-notes-${safeTitle}.pdf`);
+      downloadPdf(pdf, `shobs-academy-notes-${safeTitle.replace(/^-+|-+$/g, "").slice(0, 60) || "notes"}.pdf`);
       toast({ title: "Download started", description: "Your notes PDF has been saved." });
     } catch (e: any) {
       toast({ title: "Download failed", description: e?.message ?? "Could not generate PDF.", variant: "destructive" });
