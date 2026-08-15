@@ -1234,109 +1234,74 @@
 /* ============ AUTH FORMS PROFESSIONAL STYLING ============ */
 
 /* Page Backgrounds */
-.auth-page-student {
-  background: linear-gradient(135deg, 
-    hsl(209 75% 95%) 0%, 
-    hsl(220 84% 97%) 100%
-  );
-  background-attachment: fixed;
-}
-
-.dark .auth-page-student {
-  background: 
-    radial-gradient(ellipse 1000px 500px at 20% 10%, hsla(209, 75%, 45%, 0.08), transparent 50%),
-    radial-gradient(ellipse 800px 400px at 80% 80%, hsla(209, 75%, 50%, 0.05), transparent 45%),
-    linear-gradient(135deg, hsl(224 30% 8%) 0%, hsl(224 25% 10%) 100%);
-}
-
+.auth-page-student,
 .auth-page-teacher,
 .auth-page-admin {
-  background: linear-gradient(135deg, 
-    hsl(220 84% 97%) 0%, 
-    hsl(220 60% 97%) 100%
-  );
+  background: hsl(var(--background-alt));
   background-attachment: fixed;
 }
 
+.dark .auth-page-student,
 .dark .auth-page-teacher,
 .dark .auth-page-admin {
-  background: 
-    radial-gradient(ellipse 1000px 500px at 20% 10%, hsla(220, 84%, 60%, 0.08), transparent 50%),
-    radial-gradient(ellipse 800px 400px at 80% 80%, hsla(220, 60%, 55%, 0.05), transparent 45%),
-    linear-gradient(135deg, hsl(224 30% 8%) 0%, hsl(224 25% 10%) 100%);
+  background: hsl(var(--background));
 }
 
 /* Auth Card */
 .auth-card {
   width: 100%;
-  max-width: 450px;
-  background: hsl(0 0% 100%);
-  border-radius: 24px;
-  padding: 48px;
-  box-shadow: 0 20px 60px hsla(220, 40%, 20%, 0.12);
-  border: 1px solid hsl(0 0% 90% / 0.5);
+  max-width: 440px;
+  background: hsl(var(--card));
+  border-radius: 14px;
+  padding: 44px 40px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid hsl(var(--border));
   text-align: center;
-  transition: all 0.3s ease;
 }
 
 .dark .auth-card {
-  background: linear-gradient(145deg, hsla(224, 25%, 14%, 0.98), hsla(224, 25%, 10%, 0.98));
-  border-color: hsla(38, 80%, 55%, 0.08);
-  box-shadow: 0 20px 60px hsla(0, 0%, 0%, 0.4), inset 0 1px 0 0 hsla(38, 80%, 55%, 0.05);
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
 }
 
 .auth-card-student {
-  border-top: 4px solid hsl(209 75% 40%);
+  border-top: 3px solid hsl(var(--student));
 }
 
-.dark .auth-card-student {
-  border-top-color: hsl(209 75% 50%);
+.auth-card-teacher {
+  border-top: 3px solid hsl(var(--teacher));
 }
 
-.auth-card-teacher,
 .auth-card-admin {
-  border-top: 4px solid hsl(220 84% 67%);
-}
-
-.dark .auth-card-teacher,
-.dark .auth-card-admin {
-  border-top-color: hsl(220 84% 70%);
+  border-top: 3px solid hsl(var(--admin));
 }
 
 /* Auth Logo */
 .auth-logo {
   width: 64px;
   height: 64px;
-  border-radius: 16px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 24px;
-  animation: auth-logo-bounce 0.8s ease-out;
+  overflow: hidden;
+  margin: 0 auto 22px;
+  background: hsl(0 0% 100%);
+  border: 1px solid hsl(var(--border));
 }
 
-.auth-logo-student {
-  background: linear-gradient(135deg, hsl(209 75% 40%), hsl(209 75% 35%));
-  box-shadow: 0 8px 24px hsl(209 75% 40% / 0.3);
-}
-
+.auth-logo-student,
 .auth-logo-teacher,
 .auth-logo-admin {
-  background: linear-gradient(135deg, hsl(220 84% 67%), hsl(220 84% 55%));
-  box-shadow: 0 8px 24px hsl(220 84% 67% / 0.3);
-}
-
-@keyframes auth-logo-bounce {
-  0% { transform: scale(0.8) translateY(20px); opacity: 0; }
-  50% { transform: scale(1.1) translateY(-8px); }
-  100% { transform: scale(1) translateY(0); opacity: 1; }
+  background: hsl(0 0% 100%);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Auth Headings */
 .auth-heading {
   font-size: 28px;
   font-weight: 700;
-  color: hsl(224 47% 11%);
+  color: hsl(var(--foreground));
   margin-bottom: 12px;
   font-family: var(--font-serif);
 }
@@ -1384,7 +1349,7 @@
 }
 
 .auth-tab:hover {
-  color: hsl(224 47% 11%);
+  color: hsl(var(--foreground));
 }
 
 .auth-tab-active-student {
@@ -1417,7 +1382,7 @@
 .auth-label {
   font-size: 13px;
   font-weight: 600;
-  color: hsl(224 47% 11%);
+  color: hsl(var(--foreground));
   letter-spacing: 0.3px;
 }
 
