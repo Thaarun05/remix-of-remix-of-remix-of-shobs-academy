@@ -20,7 +20,7 @@ export default {
   	extend: {
   		fontFamily: {
   			sans: [
-  				'Montserrat',
+  				'IBM Plex Sans',
   				'ui-sans-serif',
   				'system-ui',
   				'-apple-system',
@@ -33,11 +33,13 @@ export default {
   				'sans-serif'
   			],
   			display: [
-  				'Playfair Display',
+  				'Libre Baskerville',
+  				'ui-serif',
+  				'Georgia',
   				'serif'
   			],
   			serif: [
-  				'Cormorant Garamond',
+  				'Libre Baskerville',
   				'ui-serif',
   				'Georgia',
   				'Cambria',
