@@ -2,200 +2,193 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
-
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
-
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap");
-
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 @layer base {
   :root {
-    /* Premium Light Theme - Shobs Academy */
-    --background: 210 20% 98%;
-    --background-alt: 210 25% 96%;
-    --foreground: 222 47% 11%;
+    /* ===== Navy Trust — Shobs Academy (Light) ===== */
+    --background: 210 33% 98%;
+    --background-alt: 212 33% 95%;
+    --foreground: 226 45% 14%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 226 45% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 226 45% 14%;
 
-    /* Primary Teal */
-    --primary: 258 89% 66%;
-    --primary-foreground: 250 100% 97%;
-    --primary-glow: 180 75% 45%;
+    /* Deep navy primary */
+    --primary: 212 52% 25%;
+    --primary-foreground: 210 40% 98%;
+    --primary-glow: 209 46% 43%;
 
-    /* Accent Indigo */
-    --secondary: 215 25% 27%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 212 33% 93%;
+    --secondary-foreground: 226 45% 18%;
 
-    --muted: 210 20% 90%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 212 26% 94%;
+    --muted-foreground: 214 16% 42%;
 
-    --accent: 210 30% 95%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 212 33% 93%;
+    --accent-foreground: 226 45% 16%;
 
-    --destructive: 0 72% 50%;
-    --destructive-foreground: 0 85% 97%;
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 180 75% 40%;
+    --success: 158 52% 32%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 72% 42%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 210 20% 88%;
-    --input: 210 20% 88%;
-    --ring: 258 89% 66%;
+    --border: 212 24% 88%;
+    --input: 212 24% 86%;
+    --ring: 209 46% 43%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Premium gold accent */
-    --gold: 43 74% 49%;
-    --gold-light: 43 80% 65%;
-    --gold-dark: 43 74% 40%;
+    /* Brass accent (authority / admin) */
+    --gold: 38 55% 42%;
+    --gold-light: 38 60% 55%;
+    --gold-dark: 38 55% 32%;
 
-    /* Custom design tokens - Light */
-    --gradient-primary: linear-gradient(135deg, hsl(180 75% 35%), hsl(180 75% 50%));
-    --gradient-secondary: linear-gradient(135deg, hsl(239 84% 67%), hsl(239 84% 55%));
-    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%), hsl(142 71% 38%));
-    --gradient-hero: linear-gradient(180deg, hsl(210 30% 98%), hsl(210 25% 96%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 20% 98%));
-    
-    /* Premium ambient background - subtle blue/green */
-    --bg-pattern: 
-      radial-gradient(ellipse 1200px 600px at 10% 5%, hsla(180, 70%, 45%, 0.06), transparent 60%),
-      radial-gradient(ellipse 1000px 500px at 90% 15%, hsla(220, 80%, 55%, 0.05), transparent 55%),
-      radial-gradient(ellipse 800px 400px at 50% 90%, hsla(180, 70%, 50%, 0.04), transparent 50%);
+    /* Gradients — restrained, single family */
+    --gradient-primary: linear-gradient(135deg, hsl(226 55% 18%), hsl(209 46% 43%));
+    --gradient-secondary: linear-gradient(135deg, hsl(212 52% 25%), hsl(209 46% 50%));
+    --gradient-success: linear-gradient(135deg, hsl(158 52% 30%), hsl(158 45% 38%));
+    --gradient-hero: linear-gradient(180deg, hsl(210 33% 99%), hsl(212 33% 95%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(212 30% 99%));
 
-    /* Enhanced shadows with tint */
-    --shadow-sm: 0 1px 3px 0px hsla(220, 40%, 20%, 0.06), 0 1px 2px -1px hsla(220, 40%, 20%, 0.06);
-    --shadow-md: 0 4px 8px -2px hsla(220, 40%, 20%, 0.08), 0 2px 4px -2px hsla(220, 40%, 20%, 0.04);
-    --shadow-lg: 0 10px 25px -5px hsla(220, 40%, 20%, 0.1), 0 8px 10px -6px hsla(220, 40%, 20%, 0.06);
-    --shadow-xl: 0 20px 40px -10px hsla(220, 40%, 20%, 0.12), 0 10px 20px -8px hsla(220, 40%, 20%, 0.08);
-    --shadow-glow: 0 0 50px hsla(180, 75%, 45%, 0.2);
-    --shadow-primary: 0 8px 30px -8px hsla(180, 75%, 35%, 0.25);
-    --shadow-indigo: 0 8px 30px -8px hsla(239, 84%, 67%, 0.25);
-    --shadow-card: 0 4px 20px -4px hsla(220, 40%, 20%, 0.08), 0 0 0 1px hsla(220, 40%, 20%, 0.02);
-    --shadow-card-hover: 0 12px 35px -8px hsla(220, 40%, 20%, 0.12), 0 0 0 1px hsla(180, 75%, 45%, 0.1);
+    /* Ambient background — very subtle */
+    --bg-pattern:
+      radial-gradient(ellipse 1200px 600px at 12% 0%, hsla(212, 45%, 45%, 0.05), transparent 60%),
+      radial-gradient(ellipse 900px 480px at 88% 8%, hsla(226, 50%, 35%, 0.04), transparent 55%);
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 258 89% 66%;
-    --sidebar-primary-foreground: 250 100% 97%;
-    --sidebar-accent: 210 30% 95%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 210 20% 90%;
-    --sidebar-ring: 258 89% 66%;
+    /* Three shadow levels + focus */
+    --shadow-sm: 0 1px 2px 0 hsla(226, 45%, 14%, 0.06);
+    --shadow-md: 0 2px 6px -1px hsla(226, 45%, 14%, 0.08), 0 1px 3px -1px hsla(226, 45%, 14%, 0.05);
+    --shadow-lg: 0 10px 24px -8px hsla(226, 45%, 14%, 0.14), 0 2px 6px -2px hsla(226, 45%, 14%, 0.06);
+    --shadow-xl: var(--shadow-lg);
+    --shadow-2xl: var(--shadow-lg);
+    --shadow-2xs: var(--shadow-sm);
+    --shadow-xs: var(--shadow-sm);
+    --shadow: var(--shadow-md);
+    --shadow-glow: none;
+    --shadow-primary: var(--shadow-md);
+    --shadow-indigo: var(--shadow-md);
+    --shadow-card: var(--shadow-sm);
+    --shadow-card-hover: var(--shadow-md);
 
-    /* Role-specific colors */
-    --student: 180 75% 40%;
+    --sidebar-background: 226 52% 16%;
+    --sidebar-foreground: 210 30% 88%;
+    --sidebar-primary: 209 46% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 226 45% 22%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 226 40% 24%;
+    --sidebar-ring: 209 46% 48%;
+    --sidebar: 226 52% 16%;
+
+    /* Role accents — one family */
+    --student: 209 46% 40%;
     --student-foreground: 0 0% 100%;
-    --teacher: 239 84% 67%;
+    --teacher: 226 50% 24%;
     --teacher-foreground: 0 0% 100%;
-    --admin: 250 60% 55%;
+    --admin: 38 55% 38%;
     --admin-foreground: 0 0% 100%;
-    --chart-1: 255 91% 76%;
-    --chart-2: 270 95% 75%;
-    --chart-3: 234 89% 73%;
-    --chart-4: 258 89% 66%;
-    --chart-5: 240 3% 46%;
-    --sidebar: 0 0% 100%;
-    --font-sans: 'Montserrat', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
-    --font-serif: 'Cormorant Garamond', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-    --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.03);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.04);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.06);
-    --shadow-2xl: 0 25px 50px -12px hsla(220, 40%, 20%, 0.2);
+
+    --chart-1: 212 52% 30%;
+    --chart-2: 209 46% 45%;
+    --chart-3: 196 40% 50%;
+    --chart-4: 38 55% 45%;
+    --chart-5: 214 16% 55%;
+
+    --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-serif: 'Libre Baskerville', ui-serif, Georgia, 'Times New Roman', serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
     --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
 
   .dark {
-    /* Premium Dark Theme - Logo-matched luxury */
-    --background: 222 30% 8%;
-    --background-alt: 222 35% 10%;
-    --foreground: 40 10% 92%;
+    /* ===== Navy Trust (Dark) ===== */
+    --background: 224 40% 8%;
+    --background-alt: 224 34% 11%;
+    --foreground: 210 25% 92%;
 
-    --card: 222 25% 12%;
-    --card-foreground: 40 10% 92%;
+    --card: 224 32% 12%;
+    --card-foreground: 210 25% 92%;
 
-    --popover: 222 28% 14%;
-    --popover-foreground: 40 10% 92%;
+    --popover: 224 32% 13%;
+    --popover-foreground: 210 25% 92%;
 
-    --primary: 255 91% 76%;
-    --primary-foreground: 261 72% 22%;
-    --primary-glow: 180 75% 60%;
+    --primary: 209 55% 62%;
+    --primary-foreground: 226 55% 12%;
+    --primary-glow: 209 55% 70%;
 
-    --secondary: 222 20% 25%;
-    --secondary-foreground: 40 10% 92%;
+    --secondary: 224 26% 20%;
+    --secondary-foreground: 210 25% 92%;
 
-    --muted: 222 20% 22%;
-    --muted-foreground: 215 15% 65%;
+    --muted: 224 24% 18%;
+    --muted-foreground: 214 16% 66%;
 
-    --accent: 222 25% 18%;
-    --accent-foreground: 40 10% 92%;
+    --accent: 224 28% 18%;
+    --accent-foreground: 210 25% 92%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 85% 97%;
+    --destructive: 0 62% 52%;
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 180 75% 55%;
-    --warning: 38 92% 55%;
+    --success: 158 45% 48%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 65% 55%;
+    --warning-foreground: 226 55% 12%;
 
-    /* Premium gold accent - dark mode */
-    --gold: 43 80% 55%;
-    --gold-light: 43 85% 65%;
-    --gold-dark: 43 74% 45%;
+    --gold: 38 60% 58%;
+    --gold-light: 38 65% 68%;
+    --gold-dark: 38 55% 45%;
 
-    --border: 222 20% 20%;
-    --input: 222 20% 20%;
-    --ring: 255 91% 76%;
+    --border: 224 22% 22%;
+    --input: 224 22% 24%;
+    --ring: 209 55% 62%;
 
-    /* Dark mode ambient background with vignette and glows */
-    --bg-pattern: 
-      radial-gradient(ellipse 1400px 700px at 0% 0%, hsla(200, 80%, 40%, 0.08), transparent 50%),
-      radial-gradient(ellipse 1200px 600px at 100% 0%, hsla(160, 70%, 35%, 0.06), transparent 45%),
-      radial-gradient(ellipse 1000px 500px at 50% 100%, hsla(43, 80%, 50%, 0.04), transparent 40%),
-      radial-gradient(ellipse 2000px 1000px at 50% 50%, transparent, hsla(222, 30%, 4%, 0.4) 80%);
+    --bg-pattern:
+      radial-gradient(ellipse 1200px 620px at 10% 0%, hsla(212, 55%, 40%, 0.10), transparent 55%),
+      radial-gradient(ellipse 1000px 520px at 92% 4%, hsla(226, 55%, 40%, 0.08), transparent 50%);
 
-    --gradient-card: linear-gradient(145deg, hsla(222, 25%, 14%, 0.95), hsla(222, 25%, 11%, 0.95));
+    --gradient-hero: linear-gradient(180deg, hsl(224 36% 11%), hsl(224 40% 8%));
+    --gradient-card: linear-gradient(180deg, hsl(224 32% 13%), hsl(224 32% 11%));
 
-    /* Enhanced shadows for dark mode */
-    --shadow-sm: 0 1px 3px 0px hsla(0, 0%, 0%, 0.3), 0 1px 2px -1px hsla(0, 0%, 0%, 0.2);
-    --shadow-md: 0 4px 12px -2px hsla(0, 0%, 0%, 0.4), 0 2px 6px -2px hsla(0, 0%, 0%, 0.3);
-    --shadow-lg: 0 12px 30px -6px hsla(0, 0%, 0%, 0.5), 0 8px 16px -8px hsla(0, 0%, 0%, 0.3);
-    --shadow-xl: 0 24px 50px -12px hsla(0, 0%, 0%, 0.6), 0 12px 24px -10px hsla(0, 0%, 0%, 0.4);
-    --shadow-card: 0 4px 20px -4px hsla(0, 0%, 0%, 0.4), inset 0 1px 0 0 hsla(43, 80%, 55%, 0.05);
-    --shadow-card-hover: 0 16px 40px -8px hsla(0, 0%, 0%, 0.5), inset 0 1px 0 0 hsla(180, 75%, 50%, 0.1);
-    --shadow-glow: 0 0 60px hsla(180, 75%, 50%, 0.15);
-    --shadow-primary: 0 8px 30px -8px hsla(180, 75%, 50%, 0.3);
-    --shadow-indigo: 0 8px 30px -8px hsla(239, 84%, 67%, 0.3);
+    --shadow-sm: 0 1px 2px 0 hsla(0, 0%, 0%, 0.4);
+    --shadow-md: 0 2px 8px -2px hsla(0, 0%, 0%, 0.5);
+    --shadow-lg: 0 12px 28px -10px hsla(0, 0%, 0%, 0.6);
+    --shadow-xl: var(--shadow-lg);
+    --shadow-2xl: var(--shadow-lg);
+    --shadow-2xs: var(--shadow-sm);
+    --shadow-xs: var(--shadow-sm);
+    --shadow-card: var(--shadow-sm);
+    --shadow-card-hover: var(--shadow-md);
+    --shadow-glow: none;
+    --shadow-primary: var(--shadow-md);
+    --shadow-indigo: var(--shadow-md);
 
-    --sidebar-background: 222 30% 10%;
-    --sidebar-foreground: 40 10% 92%;
-    --sidebar-primary: 255 91% 76%;
-    --sidebar-primary-foreground: 261 72% 22%;
-    --sidebar-accent: 222 25% 18%;
-    --sidebar-accent-foreground: 40 10% 92%;
-    --sidebar-border: 222 20% 18%;
-    --sidebar-ring: 255 91% 76%;
+    --sidebar-background: 226 45% 11%;
+    --sidebar-foreground: 210 25% 86%;
+    --sidebar-primary: 209 55% 62%;
+    --sidebar-primary-foreground: 226 55% 12%;
+    --sidebar-accent: 226 38% 18%;
+    --sidebar-accent-foreground: 210 25% 92%;
+    --sidebar-border: 226 32% 20%;
+    --sidebar-ring: 209 55% 62%;
+    --sidebar: 226 45% 11%;
 
-    --student: 180 75% 55%;
-    --teacher: 239 84% 70%;
-    --admin: 250 60% 65%;
-    --chart-1: 252 94% 85%;
-    --chart-2: 269 97% 85%;
-    --chart-3: 229 93% 81%;
-    --chart-4: 255 91% 76%;
-    --chart-5: 240 3% 46%;
-    --sidebar: 222 25% 12%;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.2);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
-    --shadow-2xl: 0 25px 50px -12px hsla(0, 0%, 0%, 0.7);
+    --student: 209 55% 62%;
+    --teacher: 220 60% 70%;
+    --admin: 38 60% 58%;
+    --chart-1: 209 55% 62%;
+    --chart-2: 196 45% 58%;
+    --chart-3: 220 50% 68%;
+    --chart-4: 38 60% 58%;
+    --chart-5: 214 16% 62%;
   }
 }
 
@@ -210,17 +203,40 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
     background-image: var(--bg-pattern);
     background-attachment: fixed;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
+  /* Fixed typographic scale */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
-    @apply tracking-tight;
+    font-family: var(--font-serif);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    color: hsl(var(--foreground));
+  }
+
+  h1 { font-size: clamp(1.875rem, 1.4rem + 2vw, 2.75rem); }
+  h2 { font-size: clamp(1.5rem, 1.25rem + 1.1vw, 2rem); }
+  h3 { font-size: 1.25rem; }
+  h4 { font-size: 1.0625rem; }
+  h5, h6 { font-size: 0.9375rem; }
+
+  small, .caption {
+    font-size: 0.8125rem;
+    color: hsl(var(--muted-foreground));
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
 }
+
 
 @layer components {
   /* Premium glass card effect */
