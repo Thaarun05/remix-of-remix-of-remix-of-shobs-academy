@@ -29,6 +29,7 @@ import { DiagramV2, DiagramKind, validateDiagramSpec } from "@/lib/diagrams/sche
 import type { Question, Worksheet, RefineChatMessage } from "@/lib/worksheet/types";
 import { WorksheetRefineChat } from "./WorksheetRefineChat";
 import { edgeFunctionErrorMessage } from "@/lib/worksheet/edgeErrors";
+import { downloadPdf } from "@/lib/downloadPdf";
 
 type LoadingPhase = null | "extracting" | "generating" | "diagrams" | "refining";
 
@@ -670,22 +671,7 @@ export function TeacherWorksheetBuilder() {
       const safeTitle = (worksheet.worksheet_title || "worksheet").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
       const trimmedTitle = safeTitle.replace(/^-+|-+$/g, "").slice(0, 60) || "worksheet";
       const filename = `shobs-academy-${trimmedTitle}${includeAnswers ? "-answer-key" : ""}.pdf`;
-      // Use an explicit anchor download with a delayed revoke. jsPDF's save() can
-      // silently fail (or produce interrupted downloads) for larger files inside
-      // sandboxed/preview iframes because the blob URL is revoked immediately.
-      const blob = pdf.output("blob") as Blob;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.rel = "noopener";
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        a.remove();
-        URL.revokeObjectURL(url);
-      }, 60000);
+      downloadPdf(pdf, filename);
       toast({ title: "Download started", description: `${includeAnswers ? "Answer key" : "Student"} PDF has been saved.` });
     } catch (e: unknown) {
       toast({ title: "Download failed", description: e instanceof Error ? e.message : "Could not generate PDF.", variant: "destructive" });
