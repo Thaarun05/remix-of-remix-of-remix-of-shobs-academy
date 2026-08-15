@@ -1739,35 +1739,23 @@
 
 /* Dashboard Page Backgrounds */
 .dashboard-page-student {
-  background: linear-gradient(135deg, 
-    hsl(209 75% 98%) 0%, 
-    hsl(220 84% 99%) 100%
-  );
+  background: hsl(var(--background-alt));
   background-attachment: fixed;
 }
 
 .dark .dashboard-page-student {
-  background: 
-    radial-gradient(ellipse 1200px 600px at 0% 0%, hsla(209, 75%, 45%, 0.06), transparent 50%),
-    radial-gradient(ellipse 1000px 500px at 100% 100%, hsla(209, 75%, 50%, 0.04), transparent 45%),
-    linear-gradient(135deg, hsl(224 30% 7%) 0%, hsl(224 25% 9%) 100%);
+  background: hsl(var(--background));
 }
 
 .dashboard-page-teacher,
 .dashboard-page-admin {
-  background: linear-gradient(135deg, 
-    hsl(220 84% 99%) 0%, 
-    hsl(220 60% 99%) 100%
-  );
+  background: hsl(var(--background-alt));
   background-attachment: fixed;
 }
 
 .dark .dashboard-page-teacher,
 .dark .dashboard-page-admin {
-  background: 
-    radial-gradient(ellipse 1200px 600px at 0% 0%, hsla(220, 84%, 60%, 0.06), transparent 50%),
-    radial-gradient(ellipse 1000px 500px at 100% 100%, hsla(220, 60%, 55%, 0.04), transparent 45%),
-    linear-gradient(135deg, hsl(224 30% 7%) 0%, hsl(224 25% 9%) 100%);
+  background: hsl(var(--background));
 }
 
 /* Dashboard Layout */
@@ -1784,20 +1772,19 @@
   left: 0;
   bottom: 0;
   width: 280px;
-  background: hsl(var(--card));
-  border-right: 1px solid hsl(var(--border));
+  background: hsl(var(--sidebar-background));
+  border-right: 1px solid hsl(var(--sidebar-border));
   z-index: 40;
   display: flex;
   flex-direction: column;
-  transition: all 0.3s ease;
+  transition: transform 0.25s ease, width 0.25s ease;
   transform: translateX(-100%);
-  box-shadow: 2px 0 20px hsla(220, 40%, 20%, 0.06);
+  box-shadow: none;
 }
 
 .dark .dashboard-sidebar {
-  background: linear-gradient(180deg, hsla(224, 25%, 11%, 0.98), hsla(224, 25%, 9%, 0.98));
-  border-right-color: hsla(38, 80%, 55%, 0.06);
-  box-shadow: 2px 0 20px hsla(0, 0%, 0%, 0.3);
+  background: hsl(var(--sidebar-background));
+  border-right-color: hsl(var(--sidebar-border));
 }
 
 @media (min-width: 1024px) {
@@ -1842,16 +1829,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 20px 16px;
-  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid hsl(var(--sidebar-border));
 }
 
 .dashboard-sidebar-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: hsl(var(--muted-foreground));
+  letter-spacing: 0.09em;
+  color: hsl(var(--sidebar-foreground) / 0.6);
+}
+
+.dashboard-sidebar-header .lucide,
+.dashboard-sidebar-header button {
+  color: hsl(var(--sidebar-foreground));
 }
 
 .dashboard-sidebar-nav {
@@ -1868,11 +1860,11 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: hsl(var(--muted-foreground));
+  color: hsl(var(--sidebar-foreground) / 0.82);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -1882,7 +1874,8 @@
 }
 
 .dashboard-sidebar-item:hover {
-  transform: translateX(4px);
+  background: hsl(var(--sidebar-accent));
+  color: hsl(var(--sidebar-accent-foreground));
 }
 
 .dashboard-sidebar-item-text {
@@ -1908,31 +1901,24 @@
   to { height: 24px; opacity: 1; }
 }
 
-.dashboard-sidebar-item-active-student {
-  background: hsl(209 75% 40% / 0.08);
-  color: hsl(209 75% 35%);
-}
-
-.dashboard-sidebar-item-active-student .dashboard-sidebar-item-indicator {
-  background: hsl(209 75% 40%);
-}
-
-.dashboard-sidebar-item-active-teacher {
-  background: hsl(220 84% 67% / 0.08);
-  color: hsl(220 84% 55%);
-}
-
-.dashboard-sidebar-item-active-teacher .dashboard-sidebar-item-indicator {
-  background: hsl(220 84% 67%);
-}
-
+.dashboard-sidebar-item-active-student,
+.dashboard-sidebar-item-active-teacher,
 .dashboard-sidebar-item-active-admin {
-  background: hsl(220 60% 55% / 0.08);
-  color: hsl(220 60% 45%);
+  background: hsl(var(--sidebar-accent));
+  color: hsl(0 0% 100%);
+  font-weight: 600;
 }
 
+.dashboard-sidebar-item-active-student .dashboard-sidebar-item-indicator,
+.dashboard-sidebar-item-active-teacher .dashboard-sidebar-item-indicator,
 .dashboard-sidebar-item-active-admin .dashboard-sidebar-item-indicator {
-  background: hsl(220 60% 55%);
+  background: hsl(var(--sidebar-primary));
+}
+
+.dashboard-sidebar-item-active-student .lucide,
+.dashboard-sidebar-item-active-teacher .lucide,
+.dashboard-sidebar-item-active-admin .lucide {
+  color: hsl(var(--sidebar-primary));
 }
 
 /* Dashboard Main Content */
@@ -1954,7 +1940,7 @@
 }
 
 .dashboard-content {
-  padding: 24px;
+  padding: 28px 32px 48px;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -1980,62 +1966,67 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid hsl(var(--border));
   gap: 16px;
   flex-wrap: wrap;
 }
 
 .dashboard-title {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
+  letter-spacing: -0.015em;
   color: hsl(var(--foreground));
   font-family: var(--font-serif);
 }
 
 .dashboard-role-badge {
-  padding: 8px 16px;
-  border-radius: 100px;
-  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .dashboard-role-badge-student {
-  background: hsl(209 75% 40% / 0.1);
-  color: hsl(209 75% 35%);
-  border: 1px solid hsl(209 75% 40% / 0.2);
+  background: hsl(var(--student) / 0.1);
+  color: hsl(var(--student));
+  border: 1px solid hsl(var(--student) / 0.25);
 }
 
 .dashboard-role-badge-teacher {
-  background: hsl(220 84% 67% / 0.1);
-  color: hsl(220 84% 55%);
-  border: 1px solid hsl(220 84% 67% / 0.2);
+  background: hsl(var(--teacher) / 0.1);
+  color: hsl(var(--teacher));
+  border: 1px solid hsl(var(--teacher) / 0.25);
 }
 
 .dashboard-role-badge-admin {
-  background: hsl(220 60% 55% / 0.1);
-  color: hsl(220 60% 45%);
-  border: 1px solid hsl(220 60% 55% / 0.2);
+  background: hsl(var(--admin) / 0.12);
+  color: hsl(var(--admin));
+  border: 1px solid hsl(var(--admin) / 0.3);
 }
 
 /* Dashboard Stat Card - Enhanced with premium shadows */
 .dashboard-stat-card {
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: var(--shadow-card);
-  transition: all 0.3s ease;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   position: relative;
 }
 
 .dashboard-stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-card-hover);
+  border-color: hsl(var(--primary) / 0.35);
+  box-shadow: var(--shadow-md);
 }
 
 .dark .dashboard-stat-card {
-  background: linear-gradient(145deg, hsla(224, 25%, 14%, 0.95), hsla(224, 25%, 11%, 0.95));
-  border-color: hsla(38, 80%, 55%, 0.05);
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
 }
 
 .dark .dashboard-stat-card:hover {
@@ -2043,9 +2034,9 @@
 }
 
 .dashboard-stat-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2053,13 +2044,17 @@
 }
 
 .dashboard-stat-label {
-  font-size: 13px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
   color: hsl(var(--muted-foreground));
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .dashboard-stat-value {
-  font-size: 24px;
+  font-size: 26px;
+  font-family: var(--font-serif);
   font-weight: 700;
   color: hsl(var(--foreground));
   line-height: 1;
@@ -2073,8 +2068,8 @@
 
 /* Dashboard Action Card */
 .dashboard-action-card {
-  border: 1px solid;
-  border-radius: 16px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
   padding: 24px;
   text-align: center;
   display: flex;
@@ -2085,14 +2080,14 @@
 }
 
 .dashboard-action-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px hsl(0 0% 0% / 0.08);
+  box-shadow: var(--shadow-md);
+  border-color: hsl(var(--primary) / 0.35);
 }
 
 .dashboard-action-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
