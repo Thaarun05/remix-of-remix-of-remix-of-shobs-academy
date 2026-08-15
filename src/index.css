@@ -627,19 +627,7 @@
 
 /* Text shimmer effect */
 .text-shimmer {
-  background: linear-gradient(
-    90deg, 
-    hsl(var(--primary)) 0%, 
-    hsl(209 75% 55%) 25%,
-    hsl(var(--primary)) 50%,
-    hsl(209 75% 55%) 75%,
-    hsl(var(--primary)) 100%
-  );
-  background-size: 200% auto;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer 3s linear infinite;
+  color: hsl(var(--primary));
 }
 
 /* Animated underline for headings */
@@ -709,13 +697,7 @@
 
 .brand-float {
   display: inline-block;
-  animation: brand-float-gradient 2.5s ease-in-out infinite;
-  background: linear-gradient(90deg, hsl(220 84% 67%), hsl(209 75% 40%), hsl(220 84% 67%));
-  background-size: 200% 100%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: brand-float-gradient 2.5s ease-in-out infinite, gradient-cycle 3s ease-in-out infinite;
+  color: hsl(var(--foreground));
 }
 
 /* Continuous logo rotation */
@@ -743,18 +725,13 @@
 .about-us-float {
   display: inline-block;
   position: relative;
-  animation: about-float-gradient 2.5s ease-in-out infinite, gradient-cycle 3s ease-in-out infinite;
-  background: linear-gradient(90deg, hsl(220 84% 67%), hsl(209 75% 40%), hsl(220 84% 67%));
-  background-size: 200% 100%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: hsl(var(--foreground));
   cursor: pointer;
-  transition: transform 0.2s ease-out;
+  transition: color 0.2s ease-out;
 }
 
 .about-us-float::after {
-  content: "✨";
+  content: "";
   position: absolute;
   right: -22px;
   top: 50%;
@@ -765,8 +742,7 @@
 }
 
 .about-us-float:hover {
-  transform: scale(1.1);
-  filter: drop-shadow(0 0 25px hsla(220, 84%, 67%, 0.6));
+  color: hsl(var(--primary));
 }
 
 /* Arrow continuous slide animation */
@@ -833,28 +809,32 @@
 .about-link-hero {
   font-size: 1rem;
   font-weight: 600;
-  background: linear-gradient(90deg, hsl(209 75% 40%), hsl(220 84% 67%));
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: hsl(var(--primary));
   cursor: pointer;
-  transition: transform 0.3s ease, filter 0.3s ease;
-  animation: about-float-gradient 2.5s ease-in-out infinite;
+  transition: color 0.2s ease;
 }
 
 .about-link-hero:hover {
-  transform: scale(1.1);
-  filter: drop-shadow(0 0 15px hsla(220, 84%, 67%, 0.5));
+  color: hsl(var(--primary-glow));
 }
 
 /* About title floating */
 .about-title-float {
   display: inline-block;
-  background: linear-gradient(90deg, hsl(220 84% 67%), hsl(209 75% 40%));
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: brand-name-float 2.5s ease-in-out infinite;
+  color: hsl(var(--foreground));
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.about-title-float::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 56px;
+  height: 3px;
+  border-radius: 2px;
+  background: hsl(var(--gold));
 }
 
 /* Country card styles */
