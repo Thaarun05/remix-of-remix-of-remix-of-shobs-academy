@@ -392,7 +392,7 @@ export function AdminWorkDone() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <Button variant="ghost" size="icon" onClick={() => setYear(year - 1)}>
+            <Button variant="ghost" size="icon" aria-label="Previous year" onClick={() => setYear(year - 1)}>
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <CardTitle className="text-2xl">{year}</CardTitle>
@@ -400,8 +400,7 @@ export function AdminWorkDone() {
               variant="ghost"
               size="icon"
               onClick={() => setYear(year + 1)}
-              disabled={year >= today.getFullYear()}
-            >
+              disabled={year >= today.getFullYear()} aria-label="Next">
               <ChevronRight className="h-5 w-5" />
             </Button>
           </div>

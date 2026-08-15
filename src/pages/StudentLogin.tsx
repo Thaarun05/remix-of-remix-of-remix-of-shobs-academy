@@ -89,12 +89,12 @@ const StudentLogin = () => {
     }
   };
   if (authLoading) {
-    return <div className="min-h-screen flex flex-col items-center justify-center gap-3 auth-page-student" role="status" aria-live="polite">
+    return <div className="min-h-dvh flex flex-col items-center justify-center gap-3 auth-page-student" role="status" aria-live="polite">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
         <p className="text-sm font-medium text-muted-foreground">Checking your session…</p>
       </div>;
   }
-  return <div className="min-h-screen flex flex-col auth-page-student">
+  return <div className="min-h-dvh flex flex-col auth-page-student">
       <Seo
         title="Student Login — Shobs Academy"
         description="Sign in to your Shobs Academy student account to access live classes, assignments, quizzes, worksheets, and homework help from your tutors."

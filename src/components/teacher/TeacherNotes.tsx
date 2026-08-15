@@ -288,10 +288,10 @@ export function TeacherNotes() {
 
   const getFileIcon = (type: string | null) => {
     if (!type) return <File className="h-4 w-4" />;
-    if (type.startsWith("image/")) return <Image className="h-4 w-4 text-green-500" />;
-    if (type.startsWith("video/")) return <Video className="h-4 w-4 text-purple-500" />;
-    if (type.includes("pdf")) return <FileText className="h-4 w-4 text-red-500" />;
-    if (type.includes("spreadsheet") || type.includes("excel")) return <FileSpreadsheet className="h-4 w-4 text-green-600" />;
+    if (type.startsWith("image/")) return <Image className="h-4 w-4 text-success" />;
+    if (type.startsWith("video/")) return <Video className="h-4 w-4 text-primary" />;
+    if (type.includes("pdf")) return <FileText className="h-4 w-4 text-destructive" />;
+    if (type.includes("spreadsheet") || type.includes("excel")) return <FileSpreadsheet className="h-4 w-4 text-success" />;
     return <File className="h-4 w-4 text-muted-foreground" />;
   };
 
@@ -380,7 +380,7 @@ export function TeacherNotes() {
                   {getFileIcon(selectedFile.type)}
                   <span className="flex-1 truncate">{selectedFile.name}</span>
                   <span className="text-xs text-muted-foreground">{formatSize(selectedFile.size)}</span>
-                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedFile(null)}>
+                  <Button type="button" variant="ghost" size="icon" aria-label="Remove selected file" className="h-6 w-6" onClick={() => setSelectedFile(null)}>
                     <X className="h-3 w-3" />
                   </Button>
                 </div>
@@ -468,14 +468,14 @@ export function TeacherNotes() {
                       <TableCell className="text-sm text-muted-foreground">{new Date(note.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                          <Button variant="ghost" size="icon" aria-label="Download note" className="h-8 w-8" onClick={() => {
                             setEditingNote(note);
                             setEditForm({ title: note.title, subject: note.subject || "", grade: note.grade || "" });
                             setEditDialogOpen(true);
                           }}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => {
+                          <Button variant="ghost" size="icon" aria-label="Delete note" className="h-8 w-8 text-destructive" onClick={() => {
                             setDeletingNote(note);
                             setDeleteDialogOpen(true);
                           }}>

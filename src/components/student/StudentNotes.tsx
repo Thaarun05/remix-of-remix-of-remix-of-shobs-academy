@@ -113,10 +113,10 @@ export function StudentNotes() {
 
   const getFileIcon = (type: string | null) => {
     if (!type) return <File className="h-4 w-4" />;
-    if (type.startsWith("image/")) return <Image className="h-4 w-4 text-green-500" />;
-    if (type.startsWith("video/")) return <Video className="h-4 w-4 text-purple-500" />;
-    if (type.includes("pdf")) return <FileText className="h-4 w-4 text-red-500" />;
-    if (type.includes("spreadsheet") || type.includes("excel")) return <FileSpreadsheet className="h-4 w-4 text-green-600" />;
+    if (type.startsWith("image/")) return <Image className="h-4 w-4 text-success" />;
+    if (type.startsWith("video/")) return <Video className="h-4 w-4 text-primary" />;
+    if (type.includes("pdf")) return <FileText className="h-4 w-4 text-destructive" />;
+    if (type.includes("spreadsheet") || type.includes("excel")) return <FileSpreadsheet className="h-4 w-4 text-success" />;
     return <File className="h-4 w-4 text-muted-foreground" />;
   };
 

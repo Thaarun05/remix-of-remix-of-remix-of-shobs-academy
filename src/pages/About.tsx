@@ -8,6 +8,7 @@ import {
   Heart, Lightbulb, CheckCircle2, Star, Phone
 } from "lucide-react";
 import { Seo } from "@/components/Seo";
+import { SiteFooter } from "@/components/SiteFooter";
 
 const features = [
   {
@@ -78,7 +79,7 @@ const subjects = [
 
 const About = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/30">
+    <div className="flex min-h-dvh flex-col bg-background">
       <Seo
         title="About Shobs Academy — Our Mission & Vision"
         description="Learn about Shobs Academy: our mission to deliver personalized K-12 tutoring, our teaching approach, subjects offered, and the team empowering students worldwide."
@@ -92,6 +93,7 @@ const About = () => {
       />
       <Navbar showAboutLink={false} />
 
+      <main id="main-content">
       {/* Back to Home Button */}
       <section className="pt-24 px-6">
         <div className="max-w-5xl mx-auto">
@@ -109,7 +111,7 @@ const About = () => {
         <div className="mb-6">
           <Logo size="lg" className="mx-auto" />
         </div>
-        <h1 className="font-display text-4xl sm:text-5xl font-bold text-foreground mb-4">
+        <h1 className="font-serif text-4xl sm:text-5xl font-bold text-foreground mb-4">
           About Shobs Academy
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -117,11 +119,8 @@ const About = () => {
         </p>
       </section>
 
-      {/* Gold Gradient Divider */}
-      <div className="w-full h-1" style={{ background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)' }} />
-
       {/* Mission & Vision Section */}
-      <section className="py-16 px-6 bg-gradient-to-b from-muted/30 to-background">
+      <section className="py-16 px-6 bg-background">
         <div className="max-w-4xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8">
             {/* Mission */}
@@ -130,7 +129,7 @@ const About = () => {
                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Target className="h-6 w-6 text-primary" />
                 </div>
-                <h2 className="text-2xl font-display font-bold text-foreground">Our Mission</h2>
+                <h2 className="text-2xl font-serif font-bold text-foreground">Our Mission</h2>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 To provide accessible, high-quality, personalized education that empowers students 
@@ -145,7 +144,7 @@ const About = () => {
                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Star className="h-6 w-6 text-primary" />
                 </div>
-                <h2 className="text-2xl font-display font-bold text-foreground">Our Vision</h2>
+                <h2 className="text-2xl font-serif font-bold text-foreground">Our Vision</h2>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 To become the leading global online tutoring platform, recognized for transforming 
@@ -158,9 +157,9 @@ const About = () => {
       </section>
 
       {/* Our Story Section */}
-      <section className="py-16 px-6 bg-gradient-to-b from-background to-muted/30 border-t border-border/50">
+      <section className="py-16 px-6 bg-secondary/60 border-t border-border/50">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-8 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-center mb-8 text-foreground">
             Our Story
           </h2>
           <div className="prose prose-lg max-w-none text-muted-foreground space-y-4">
@@ -185,13 +184,10 @@ const About = () => {
         </div>
       </section>
 
-      {/* Gold Gradient Divider */}
-      <div className="w-full h-1" style={{ background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)' }} />
-
       {/* Core Values Section */}
-      <section className="py-16 px-6 bg-gradient-to-b from-muted/30 to-background">
+      <section className="py-16 px-6 bg-background">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-12 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-center mb-12 text-foreground">
             Our Core Values
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -213,9 +209,9 @@ const About = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 px-6 bg-gradient-to-b from-background to-muted/30 border-t border-border/50">
+      <section className="py-16 px-6 bg-secondary/60 border-t border-border/50">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-4 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-center mb-4 text-foreground">
             What We Offer
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
@@ -240,9 +236,9 @@ const About = () => {
       </section>
 
       {/* Subjects Section */}
-      <section className="py-16 px-6 bg-gradient-to-b from-muted/30 to-background border-t border-border/50">
+      <section className="py-16 px-6 bg-background border-t border-border/50">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-4 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-center mb-4 text-foreground">
             Subjects We Teach
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
@@ -255,7 +251,7 @@ const About = () => {
                 className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50 animate-fade-in"
                 style={{ animationDelay: `${0.05 * idx}s` }}
               >
-                <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
                 <span className="text-foreground font-medium">{subject}</span>
               </div>
             ))}
@@ -263,13 +259,10 @@ const About = () => {
         </div>
       </section>
 
-      {/* Gold Gradient Divider */}
-      <div className="w-full h-1" style={{ background: 'linear-gradient(90deg, transparent, hsl(43 74% 49%), transparent)' }} />
-
       {/* Who We Serve Section */}
-      <section className="py-16 px-6 bg-gradient-to-b from-background to-muted/30">
+      <section className="py-16 px-6 bg-secondary/60">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-12 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-center mb-12 text-foreground">
             Who We Serve
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -337,9 +330,9 @@ const About = () => {
       </section>
 
       {/* Why Choose Us Section */}
-      <section className="py-16 px-6 bg-gradient-to-b from-muted/30 to-background border-t border-border/50">
+      <section className="py-16 px-6 bg-background border-t border-border/50">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-12 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-center mb-12 text-foreground">
             Why Choose Shobs Academy?
           </h2>
           <div className="grid gap-4">
@@ -368,7 +361,7 @@ const About = () => {
       </section>
 
       {/* Get In Touch Section */}
-      <section className="py-16 px-6 bg-gradient-to-b from-background to-muted/30 border-t border-border/50">
+      <section className="py-16 px-6 bg-secondary/60 border-t border-border/50">
         <div className="max-w-3xl mx-auto">
           <div className="get-in-touch-container text-center p-8 rounded-2xl bg-card border border-border/50 shadow-lg">
             <h2 className="text-2xl font-bold text-foreground mb-4">Get In Touch</h2>
@@ -401,12 +394,9 @@ const About = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-foreground text-background text-center py-10">
-        <p className="text-sm opacity-80">
-          © {new Date().getFullYear()} Shobs Academy. All rights reserved.
-        </p>
-      </footer>
+      </main>
+
+      <SiteFooter />
     </div>
   );
 };

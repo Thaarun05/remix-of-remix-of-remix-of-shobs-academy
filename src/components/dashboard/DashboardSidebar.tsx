@@ -90,8 +90,7 @@ export function DashboardSidebar({ items, activeItem, onItemClick, roleColor }: 
           variant="ghost"
           size="icon"
           className="hidden lg:flex h-8 w-8"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-        >
+          onClick={() => setIsCollapsed(!isCollapsed)} aria-label="Next">
           <ChevronRight className={cn(
             "h-4 w-4 transition-transform",
             isCollapsed && "rotate-180"
@@ -145,8 +144,7 @@ export function DashboardSidebar({ items, activeItem, onItemClick, roleColor }: 
         variant="outline"
         size="icon"
         className="dashboard-sidebar-mobile-toggle lg:hidden"
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-      >
+        onClick={() => setIsMobileOpen(!isMobileOpen)} aria-label="Open menu">
         {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
 

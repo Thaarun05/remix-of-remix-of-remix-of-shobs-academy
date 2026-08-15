@@ -91,9 +91,9 @@ function getKind(fileName: string, fileType: string): "pdf" | "ppt" | "doc" | "o
 function KindBadge({ fileName, fileType }: { fileName: string; fileType: string }) {
   const kind = getKind(fileName, fileType);
   const map = {
-    pdf: { label: "PDF", cls: "bg-red-500/15 text-red-600 border-red-500/30", Icon: FileText },
-    ppt: { label: "PPT", cls: "bg-orange-500/15 text-orange-600 border-orange-500/30", Icon: Presentation },
-    doc: { label: "DOC", cls: "bg-blue-500/15 text-blue-600 border-blue-500/30", Icon: FileType },
+    pdf: { label: "PDF", cls: "bg-destructive/10 text-destructive border-destructive/25", Icon: FileText },
+    ppt: { label: "PPT", cls: "bg-warning/10 text-warning border-warning/25", Icon: Presentation },
+    doc: { label: "DOC", cls: "bg-primary/10 text-primary border-primary/25", Icon: FileType },
     other: { label: "FILE", cls: "bg-muted text-muted-foreground border-border", Icon: FileIcon },
   } as const;
   const { label, cls, Icon } = map[kind];
@@ -387,7 +387,7 @@ export function TeacherResources() {
                     <KindBadge fileName={selectedFile.name} fileType={selectedFile.type} />
                     <span className="flex-1 truncate">{selectedFile.name}</span>
                     <span className="text-xs text-muted-foreground">{formatSize(selectedFile.size)}</span>
-                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedFile(null)}>
+                    <Button type="button" variant="ghost" size="icon" aria-label="Remove selected file" className="h-6 w-6" onClick={() => setSelectedFile(null)}>
                       <X className="h-3 w-3" />
                     </Button>
                   </div>
@@ -515,7 +515,7 @@ export function TeacherResources() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => handleDownload(r)} title="Download">
+                          <Button variant="ghost" size="icon" onClick={() => handleDownload(r)} title="Download" aria-label="Download">
                             <Download className="h-4 w-4" />
                           </Button>
                           {user?.id === r.uploaded_by && (
@@ -526,8 +526,7 @@ export function TeacherResources() {
                                 setDeleting(r);
                                 setDeleteDialogOpen(true);
                               }}
-                              title="Delete"
-                            >
+                              title="Delete" aria-label="Delete">
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           )}

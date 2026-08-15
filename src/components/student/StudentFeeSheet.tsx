@@ -122,7 +122,7 @@ export const StudentFeeSheet = () => {
     switch (ack) {
       case "correct": return <Badge className="bg-success/10 text-success border-success/20">Confirmed</Badge>;
       case "correction_needed": return <Badge className="bg-warning/10 text-warning border-warning/20">Correction Requested</Badge>;
-      default: return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Sent</Badge>;
+      default: return <Badge className="bg-primary/10 text-primary border-primary/20">Sent</Badge>;
     }
   };
 
@@ -212,8 +212,8 @@ export const StudentFeeSheet = () => {
 
             {/* Sibling discount breakdown */}
             {selectedFee.sibling_discount_amount != null && Number(selectedFee.sibling_discount_amount) > 0 && (
-              <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1 text-sm">
-                <div className="font-semibold text-emerald-700">Sibling discount applied</div>
+              <div className="rounded-md border border-success/30 bg-success/5 p-3 space-y-1 text-sm">
+                <div className="font-semibold text-success">Sibling discount applied</div>
                 <div className="flex justify-between"><span>Base fee</span><span>{formatINR(Number(selectedFee.base_amount ?? selectedFee.total_amount ?? 0))}</span></div>
                 <div className="flex justify-between">
                   <span>Discount ({Number(selectedFee.sibling_discount_pct ?? 0).toFixed(1)}%)</span>

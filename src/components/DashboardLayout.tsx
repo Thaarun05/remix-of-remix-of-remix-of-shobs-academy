@@ -11,6 +11,7 @@ import { Navbar } from "@/components/Navbar";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 interface SidebarItem {
   id: string;
@@ -55,7 +56,7 @@ export function DashboardLayout({
   };
 
   return (
-    <div className={cn("min-h-screen", pageColorClasses[roleColor])}>
+    <div className={cn("min-h-dvh", pageColorClasses[roleColor])}>
       {/* Global Navbar */}
       <Navbar showAboutLink={false} variant={roleColor} />
 
@@ -72,7 +73,7 @@ export function DashboardLayout({
         )}
 
         {/* Main Content Area */}
-        <main className={cn(
+        <main id="main-content" className={cn(
           "dashboard-main",
           sidebarItems && "lg:ml-[280px]"
         )}>
@@ -98,7 +99,7 @@ export function DashboardLayout({
 
             {/* Page Content */}
             <div className="dashboard-animate-in" style={{ animationDelay: "0.1s" }}>
-              {children}
+              <ErrorBoundary area={title}>{children}</ErrorBoundary>
             </div>
           </div>
         </main>

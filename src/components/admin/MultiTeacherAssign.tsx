@@ -207,7 +207,7 @@ export function MultiTeacherAssign({ teachers, value, onChange, idPrefix = "ta" 
           </div>
 
           {allFilled && (
-            <Badge className="bg-green-100 text-green-700 border-green-200">
+            <Badge className="bg-success/10 text-success border-success/20">
               <Check className="h-3 w-3 mr-1" /> Done — {count} teacher{count > 1 ? "s" : ""} assigned
             </Badge>
           )}

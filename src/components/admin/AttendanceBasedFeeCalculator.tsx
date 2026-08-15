@@ -65,7 +65,7 @@ const formatINR = (amount: number): string => {
 const getStatusBadge = (status: string | null) => {
   switch (status) {
     case "draft": return <Badge variant="outline" className="bg-muted/50"><FileText className="h-3 w-3 mr-1" />Draft</Badge>;
-    case "sent_to_student": return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20"><Send className="h-3 w-3 mr-1" />Sent</Badge>;
+    case "sent_to_student": return <Badge className="bg-primary/10 text-primary border-primary/20"><Send className="h-3 w-3 mr-1" />Sent</Badge>;
     case "paid": return <Badge className="bg-success/10 text-success border-success/20">Paid</Badge>;
     case "overdue": return <Badge className="bg-destructive/10 text-destructive border-destructive/20">Overdue</Badge>;
     default: return <Badge variant="outline">{status}</Badge>;
@@ -633,7 +633,7 @@ export const AttendanceBasedFeeCalculator = () => {
                         <Button
                           onClick={handleSendToStudent}
                           disabled={sending}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                          className="bg-success text-success-foreground hover:bg-success/90"
                         >
                           {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                           Send to Student
@@ -746,7 +746,7 @@ export const AttendanceBasedFeeCalculator = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSend} className="bg-emerald-600 hover:bg-emerald-700">
+            <AlertDialogAction onClick={confirmSend} className="bg-success text-success-foreground hover:bg-success/90">
               Send to Student
             </AlertDialogAction>
           </AlertDialogFooter>

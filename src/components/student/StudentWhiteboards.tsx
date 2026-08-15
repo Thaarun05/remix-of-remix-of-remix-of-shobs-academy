@@ -166,7 +166,7 @@ export function StudentWhiteboards() {
                 onClick={() => openWhiteboard(board)}
               >
                 {board.thumbnail_data ? (
-                  <div className="w-full h-32 bg-white border-b border-border">
+                  <div className="w-full h-32 bg-card border-b border-border">
                     <img src={board.thumbnail_data} alt={board.title} className="w-full h-full object-contain" />
                   </div>
                 ) : (

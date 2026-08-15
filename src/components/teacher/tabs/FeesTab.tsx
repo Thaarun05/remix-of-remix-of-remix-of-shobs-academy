@@ -71,7 +71,7 @@ export default function FeesTab({ ctx }: { ctx: TabContext }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className={fee.status === "sent_to_student" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}>{fee.status === "sent_to_student" ? "Sent" : "Pending"}</Badge>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleSoftDelete("student_fees", fee.id)}><Trash2 className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleSoftDelete("student_fees", fee.id)} aria-label="Delete"><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </div>
             ))

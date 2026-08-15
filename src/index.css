@@ -503,7 +503,7 @@
 
   /* Page wrapper */
   .page {
-    @apply min-h-screen py-8;
+    @apply min-h-dvh py-8;
   }
 
   .animate-fade-in {

@@ -126,7 +126,7 @@ export const StudentAttendanceHistory = ({ attendance }: Props) => {
             <CardDescription>Your complete attendance record</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)}>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)} aria-label="Previous">
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Select value={String(selectedMonthIndex)} onValueChange={v => setSelectedMonthIndex(Number(v))}>
@@ -149,7 +149,7 @@ export const StudentAttendanceHistory = ({ attendance }: Props) => {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateMonth(1)}>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateMonth(1)} aria-label="Next">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

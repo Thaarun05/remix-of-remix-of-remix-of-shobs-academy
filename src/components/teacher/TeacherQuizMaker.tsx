@@ -433,7 +433,7 @@ export function TeacherQuizMaker() {
           <CardDescription>Generate, edit, publish and assign interactive MCQ quizzes.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3 text-sm text-amber-900 dark:text-amber-200">
+          <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-foreground">
             <AlertTriangle className="h-4 w-4 mt-0.5" />
             <span>* Do not change tabs or close your system while the quiz is being generated.</span>
           </div>
@@ -611,7 +611,7 @@ export function TeacherQuizMaker() {
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="ghost" title="Delete quiz" disabled={deletingId === q.id}>
+                        <Button size="sm" variant="ghost" title="Delete quiz" disabled={deletingId === q.id} aria-label="Delete quiz">
                           {deletingId === q.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
                         </Button>
                       </AlertDialogTrigger>

@@ -88,12 +88,12 @@ const TeacherLogin = () => {
     }
   };
   if (authLoading) {
-    return <div className="min-h-screen flex flex-col items-center justify-center gap-3 auth-page-teacher" role="status" aria-live="polite">
+    return <div className="min-h-dvh flex flex-col items-center justify-center gap-3 auth-page-teacher" role="status" aria-live="polite">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
         <p className="text-sm font-medium text-muted-foreground">Checking your session…</p>
       </div>;
   }
-  return <div className="min-h-screen flex flex-col auth-page-teacher">
+  return <div className="min-h-dvh flex flex-col auth-page-teacher">
       <Seo
         title="Teacher Login — Shobs Academy"
         description="Sign in to your Shobs Academy teacher dashboard to manage classes, attendance, worksheets, quizzes, and student progress."

@@ -51,7 +51,7 @@ export function Navbar({
     }
   };
   const isLoggedIn = !!user && !!role;
-  const logoutColorClass = "hover:bg-white/10";
+  const logoutColorClass = "hover:bg-primary-foreground/10";
   return <nav className="navbar">
       {/* LEFT: Logo + Brand Name */}
       <Link to="/" className="navbar-brand">

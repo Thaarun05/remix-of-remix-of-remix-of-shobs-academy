@@ -259,7 +259,7 @@ export const AdminTeacherMessaging = ({ userRole }: Props) => {
       <CardHeader className="pb-3 shrink-0">
         <div className="flex items-center gap-3">
           {selectedPeer && (
-            <Button variant="ghost" size="icon" onClick={() => setSelectedPeer(null)} className="md:hidden">
+            <Button variant="ghost" size="icon" onClick={() => setSelectedPeer(null)} className="md:hidden" aria-label="Go back">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
@@ -357,7 +357,7 @@ export const AdminTeacherMessaging = ({ userRole }: Props) => {
                     className="min-h-[44px] max-h-32 resize-none"
                     rows={1}
                   />
-                  <Button onClick={send} disabled={!content.trim() || sending} size="icon" className="shrink-0">
+                  <Button onClick={send} disabled={!content.trim() || sending} size="icon" className="shrink-0" aria-label="Send message">
                     {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </Button>
                 </div>

@@ -698,9 +698,9 @@ export function TeacherWorksheetBuilder() {
           <CardDescription>Professional worksheets with Shobs Academy branding — generate, chat-refine, then print.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-            <p className="text-amber-900 dark:text-amber-200">
+          <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+            <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+            <p className="text-foreground">
               <strong>*</strong> Please do not change tabs or close your system while the worksheet is being created. Generation can take up to a minute. Uploaded images are ignored (text-only model); use paste/PDF text when possible.
             </p>
           </div>
@@ -942,7 +942,7 @@ function SortableQuestion({ id, q, idx, total, editing, regenerating, onEditTogg
     <li ref={setNodeRef} style={style} className="break-inside-avoid group border border-transparent hover:border-black/10 rounded p-2 -mx-2">
       <div className="flex items-start gap-2">
         <button
-          className="mt-1 p-1 rounded hover:bg-black/5 cursor-grab text-black/50 print:hidden"
+          className="mt-1 p-1 rounded hover:bg-muted cursor-grab text-muted-foreground print:hidden"
           {...attributes} {...listeners}
           aria-label={`Drag question ${q.number}`}
           title="Drag to reorder"
@@ -1057,10 +1057,10 @@ function SortableQuestion({ id, q, idx, total, editing, regenerating, onEditTogg
         </div>
 
         <div className="flex flex-col gap-1 opacity-70 group-hover:opacity-100 print:hidden">
-          <Button size="icon" variant="ghost" onClick={onMoveUp} disabled={idx === 0} title="Move up"><ArrowUp className="h-3.5 w-3.5" /></Button>
-          <Button size="icon" variant="ghost" onClick={onMoveDown} disabled={idx === total - 1} title="Move down"><ArrowDown className="h-3.5 w-3.5" /></Button>
-          <Button size="icon" variant="ghost" onClick={editing ? onEditToggle : openEdit} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
-          <Button size="icon" variant="ghost" onClick={onRegenerate} disabled={regenerating} title="Regenerate">
+          <Button size="icon" variant="ghost" onClick={onMoveUp} disabled={idx === 0} title="Move up" aria-label="Move up"><ArrowUp className="h-3.5 w-3.5" /></Button>
+          <Button size="icon" variant="ghost" onClick={onMoveDown} disabled={idx === total - 1} title="Move down" aria-label="Move down"><ArrowDown className="h-3.5 w-3.5" /></Button>
+          <Button size="icon" variant="ghost" onClick={editing ? onEditToggle : openEdit} title="Edit" aria-label="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
+          <Button size="icon" variant="ghost" onClick={onRegenerate} disabled={regenerating} title="Regenerate" aria-label="Regenerate">
             {regenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
           </Button>
           <Button
@@ -1070,8 +1070,7 @@ function SortableQuestion({ id, q, idx, total, editing, regenerating, onEditTogg
             onClick={() => {
               if (window.confirm(`Remove question ${q.number}?`)) onDelete();
             }}
-            title={total <= 1 ? "A worksheet needs at least one question" : "Delete"}
-          >
+            title={total <= 1 ? "A worksheet needs at least one question" : "Delete"} aria-label="Delete">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>

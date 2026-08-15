@@ -112,8 +112,7 @@ export function WorksheetRefineChat({ messages, refining, disabled, onSend }: Wo
             className="shrink-0 h-10 w-10"
             disabled={refining || disabled || !draft.trim()}
             onClick={() => submit(draft)}
-            title="Send"
-          >
+            title="Send" aria-label="Send message">
             {refining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
