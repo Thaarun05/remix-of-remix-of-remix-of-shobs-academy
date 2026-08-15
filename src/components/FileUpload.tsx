@@ -224,6 +224,7 @@ export function FileUpload({
                 className="h-6 w-6"
                 onClick={() => removePendingFile(index)}
                 disabled={uploading}
+                aria-label="Remove file"
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -253,6 +254,7 @@ export function FileUpload({
                   size="icon"
                   className="h-6 w-6 text-destructive hover:text-destructive"
                   onClick={() => removeUploadedFile(file)}
+                  aria-label="Remove uploaded file"
                 >
                   <X className="h-3 w-3" />
                 </Button>

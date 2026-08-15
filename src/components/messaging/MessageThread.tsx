@@ -260,7 +260,7 @@ export const MessageThread = ({ conversationId, userRole }: MessageThreadProps) 
                   <Button size="icon" variant="ghost" onClick={saveEdit} aria-label="Save">
                     <Check className="h-4 w-4 text-success" />
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}>
+                  <Button size="icon" variant="ghost" onClick={() => setEditingId(null)} aria-label="Cancel edit">
                     <X className="h-4 w-4" />
                   </Button>
                 </div>

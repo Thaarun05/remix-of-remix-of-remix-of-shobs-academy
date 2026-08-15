@@ -101,7 +101,7 @@ export default function AssignmentsTab({ ctx }: { ctx: TabContext }) {
                     <File className="h-4 w-4 text-muted-foreground" />
                     <span className="flex-1 truncate">{file.name}</span>
                     <span className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</span>
-                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removePendingFile(index)} disabled={uploading}>
+                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removePendingFile(index)} disabled={uploading} aria-label="Remove file">
                       <X className="h-3 w-3" />
                     </Button>
                   </div>
