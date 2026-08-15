@@ -65,8 +65,7 @@ export const MessageInput = ({ conversationId, receiverUserId }: MessageInputPro
           onClick={handleSend}
           disabled={!content.trim() || sending}
           size="icon"
-          className="shrink-0"
-        >
+          className="shrink-0" aria-label="Send message">
           {sending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (

@@ -257,7 +257,7 @@ export const MessageThread = ({ conversationId, userRole }: MessageThreadProps) 
                     className="flex-1"
                     autoFocus
                   />
-                  <Button size="icon" variant="ghost" onClick={saveEdit}>
+                  <Button size="icon" variant="ghost" onClick={saveEdit} aria-label="Save">
                     <Check className="h-4 w-4 text-success" />
                   </Button>
                   <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}>
