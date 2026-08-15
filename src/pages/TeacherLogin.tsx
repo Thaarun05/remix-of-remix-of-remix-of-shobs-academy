@@ -88,8 +88,9 @@ const TeacherLogin = () => {
     }
   };
   if (authLoading) {
-    return <div className="min-h-screen flex items-center justify-center auth-page-teacher">
-        <Loader2 className="h-8 w-8 animate-spin text-teacher" />
+    return <div className="min-h-screen flex flex-col items-center justify-center gap-3 auth-page-teacher" role="status" aria-live="polite">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <p className="text-sm font-medium text-muted-foreground">Checking your session…</p>
       </div>;
   }
   return <div className="min-h-screen flex flex-col auth-page-teacher">
@@ -116,23 +117,24 @@ const TeacherLogin = () => {
           {/* Form */}
           <form onSubmit={handleSignIn} className="auth-form">
             <div className="auth-field">
-              <label className="auth-label">User ID</label>
-              <Input type="email" placeholder="teacher@shobsacademy.com" value={email} onChange={e => setEmail(e.target.value)} className={`auth-input auth-input-teacher ${errors.email ? "auth-input-error" : ""}`} required />
-              {errors.email && <div className="auth-error">
+              <label className="auth-label" htmlFor="login-email">Email address</label>
+              <Input id="login-email" autoComplete="email" aria-invalid={!!errors.email} aria-describedby={errors.email ? "login-email-error" : "login-email-help"} type="email" placeholder="teacher@shobsacademy.com" value={email} onChange={e => setEmail(e.target.value)} className={`auth-input auth-input-teacher ${errors.email ? "auth-input-error" : ""}`} required />
+              {!errors.email && <p id="login-email-help" className="auth-help">Use the email address your account was created with.</p>}
+              {errors.email && <div id="login-email-error" className="auth-error" role="alert">
                   <AlertCircle className="w-3 h-3" />
                   {errors.email}
                 </div>}
             </div>
 
             <div className="auth-field">
-              <label className="auth-label">Password</label>
+              <label className="auth-label" htmlFor="login-password">Password</label>
               <div className="relative">
-                <Input type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} className={`auth-input auth-input-teacher pr-10 ${errors.password ? "auth-input-error" : ""}`} required />
+                <Input id="login-password" autoComplete="current-password" aria-invalid={!!errors.password} aria-describedby={errors.password ? "login-password-error" : undefined} type={showPassword ? "text" : "password"} placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} className={`auth-input auth-input-teacher pr-10 ${errors.password ? "auth-input-error" : ""}`} required />
                 <button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {errors.password && <div className="auth-error">
+              {errors.password && <div id="login-password-error" className="auth-error" role="alert">
                   <AlertCircle className="w-3 h-3" />
                   {errors.password}
                 </div>}
