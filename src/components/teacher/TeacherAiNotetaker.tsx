@@ -586,7 +586,7 @@ export function TeacherAiNotetaker() {
                   <div key={i} className="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-sm">
                     <span className="flex-1 truncate">{f.name}</span>
                     <span className="text-xs text-muted-foreground">{(f.size / 1024 / 1024).toFixed(2)} MB</span>
-                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFile(i)}>
+                    <Button type="button" variant="ghost" size="icon" aria-label="Remove file" className="h-6 w-6" onClick={() => removeFile(i)}>
                       <X className="h-3 w-3" />
                     </Button>
                   </div>
@@ -647,7 +647,7 @@ export function TeacherAiNotetaker() {
                       value={section.heading}
                       onChange={(e) => updateNotes((n) => { n.sections[si].heading = e.target.value; })}
                     />
-                    <Button variant="ghost" size="icon" onClick={() => updateNotes((n) => { n.sections.splice(si, 1); })}>
+                    <Button variant="ghost" size="icon" aria-label="Remove section" onClick={() => updateNotes((n) => { n.sections.splice(si, 1); })}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -657,7 +657,7 @@ export function TeacherAiNotetaker() {
                     {section.bullets.map((b, bi) => (
                       <div key={bi} className="flex items-start gap-2">
                         <Textarea rows={2} value={b} onChange={(e) => updateNotes((n) => { n.sections[si].bullets[bi] = e.target.value; })} />
-                        <Button variant="ghost" size="icon" onClick={() => updateNotes((n) => { n.sections[si].bullets.splice(bi, 1); })}>
+                        <Button variant="ghost" size="icon" aria-label="Remove bullet point" onClick={() => updateNotes((n) => { n.sections[si].bullets.splice(bi, 1); })}>
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
@@ -673,7 +673,7 @@ export function TeacherAiNotetaker() {
                       <div key={ki} className="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-2">
                         <Input placeholder="Term" value={kt.term} onChange={(e) => updateNotes((n) => { n.sections[si].key_terms[ki].term = e.target.value; })} />
                         <Input placeholder="Definition" value={kt.definition} onChange={(e) => updateNotes((n) => { n.sections[si].key_terms[ki].definition = e.target.value; })} />
-                        <Button variant="ghost" size="icon" onClick={() => updateNotes((n) => { n.sections[si].key_terms.splice(ki, 1); })}>
+                        <Button variant="ghost" size="icon" aria-label="Remove key term" onClick={() => updateNotes((n) => { n.sections[si].key_terms.splice(ki, 1); })}>
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
@@ -688,7 +688,7 @@ export function TeacherAiNotetaker() {
                     {section.formulas.map((f, fi) => (
                       <div key={fi} className="flex items-center gap-2">
                         <Input value={f} onChange={(e) => updateNotes((n) => { n.sections[si].formulas[fi] = e.target.value; })} />
-                        <Button variant="ghost" size="icon" onClick={() => updateNotes((n) => { n.sections[si].formulas.splice(fi, 1); })}>
+                        <Button variant="ghost" size="icon" aria-label="Remove formula" onClick={() => updateNotes((n) => { n.sections[si].formulas.splice(fi, 1); })}>
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
@@ -708,7 +708,7 @@ export function TeacherAiNotetaker() {
                 {notes.quick_revision.map((q, qi) => (
                   <div key={qi} className="flex items-center gap-2">
                     <Input value={q} onChange={(e) => updateNotes((n) => { n.quick_revision[qi] = e.target.value; })} />
-                    <Button variant="ghost" size="icon" onClick={() => updateNotes((n) => { n.quick_revision.splice(qi, 1); })}>
+                    <Button variant="ghost" size="icon" aria-label="Remove revision point" onClick={() => updateNotes((n) => { n.quick_revision.splice(qi, 1); })}>
                       <X className="h-3 w-3" />
                     </Button>
                   </div>

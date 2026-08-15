@@ -195,7 +195,7 @@ export function TeacherRecordings() {
                     {it.status === "reviewed" ? "Reviewed" : "Sent"}
                   </Badge>
                   <a href={it.recording_url} target="_blank" rel="noopener noreferrer">
-                    <Button size="icon" variant="ghost" className="h-7 w-7"><ExternalLink className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" aria-label="Open recording link" className="h-7 w-7"><ExternalLink className="h-4 w-4" /></Button>
                   </a>
                 </div>
               </div>

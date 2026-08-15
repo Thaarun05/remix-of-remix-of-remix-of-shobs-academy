@@ -387,7 +387,7 @@ export function TeacherResources() {
                     <KindBadge fileName={selectedFile.name} fileType={selectedFile.type} />
                     <span className="flex-1 truncate">{selectedFile.name}</span>
                     <span className="text-xs text-muted-foreground">{formatSize(selectedFile.size)}</span>
-                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedFile(null)}>
+                    <Button type="button" variant="ghost" size="icon" aria-label="Remove selected file" className="h-6 w-6" onClick={() => setSelectedFile(null)}>
                       <X className="h-3 w-3" />
                     </Button>
                   </div>
