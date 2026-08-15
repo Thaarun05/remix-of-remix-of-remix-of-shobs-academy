@@ -418,12 +418,70 @@
 
   /* Empty state */
   .empty-state {
-    @apply py-12 text-center;
+    @apply py-14 px-6 text-center;
   }
 
   .empty-state-icon {
-    @apply w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center;
-    @apply bg-secondary/10 border border-secondary/20;
+    @apply w-14 h-14 rounded-xl mx-auto mb-5 flex items-center justify-center;
+    @apply bg-muted border border-border;
+  }
+
+  /* ===== Status surfaces: empty / loading / error ===== */
+  .state-panel {
+    @apply flex flex-col items-center justify-center gap-1 rounded-xl border border-border bg-card px-6 py-14 text-center;
+  }
+
+  .state-title {
+    @apply font-serif text-lg font-bold tracking-[-0.01em] text-foreground;
+  }
+
+  .state-description {
+    @apply mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground;
+  }
+
+  .state-eyebrow {
+    @apply mb-3 text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground;
+  }
+
+  .state-icon {
+    @apply mb-5 flex h-14 w-14 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground;
+  }
+
+  .state-icon-error {
+    @apply border-destructive/25 bg-destructive/10 text-destructive;
+  }
+
+  /* ===== Form field system ===== */
+  .field {
+    @apply space-y-1.5;
+  }
+
+  .field-label {
+    @apply block text-[13px] font-semibold tracking-[0.01em] text-foreground;
+  }
+
+  .field-required {
+    @apply ml-0.5 text-destructive;
+  }
+
+  .field-help {
+    @apply text-xs leading-relaxed text-muted-foreground;
+  }
+
+  .field-error {
+    @apply flex items-start gap-1.5 text-xs font-medium leading-relaxed text-destructive;
+  }
+
+  .form-alert {
+    @apply flex items-start gap-2.5 rounded-lg border border-destructive/25 bg-destructive/10 px-3.5 py-3 text-sm font-medium text-destructive;
+  }
+
+  .form-alert-success {
+    @apply border-success/25 bg-success/10 text-success;
+  }
+
+  .form-actions {
+    @apply flex flex-wrap items-center gap-3 pt-1;
   }
 }
 
