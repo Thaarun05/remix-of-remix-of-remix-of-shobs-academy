@@ -87,7 +87,7 @@ const Index = () => {
                 <Globe2 className="h-3.5 w-3.5" aria-hidden="true" />
                 Teaching students in 8 countries
               </p>
-              <h1 className="font-serif text-4xl font-bold leading-[1.1] sm:text-5xl md:text-6xl">
+              <h1 className="font-serif text-4xl font-bold leading-[1.1] text-primary-foreground sm:text-5xl md:text-6xl">
                 Shobs Academy
               </h1>
               <p className="mt-5 max-w-xl text-lg leading-relaxed text-primary-foreground/85">
@@ -262,7 +262,7 @@ const Index = () => {
         {/* CTA */}
         <section className="px-6 py-20" aria-labelledby="cta-heading">
           <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-primary px-8 py-14 text-center text-primary-foreground shadow-lg">
-            <h2 id="cta-heading" className="font-serif text-3xl font-bold sm:text-4xl">
+            <h2 id="cta-heading" className="font-serif text-3xl font-bold text-primary-foreground sm:text-4xl">
               Start with a free demo lesson
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-primary-foreground/80">
