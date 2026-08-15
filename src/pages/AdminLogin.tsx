@@ -88,8 +88,9 @@ const AdminLogin = () => {
     }
   };
   if (authLoading) {
-    return <div className="min-h-screen flex items-center justify-center auth-page-admin">
-        <Loader2 className="h-8 w-8 animate-spin text-teacher" />
+    return <div className="min-h-screen flex flex-col items-center justify-center gap-3 auth-page-admin" role="status" aria-live="polite">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <p className="text-sm font-medium text-muted-foreground">Checking your session…</p>
       </div>;
   }
   return <div className="min-h-screen flex flex-col auth-page-admin">
