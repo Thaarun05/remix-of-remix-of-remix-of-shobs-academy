@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import shobsLogo from "@/assets/shobs-academy-logo.png";
 import jsPDF from "jspdf";
+import { downloadPdf } from "@/lib/downloadPdf";
 
 // Convert imported PNG asset to a data URL so jsPDF can embed it.
 async function urlToDataUrl(url: string): Promise<string | null> {
