@@ -51,12 +51,11 @@ export function Navbar({
     }
   };
   const isLoggedIn = !!user && !!role;
-  const linkColorClass = variant === "student" ? "text-student" : "text-teacher";
-  const logoutColorClass = variant === "student" ? "text-student hover:bg-student/10" : "text-teacher hover:bg-teacher/10";
+  const logoutColorClass = "hover:bg-white/10";
   return <nav className="navbar">
       {/* LEFT: Logo + Brand Name */}
       <Link to="/" className="navbar-brand">
-        
+        <Logo size="sm" className="navbar-logo" />
         <span className="navbar-name hidden sm:block">Shobs Academy</span>
       </Link>
 
