@@ -115,7 +115,7 @@ const AdminLogin = () => {
           </p>
 
           {/* Form */}
-          <form onSubmit={handleSignIn} className="auth-form">
+          <form onSubmit={handleSignIn} className="auth-form" noValidate>
             <div className="auth-field">
               <label className="auth-label">Admin User ID</label>
               <Input id="login-email" autoComplete="email" aria-invalid={!!errors.email} aria-describedby={errors.email ? "login-email-error" : "login-email-help"} type="email" placeholder="admin@shobsacademy.com" value={email} onChange={e => setEmail(e.target.value)} className={`auth-input auth-input-admin ${errors.email ? "auth-input-error" : ""}`} required />

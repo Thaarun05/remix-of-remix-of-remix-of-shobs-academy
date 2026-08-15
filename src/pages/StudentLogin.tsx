@@ -116,7 +116,7 @@ const StudentLogin = () => {
           </p>
 
           {/* Form */}
-          <form onSubmit={handleSignIn} className="auth-form">
+          <form onSubmit={handleSignIn} className="auth-form" noValidate>
             <div className="auth-field">
               <label className="auth-label" htmlFor="login-email">Email address</label>
               <Input id="login-email" autoComplete="email" aria-invalid={!!errors.email} aria-describedby={errors.email ? "login-email-error" : "login-email-help"} type="email" placeholder="student@example.com" value={email} onChange={e => setEmail(e.target.value)} className={`auth-input auth-input-student ${errors.email ? "auth-input-error" : ""}`} required />
