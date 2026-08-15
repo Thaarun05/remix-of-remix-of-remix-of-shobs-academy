@@ -746,7 +746,7 @@ export const AttendanceBasedFeeCalculator = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSend} className="bg-emerald-600 hover:bg-emerald-700">
+            <AlertDialogAction onClick={confirmSend} className="bg-success text-success-foreground hover:bg-success/90">
               Send to Student
             </AlertDialogAction>
           </AlertDialogFooter>
