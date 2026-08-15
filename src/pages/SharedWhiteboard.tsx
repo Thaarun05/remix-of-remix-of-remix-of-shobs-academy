@@ -56,7 +56,7 @@ const SharedWhiteboard = () => {
   }, [token]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <Navbar showAboutLink={true} />
       <div className="max-w-6xl mx-auto px-4 py-8">
         {error ? (

@@ -55,7 +55,7 @@ export function DashboardLayout({
   };
 
   return (
-    <div className={cn("min-h-screen", pageColorClasses[roleColor])}>
+    <div className={cn("min-h-dvh", pageColorClasses[roleColor])}>
       {/* Global Navbar */}
       <Navbar showAboutLink={false} variant={roleColor} />
 
