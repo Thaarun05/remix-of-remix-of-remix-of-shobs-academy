@@ -40,9 +40,9 @@ const steps = [
 ];
 
 const portals = [
-  { to: "/student-login", icon: GraduationCap, tone: "student" as const, title: "Student portal", body: "Class links, assignments, worksheets, quizzes and attendance in one place.", variant: "student" as const },
-  { to: "/teacher-login", icon: Users, tone: "teacher" as const, title: "Teacher portal", body: "Record attendance, set work, build worksheets and message students.", variant: "teacher" as const },
-  { to: "/admin-login", icon: Shield, tone: "admin" as const, title: "Admin portal", body: "Manage accounts, fees, teacher submissions and academy-wide reporting.", variant: "admin" as const },
+  { to: "/student-login", icon: GraduationCap, iconWrap: "bg-student/10 border-student/20", iconColor: "text-student", title: "Student portal", body: "Class links, assignments, worksheets, quizzes and attendance in one place.", variant: "student" as const },
+  { to: "/teacher-login", icon: Users, iconWrap: "bg-teacher/10 border-teacher/20", iconColor: "text-teacher", title: "Teacher portal", body: "Record attendance, set work, build worksheets and message students.", variant: "teacher" as const },
+  { to: "/admin-login", icon: Shield, iconWrap: "bg-admin/10 border-admin/20", iconColor: "text-admin", title: "Admin portal", body: "Manage accounts, fees, teacher submissions and academy-wide reporting.", variant: "admin" as const },
 ];
 
 const Index = () => {
@@ -240,10 +240,10 @@ const Index = () => {
               Accounts are created by the academy office. If you need access, request it from your teacher.
             </p>
             <div className="mt-12 grid gap-6 md:grid-cols-3">
-              {portals.map(({ to, icon: Icon, tone, title, body, variant }) => (
+              {portals.map(({ to, icon: Icon, iconWrap, iconColor, title, body, variant }) => (
                 <article key={to} className="flex flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
-                  <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-lg bg-${tone}/10 border border-${tone}/20`}>
-                    <Icon className={`h-6 w-6 text-${tone}`} aria-hidden="true" />
+                  <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-lg border ${iconWrap}`}>
+                    <Icon className={`h-6 w-6 ${iconColor}`} aria-hidden="true" />
                   </div>
                   <h3 className="font-serif text-lg font-bold text-foreground">{title}</h3>
                   <p className="mb-6 mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{body}</p>
