@@ -163,7 +163,7 @@ export function TeacherWorksheetBuilder() {
   const [grade, setGrade] = useState("");
   const [topic, setTopic] = useState("");
   const [count, setCount] = useState("10");
-  const [includeAnswerKey, setIncludeAnswerKey] = useState(true);
+  const [includeAnswerKey, setIncludeAnswerKey] = useState(false);
   const [difficulty, setDifficulty] = useState("Easy to Hard");
   const [types, setTypes] = useState<string[]>(["mcq", "short_answer"]);
   const [objective, setObjective] = useState("");
