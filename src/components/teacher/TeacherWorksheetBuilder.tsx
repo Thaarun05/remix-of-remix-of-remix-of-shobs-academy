@@ -1057,10 +1057,10 @@ function SortableQuestion({ id, q, idx, total, editing, regenerating, onEditTogg
         </div>
 
         <div className="flex flex-col gap-1 opacity-70 group-hover:opacity-100 print:hidden">
-          <Button size="icon" variant="ghost" onClick={onMoveUp} disabled={idx === 0} title="Move up"><ArrowUp className="h-3.5 w-3.5" /></Button>
-          <Button size="icon" variant="ghost" onClick={onMoveDown} disabled={idx === total - 1} title="Move down"><ArrowDown className="h-3.5 w-3.5" /></Button>
-          <Button size="icon" variant="ghost" onClick={editing ? onEditToggle : openEdit} title="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
-          <Button size="icon" variant="ghost" onClick={onRegenerate} disabled={regenerating} title="Regenerate">
+          <Button size="icon" variant="ghost" onClick={onMoveUp} disabled={idx === 0} title="Move up" aria-label="Move up"><ArrowUp className="h-3.5 w-3.5" /></Button>
+          <Button size="icon" variant="ghost" onClick={onMoveDown} disabled={idx === total - 1} title="Move down" aria-label="Move down"><ArrowDown className="h-3.5 w-3.5" /></Button>
+          <Button size="icon" variant="ghost" onClick={editing ? onEditToggle : openEdit} title="Edit" aria-label="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
+          <Button size="icon" variant="ghost" onClick={onRegenerate} disabled={regenerating} title="Regenerate" aria-label="Regenerate">
             {regenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
           </Button>
           <Button

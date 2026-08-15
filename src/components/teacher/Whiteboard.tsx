@@ -2074,15 +2074,15 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
 
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} title="Undo"><Undo2 className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" onClick={redo} disabled={!canRedo} title="Redo"><Redo2 className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" onClick={clearCanvas} title="Clear Board"><Trash2 className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={undo} disabled={!canUndo} title="Undo" aria-label="Undo"><Undo2 className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={redo} disabled={!canRedo} title="Redo" aria-label="Redo"><Redo2 className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={clearCanvas} title="Clear Board" aria-label="Clear Board"><Trash2 className="h-4 w-4" /></Button>
           </div>
 
           <div className="flex items-center gap-1 bg-muted rounded-lg px-1">
-            <Button variant="ghost" size="icon" onClick={zoomOut} title="Zoom Out" className="h-8 w-8"><ZoomOut className="h-3.5 w-3.5" /></Button>
+            <Button variant="ghost" size="icon" onClick={zoomOut} title="Zoom Out" className="h-8 w-8" aria-label="Zoom Out"><ZoomOut className="h-3.5 w-3.5" /></Button>
             <button onClick={resetView} className="text-xs font-mono min-w-[40px] text-center hover:underline">{Math.round(zoom * 100)}%</button>
-            <Button variant="ghost" size="icon" onClick={zoomIn} title="Zoom In" className="h-8 w-8"><ZoomIn className="h-3.5 w-3.5" /></Button>
+            <Button variant="ghost" size="icon" onClick={zoomIn} title="Zoom In" className="h-8 w-8" aria-label="Zoom In"><ZoomIn className="h-3.5 w-3.5" /></Button>
           </div>
 
           {mode === "teacher" && (
@@ -2097,8 +2097,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
               variant={liveShareOn ? "teacher" : "outline"}
               size="sm"
               onClick={toggleLiveShare}
-              title="Auto-share current board with all assigned students"
-            >
+              title="Auto-share current board with all assigned students" aria-label="Auto-share current board with all assigned students">
               <Radio className={cn("h-4 w-4", liveShareOn && "animate-pulse")} />
               Live Share: {liveShareOn ? "ON" : "OFF"}
             </Button>
