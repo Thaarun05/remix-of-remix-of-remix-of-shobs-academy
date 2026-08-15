@@ -982,24 +982,21 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 90px;
+  height: 70px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
-  background: linear-gradient(135deg, hsla(0, 0%, 100%, 0.92), hsla(212, 20%, 98%, 0.92));
-  border-bottom: 1px solid hsl(var(--border) / 0.7);
-  box-shadow: 0 4px 20px hsla(220, 40%, 20%, 0.06);
-  backdrop-filter: blur(12px);
+  padding: 0 24px;
+  background: hsl(var(--sidebar-background));
+  border-bottom: 1px solid hsl(var(--sidebar-border));
+  box-shadow: none;
   z-index: 1000;
   gap: 32px;
-  transition: all 0.3s ease;
 }
 
 .dark .navbar {
-  background: linear-gradient(135deg, hsla(224, 25%, 10%, 0.95), hsla(224, 30%, 8%, 0.95));
-  border-bottom-color: hsla(38, 80%, 55%, 0.08);
-  box-shadow: 0 4px 20px hsla(0, 0%, 0%, 0.3);
+  background: hsl(var(--sidebar-background));
+  border-bottom-color: hsl(var(--sidebar-border));
 }
 
 .navbar-brand {
@@ -1012,39 +1009,28 @@
 }
 
 .navbar-brand:hover {
-  transform: scale(1.03);
+  opacity: 0.85;
 }
 
 .navbar-logo {
-  width: 120px;
-  height: 120px;
-  border-radius: 14px;
-  background: white;
-  padding: 6px;
-  box-shadow: 0 4px 20px hsla(220, 84%, 67%, 0.2);
+  height: 44px;
+  width: auto;
+  border-radius: 8px;
+  background: hsl(0 0% 100%);
+  padding: 4px;
   overflow: hidden;
-  transition: all 0.3s ease;
 }
 
 .dark .navbar-logo {
-  background: hsla(224, 25%, 15%, 1);
-  box-shadow: 0 4px 16px hsla(38, 80%, 55%, 0.15);
+  background: hsl(0 0% 100% / 0.92);
 }
 
 .navbar-name {
-  font-size: 24px;
+  font-family: var(--font-serif);
+  font-size: 20px;
   font-weight: 700;
-  background: linear-gradient(90deg, hsl(220, 84%, 67%), hsl(209, 75%, 40%));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: float-navbar-name 2.5s ease-in-out infinite;
-  letter-spacing: -0.5px;
-}
-
-@keyframes float-navbar-name {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-4px); }
+  color: hsl(var(--sidebar-foreground));
+  letter-spacing: -0.01em;
 }
 
 .navbar-nav {
@@ -1065,21 +1051,16 @@
   background: none;
 }
 
-.navbar-link-about {
-  background: linear-gradient(90deg, hsl(209, 75%, 40%), hsl(220, 84%, 67%));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: float-navbar-link 2.5s ease-in-out infinite;
+.navbar-link {
+  color: hsl(var(--sidebar-foreground) / 0.85);
 }
 
-@keyframes float-navbar-link {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-4px); }
+.navbar-link-about {
+  color: hsl(var(--sidebar-foreground) / 0.85);
 }
 
 .navbar-link:hover {
-  transform: scale(1.05);
+  color: hsl(0 0% 100%);
 }
 
 .navbar-link-home:hover {
@@ -1094,14 +1075,15 @@
 
 .navbar-user-email {
   font-size: 12px;
-  color: hsl(var(--muted-foreground));
+  color: hsl(var(--sidebar-foreground) / 0.7);
   font-weight: 500;
 }
 
 .navbar-logout-btn {
-  padding: 8px 16px;
+  padding: 8px 14px;
   border-radius: 8px;
-  border: none;
+  border: 1px solid hsl(var(--sidebar-border));
+  color: hsl(var(--sidebar-foreground)) !important;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -1112,10 +1094,20 @@
 }
 
 /* Theme Toggle Button */
+.navbar .theme-toggle-btn,
+.navbar .theme-toggle-btn svg {
+  color: hsl(var(--sidebar-foreground));
+}
+
+.navbar .theme-toggle-btn {
+  background: hsl(0 0% 100% / 0.06);
+  border-color: hsl(var(--sidebar-border));
+}
+
 .theme-toggle-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
   background: hsl(var(--muted) / 0.5);
   border: 1px solid hsl(var(--border));
   display: flex;
