@@ -252,8 +252,8 @@
 
   /* Dark mode glass with edge highlights */
   .dark .glass-card {
-    background: linear-gradient(145deg, hsla(222, 25%, 14%, 0.9), hsla(222, 25%, 11%, 0.95));
-    border: 1px solid hsla(43, 80%, 55%, 0.08);
+    background: linear-gradient(145deg, hsla(224, 25%, 14%, 0.9), hsla(224, 25%, 11%, 0.95));
+    border: 1px solid hsla(38, 80%, 55%, 0.08);
   }
 
   .dark .glass-card::before {
@@ -262,7 +262,7 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, hsla(180, 75%, 50%, 0.1), transparent 50%, hsla(43, 80%, 55%, 0.05));
+    background: linear-gradient(135deg, hsla(209, 75%, 50%, 0.1), transparent 50%, hsla(38, 80%, 55%, 0.05));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -277,40 +277,40 @@
   }
 
   .dark .surface-wrap {
-    background: linear-gradient(180deg, hsla(222, 25%, 13%, 0.95), hsla(222, 25%, 10%, 0.95));
-    border-color: hsla(180, 75%, 50%, 0.08);
+    background: linear-gradient(180deg, hsla(224, 25%, 13%, 0.95), hsla(224, 25%, 10%, 0.95));
+    border-color: hsla(209, 75%, 50%, 0.08);
   }
 
   /* Hero section styling - light mode */
   .hero-section {
     @apply rounded-3xl border border-border/60 p-8 md:p-12;
     background: 
-      radial-gradient(900px 420px at 20% 0%, hsla(180, 75%, 40%, 0.08), transparent 55%),
+      radial-gradient(900px 420px at 20% 0%, hsla(209, 75%, 40%, 0.08), transparent 55%),
       radial-gradient(700px 380px at 90% 10%, hsla(220, 80%, 55%, 0.06), transparent 60%),
-      linear-gradient(180deg, hsla(0, 0%, 100%, 0.98), hsla(210, 20%, 98%, 0.95));
+      linear-gradient(180deg, hsla(0, 0%, 100%, 0.98), hsla(212, 20%, 98%, 0.95));
     box-shadow: var(--shadow-xl);
     transition: all 0.3s ease;
   }
 
   .dark .hero-section {
     background: 
-      radial-gradient(900px 420px at 20% 0%, hsla(180, 75%, 50%, 0.08), transparent 55%),
+      radial-gradient(900px 420px at 20% 0%, hsla(209, 75%, 50%, 0.08), transparent 55%),
       radial-gradient(700px 380px at 90% 10%, hsla(220, 80%, 60%, 0.06), transparent 60%),
-      radial-gradient(600px 300px at 50% 100%, hsla(43, 80%, 50%, 0.04), transparent 50%),
-      linear-gradient(180deg, hsla(222, 25%, 13%, 0.98), hsla(222, 25%, 10%, 0.95));
-    border-color: hsla(43, 80%, 55%, 0.1);
+      radial-gradient(600px 300px at 50% 100%, hsla(38, 80%, 50%, 0.04), transparent 50%),
+      linear-gradient(180deg, hsla(224, 25%, 13%, 0.98), hsla(224, 25%, 10%, 0.95));
+    border-color: hsla(38, 80%, 55%, 0.1);
   }
 
   /* Section tinted panels for visual richness */
   .section-panel {
     @apply rounded-3xl p-8 md:p-12;
-    background: linear-gradient(180deg, hsla(210, 30%, 97%, 0.8), hsla(180, 40%, 97%, 0.6));
-    border: 1px solid hsla(180, 75%, 45%, 0.08);
+    background: linear-gradient(180deg, hsla(212, 30%, 97%, 0.8), hsla(209, 40%, 97%, 0.6));
+    border: 1px solid hsla(209, 75%, 45%, 0.08);
   }
 
   .dark .section-panel {
-    background: linear-gradient(180deg, hsla(222, 25%, 11%, 0.9), hsla(222, 30%, 9%, 0.95));
-    border-color: hsla(180, 75%, 50%, 0.06);
+    background: linear-gradient(180deg, hsla(224, 25%, 11%, 0.9), hsla(224, 30%, 9%, 0.95));
+    border-color: hsla(209, 75%, 50%, 0.06);
   }
 
   /* Portal cards */
@@ -328,7 +328,7 @@
   .portal-card::before {
     content: "";
     @apply absolute inset-0 opacity-0 transition-opacity duration-300;
-    background: radial-gradient(400px at 50% 0%, hsla(180, 75%, 45%, 0.08), transparent 70%);
+    background: radial-gradient(400px at 50% 0%, hsla(209, 75%, 45%, 0.08), transparent 70%);
   }
 
   .portal-card:hover::before {
@@ -336,16 +336,16 @@
   }
 
   .dark .portal-card {
-    background: linear-gradient(145deg, hsla(222, 25%, 14%, 0.95), hsla(222, 25%, 11%, 0.95));
-    border-color: hsla(43, 80%, 55%, 0.06);
+    background: linear-gradient(145deg, hsla(224, 25%, 14%, 0.95), hsla(224, 25%, 11%, 0.95));
+    border-color: hsla(38, 80%, 55%, 0.06);
   }
 
   .dark .portal-card:hover {
-    border-color: hsla(180, 75%, 50%, 0.2);
+    border-color: hsla(209, 75%, 50%, 0.2);
   }
 
   .dark .portal-card::before {
-    background: radial-gradient(400px at 50% 0%, hsla(180, 75%, 50%, 0.1), transparent 70%);
+    background: radial-gradient(400px at 50% 0%, hsla(209, 75%, 50%, 0.1), transparent 70%);
   }
 
   /* Stat cards */
@@ -361,8 +361,8 @@
   }
 
   .dark .stat-card {
-    background: linear-gradient(145deg, hsla(222, 25%, 14%, 0.95), hsla(222, 25%, 11%, 0.95));
-    border-color: hsla(43, 80%, 55%, 0.05);
+    background: linear-gradient(145deg, hsla(224, 25%, 14%, 0.95), hsla(224, 25%, 11%, 0.95));
+    border-color: hsla(38, 80%, 55%, 0.05);
   }
 
   /* Premium table styling */
@@ -500,11 +500,11 @@
 @keyframes float {
   0%, 100% {
     transform: translateY(0);
-    box-shadow: 0 12px 26px hsla(180, 75%, 40%, 0.22);
+    box-shadow: 0 12px 26px hsla(209, 75%, 40%, 0.22);
   }
   50% {
     transform: translateY(-20px);
-    box-shadow: 0 20px 40px hsla(180, 75%, 40%, 0.35);
+    box-shadow: 0 20px 40px hsla(209, 75%, 40%, 0.35);
   }
 }
 
@@ -519,22 +519,22 @@
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px hsla(180, 75%, 40%, 0.3);
+    box-shadow: 0 0 20px hsla(209, 75%, 40%, 0.3);
   }
   50% {
-    box-shadow: 0 0 35px hsla(180, 75%, 40%, 0.5);
+    box-shadow: 0 0 35px hsla(209, 75%, 40%, 0.5);
   }
 }
 
 @keyframes pulse-glow-text {
   0%, 100% {
-    text-shadow: 0 0 10px hsla(239, 84%, 67%, 0.3),
-                 0 0 20px hsla(239, 84%, 67%, 0.1);
+    text-shadow: 0 0 10px hsla(220, 84%, 67%, 0.3),
+                 0 0 20px hsla(220, 84%, 67%, 0.1);
     opacity: 0.9;
   }
   50% {
-    text-shadow: 0 0 20px hsla(239, 84%, 67%, 0.6),
-                 0 0 40px hsla(239, 84%, 67%, 0.3);
+    text-shadow: 0 0 20px hsla(220, 84%, 67%, 0.6),
+                 0 0 40px hsla(220, 84%, 67%, 0.3);
     opacity: 1;
   }
 }
@@ -630,9 +630,9 @@
   background: linear-gradient(
     90deg, 
     hsl(var(--primary)) 0%, 
-    hsl(180 75% 55%) 25%,
+    hsl(209 75% 55%) 25%,
     hsl(var(--primary)) 50%,
-    hsl(180 75% 55%) 75%,
+    hsl(209 75% 55%) 75%,
     hsl(var(--primary)) 100%
   );
   background-size: 200% auto;
@@ -674,7 +674,7 @@
 
 .card-hover-lift:hover {
   transform: translateY(-8px);
-  box-shadow: 0 20px 50px hsla(239, 84%, 67%, 0.2);
+  box-shadow: 0 20px 50px hsla(220, 84%, 67%, 0.2);
 }
 
 /* Icon rotate scale on hover */
@@ -690,11 +690,11 @@
 @keyframes brand-float-gradient {
   0%, 100% {
     transform: translateY(0);
-    filter: drop-shadow(0 0 12px hsla(239, 84%, 67%, 0.4));
+    filter: drop-shadow(0 0 12px hsla(220, 84%, 67%, 0.4));
   }
   50% {
     transform: translateY(-15px);
-    filter: drop-shadow(0 0 20px hsla(180, 75%, 40%, 0.5));
+    filter: drop-shadow(0 0 20px hsla(209, 75%, 40%, 0.5));
   }
 }
 
@@ -710,7 +710,7 @@
 .brand-float {
   display: inline-block;
   animation: brand-float-gradient 2.5s ease-in-out infinite;
-  background: linear-gradient(90deg, hsl(239 84% 67%), hsl(180 75% 40%), hsl(239 84% 67%));
+  background: linear-gradient(90deg, hsl(220 84% 67%), hsl(209 75% 40%), hsl(220 84% 67%));
   background-size: 200% 100%;
   background-clip: text;
   -webkit-background-clip: text;
@@ -732,11 +732,11 @@
 @keyframes about-float-gradient {
   0%, 100% {
     transform: translateY(0);
-    filter: drop-shadow(0 0 15px hsla(239, 84%, 67%, 0.4));
+    filter: drop-shadow(0 0 15px hsla(220, 84%, 67%, 0.4));
   }
   50% {
     transform: translateY(-15px);
-    filter: drop-shadow(0 0 25px hsla(180, 75%, 40%, 0.6));
+    filter: drop-shadow(0 0 25px hsla(209, 75%, 40%, 0.6));
   }
 }
 
@@ -744,7 +744,7 @@
   display: inline-block;
   position: relative;
   animation: about-float-gradient 2.5s ease-in-out infinite, gradient-cycle 3s ease-in-out infinite;
-  background: linear-gradient(90deg, hsl(239 84% 67%), hsl(180 75% 40%), hsl(239 84% 67%));
+  background: linear-gradient(90deg, hsl(220 84% 67%), hsl(209 75% 40%), hsl(220 84% 67%));
   background-size: 200% 100%;
   background-clip: text;
   -webkit-background-clip: text;
@@ -766,7 +766,7 @@
 
 .about-us-float:hover {
   transform: scale(1.1);
-  filter: drop-shadow(0 0 25px hsla(239, 84%, 67%, 0.6));
+  filter: drop-shadow(0 0 25px hsla(220, 84%, 67%, 0.6));
 }
 
 /* Arrow continuous slide animation */
@@ -799,9 +799,9 @@
 /* Background decorative pattern */
 .bg-decorative-pattern {
   background-image: 
-    radial-gradient(circle at 20% 50%, hsla(180, 75%, 40%, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, hsla(239, 84%, 67%, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 40% 80%, hsla(250, 60%, 55%, 0.03) 0%, transparent 50%);
+    radial-gradient(circle at 20% 50%, hsla(209, 75%, 40%, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, hsla(220, 84%, 67%, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, hsla(220, 60%, 55%, 0.03) 0%, transparent 50%);
 }
 
 /* Subtle dots pattern */
@@ -812,7 +812,7 @@
 
 /* Focus glow for inputs */
 .input-focus-glow:focus {
-  box-shadow: 0 0 0 3px hsla(239, 84%, 67%, 0.15);
+  box-shadow: 0 0 0 3px hsla(220, 84%, 67%, 0.15);
 }
 
 /* Brand name floating animation - NO gradient, just float */
@@ -833,7 +833,7 @@
 .about-link-hero {
   font-size: 1rem;
   font-weight: 600;
-  background: linear-gradient(90deg, hsl(180 75% 40%), hsl(239 84% 67%));
+  background: linear-gradient(90deg, hsl(209 75% 40%), hsl(220 84% 67%));
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -844,13 +844,13 @@
 
 .about-link-hero:hover {
   transform: scale(1.1);
-  filter: drop-shadow(0 0 15px hsla(239, 84%, 67%, 0.5));
+  filter: drop-shadow(0 0 15px hsla(220, 84%, 67%, 0.5));
 }
 
 /* About title floating */
 .about-title-float {
   display: inline-block;
-  background: linear-gradient(90deg, hsl(239 84% 67%), hsl(180 75% 40%));
+  background: linear-gradient(90deg, hsl(220 84% 67%), hsl(209 75% 40%));
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -875,26 +875,26 @@
   box-shadow: var(--shadow-card-hover);
   border-color: transparent;
   background: linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box,
-              linear-gradient(135deg, hsl(239 84% 67%), hsl(180 75% 40%)) border-box;
+              linear-gradient(135deg, hsl(220 84% 67%), hsl(209 75% 40%)) border-box;
   border: 2px solid transparent;
 }
 
 .dark .country-card {
-  background: linear-gradient(145deg, hsla(222, 25%, 14%, 0.95), hsla(222, 25%, 11%, 0.95));
-  border-color: hsla(43, 80%, 55%, 0.06);
+  background: linear-gradient(145deg, hsla(224, 25%, 14%, 0.95), hsla(224, 25%, 11%, 0.95));
+  border-color: hsla(38, 80%, 55%, 0.06);
 }
 
 .dark .country-card:hover {
-  background: linear-gradient(hsla(222, 25%, 14%, 0.95), hsla(222, 25%, 11%, 0.95)) padding-box,
-              linear-gradient(135deg, hsla(180, 75%, 50%, 0.5), hsla(43, 80%, 55%, 0.3)) border-box;
+  background: linear-gradient(hsla(224, 25%, 14%, 0.95), hsla(224, 25%, 11%, 0.95)) padding-box,
+              linear-gradient(135deg, hsla(209, 75%, 50%, 0.5), hsla(38, 80%, 55%, 0.3)) border-box;
 }
 
 .country-code {
-  color: hsl(239 84% 67%);
+  color: hsl(220 84% 67%);
 }
 
 .dark .country-code {
-  color: hsl(180 75% 60%);
+  color: hsl(209 75% 60%);
 }
 
 /* Country flag bounce animation */
@@ -987,7 +987,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
-  background: linear-gradient(135deg, hsla(0, 0%, 100%, 0.92), hsla(210, 20%, 98%, 0.92));
+  background: linear-gradient(135deg, hsla(0, 0%, 100%, 0.92), hsla(212, 20%, 98%, 0.92));
   border-bottom: 1px solid hsl(var(--border) / 0.7);
   box-shadow: 0 4px 20px hsla(220, 40%, 20%, 0.06);
   backdrop-filter: blur(12px);
@@ -997,8 +997,8 @@
 }
 
 .dark .navbar {
-  background: linear-gradient(135deg, hsla(222, 25%, 10%, 0.95), hsla(222, 30%, 8%, 0.95));
-  border-bottom-color: hsla(43, 80%, 55%, 0.08);
+  background: linear-gradient(135deg, hsla(224, 25%, 10%, 0.95), hsla(224, 30%, 8%, 0.95));
+  border-bottom-color: hsla(38, 80%, 55%, 0.08);
   box-shadow: 0 4px 20px hsla(0, 0%, 0%, 0.3);
 }
 
@@ -1021,20 +1021,20 @@
   border-radius: 14px;
   background: white;
   padding: 6px;
-  box-shadow: 0 4px 20px hsla(239, 84%, 67%, 0.2);
+  box-shadow: 0 4px 20px hsla(220, 84%, 67%, 0.2);
   overflow: hidden;
   transition: all 0.3s ease;
 }
 
 .dark .navbar-logo {
-  background: hsla(222, 25%, 15%, 1);
-  box-shadow: 0 4px 16px hsla(43, 80%, 55%, 0.15);
+  background: hsla(224, 25%, 15%, 1);
+  box-shadow: 0 4px 16px hsla(38, 80%, 55%, 0.15);
 }
 
 .navbar-name {
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(90deg, hsl(239, 84%, 67%), hsl(180, 75%, 40%));
+  background: linear-gradient(90deg, hsl(220, 84%, 67%), hsl(209, 75%, 40%));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1066,7 +1066,7 @@
 }
 
 .navbar-link-about {
-  background: linear-gradient(90deg, hsl(180, 75%, 40%), hsl(239, 84%, 67%));
+  background: linear-gradient(90deg, hsl(209, 75%, 40%), hsl(220, 84%, 67%));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1132,13 +1132,13 @@
 }
 
 .dark .theme-toggle-btn {
-  background: hsla(222, 25%, 18%, 0.8);
-  border-color: hsla(43, 80%, 55%, 0.1);
+  background: hsla(224, 25%, 18%, 0.8);
+  border-color: hsla(38, 80%, 55%, 0.1);
 }
 
 .dark .theme-toggle-btn:hover {
-  background: hsla(222, 25%, 22%, 0.9);
-  box-shadow: 0 4px 16px hsla(43, 80%, 55%, 0.15);
+  background: hsla(224, 25%, 22%, 0.9);
+  box-shadow: 0 4px 16px hsla(38, 80%, 55%, 0.15);
 }
 
 .theme-toggle-icon {
@@ -1147,7 +1147,7 @@
 }
 
 .dark .theme-toggle-icon {
-  color: hsl(43 80% 60%);
+  color: hsl(38 80% 60%);
 }
 
 /* Responsive Navbar */
@@ -1180,7 +1180,7 @@
 .feature-card:hover {
   transform: translateY(-8px);
   box-shadow: var(--shadow-xl);
-  border-color: hsl(180 75% 40% / 0.5);
+  border-color: hsl(209 75% 40% / 0.5);
 }
 
 .feature-icon-wrapper {
@@ -1236,7 +1236,7 @@
 }
 
 .serve-check {
-  color: hsl(180 75% 40%);
+  color: hsl(209 75% 40%);
   font-weight: 700;
   font-size: 1rem;
   flex-shrink: 0;
@@ -1244,8 +1244,8 @@
 
 /* Get In Touch section */
 .get-in-touch-container {
-  background: linear-gradient(135deg, hsl(239 84% 67% / 0.08), hsl(180 75% 40% / 0.08));
-  border: 1px solid hsl(239 84% 67% / 0.2);
+  background: linear-gradient(135deg, hsl(220 84% 67% / 0.08), hsl(209 75% 40% / 0.08));
+  border: 1px solid hsl(220 84% 67% / 0.2);
   border-radius: 1rem;
   padding: 3rem 1.5rem;
   text-align: center;
@@ -1264,24 +1264,24 @@
 /* Page Backgrounds */
 .auth-page-student {
   background: linear-gradient(135deg, 
-    hsl(180 75% 95%) 0%, 
-    hsl(239 84% 97%) 100%
+    hsl(209 75% 95%) 0%, 
+    hsl(220 84% 97%) 100%
   );
   background-attachment: fixed;
 }
 
 .dark .auth-page-student {
   background: 
-    radial-gradient(ellipse 1000px 500px at 20% 10%, hsla(180, 75%, 45%, 0.08), transparent 50%),
-    radial-gradient(ellipse 800px 400px at 80% 80%, hsla(180, 75%, 50%, 0.05), transparent 45%),
-    linear-gradient(135deg, hsl(222 30% 8%) 0%, hsl(222 25% 10%) 100%);
+    radial-gradient(ellipse 1000px 500px at 20% 10%, hsla(209, 75%, 45%, 0.08), transparent 50%),
+    radial-gradient(ellipse 800px 400px at 80% 80%, hsla(209, 75%, 50%, 0.05), transparent 45%),
+    linear-gradient(135deg, hsl(224 30% 8%) 0%, hsl(224 25% 10%) 100%);
 }
 
 .auth-page-teacher,
 .auth-page-admin {
   background: linear-gradient(135deg, 
-    hsl(239 84% 97%) 0%, 
-    hsl(250 60% 97%) 100%
+    hsl(220 84% 97%) 0%, 
+    hsl(220 60% 97%) 100%
   );
   background-attachment: fixed;
 }
@@ -1289,9 +1289,9 @@
 .dark .auth-page-teacher,
 .dark .auth-page-admin {
   background: 
-    radial-gradient(ellipse 1000px 500px at 20% 10%, hsla(239, 84%, 60%, 0.08), transparent 50%),
-    radial-gradient(ellipse 800px 400px at 80% 80%, hsla(250, 60%, 55%, 0.05), transparent 45%),
-    linear-gradient(135deg, hsl(222 30% 8%) 0%, hsl(222 25% 10%) 100%);
+    radial-gradient(ellipse 1000px 500px at 20% 10%, hsla(220, 84%, 60%, 0.08), transparent 50%),
+    radial-gradient(ellipse 800px 400px at 80% 80%, hsla(220, 60%, 55%, 0.05), transparent 45%),
+    linear-gradient(135deg, hsl(224 30% 8%) 0%, hsl(224 25% 10%) 100%);
 }
 
 /* Auth Card */
@@ -1308,27 +1308,27 @@
 }
 
 .dark .auth-card {
-  background: linear-gradient(145deg, hsla(222, 25%, 14%, 0.98), hsla(222, 25%, 10%, 0.98));
-  border-color: hsla(43, 80%, 55%, 0.08);
-  box-shadow: 0 20px 60px hsla(0, 0%, 0%, 0.4), inset 0 1px 0 0 hsla(43, 80%, 55%, 0.05);
+  background: linear-gradient(145deg, hsla(224, 25%, 14%, 0.98), hsla(224, 25%, 10%, 0.98));
+  border-color: hsla(38, 80%, 55%, 0.08);
+  box-shadow: 0 20px 60px hsla(0, 0%, 0%, 0.4), inset 0 1px 0 0 hsla(38, 80%, 55%, 0.05);
 }
 
 .auth-card-student {
-  border-top: 4px solid hsl(180 75% 40%);
+  border-top: 4px solid hsl(209 75% 40%);
 }
 
 .dark .auth-card-student {
-  border-top-color: hsl(180 75% 50%);
+  border-top-color: hsl(209 75% 50%);
 }
 
 .auth-card-teacher,
 .auth-card-admin {
-  border-top: 4px solid hsl(239 84% 67%);
+  border-top: 4px solid hsl(220 84% 67%);
 }
 
 .dark .auth-card-teacher,
 .dark .auth-card-admin {
-  border-top-color: hsl(239 84% 70%);
+  border-top-color: hsl(220 84% 70%);
 }
 
 /* Auth Logo */
@@ -1344,14 +1344,14 @@
 }
 
 .auth-logo-student {
-  background: linear-gradient(135deg, hsl(180 75% 40%), hsl(180 75% 35%));
-  box-shadow: 0 8px 24px hsl(180 75% 40% / 0.3);
+  background: linear-gradient(135deg, hsl(209 75% 40%), hsl(209 75% 35%));
+  box-shadow: 0 8px 24px hsl(209 75% 40% / 0.3);
 }
 
 .auth-logo-teacher,
 .auth-logo-admin {
-  background: linear-gradient(135deg, hsl(239 84% 67%), hsl(239 84% 55%));
-  box-shadow: 0 8px 24px hsl(239 84% 67% / 0.3);
+  background: linear-gradient(135deg, hsl(220 84% 67%), hsl(220 84% 55%));
+  box-shadow: 0 8px 24px hsl(220 84% 67% / 0.3);
 }
 
 @keyframes auth-logo-bounce {
@@ -1364,9 +1364,9 @@
 .auth-heading {
   font-size: 28px;
   font-weight: 700;
-  color: hsl(222 47% 11%);
+  color: hsl(224 47% 11%);
   margin-bottom: 12px;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif);
 }
 
 .dark .auth-heading {
@@ -1395,7 +1395,7 @@
 }
 
 .dark .auth-tabs {
-  background: hsla(222, 25%, 18%, 0.8);
+  background: hsla(224, 25%, 18%, 0.8);
 }
 
 .auth-tab {
@@ -1412,19 +1412,19 @@
 }
 
 .auth-tab:hover {
-  color: hsl(222 47% 11%);
+  color: hsl(224 47% 11%);
 }
 
 .auth-tab-active-student {
   background: hsl(0 0% 100%);
-  color: hsl(180 75% 40%);
+  color: hsl(209 75% 40%);
   box-shadow: 0 2px 8px hsl(0 0% 0% / 0.08);
 }
 
 .auth-tab-active-teacher,
 .auth-tab-active-admin {
   background: hsl(0 0% 100%);
-  color: hsl(239 84% 67%);
+  color: hsl(220 84% 67%);
   box-shadow: 0 2px 8px hsl(0 0% 0% / 0.08);
 }
 
@@ -1445,7 +1445,7 @@
 .auth-label {
   font-size: 13px;
   font-weight: 600;
-  color: hsl(222 47% 11%);
+  color: hsl(224 47% 11%);
   letter-spacing: 0.3px;
 }
 
@@ -1461,14 +1461,14 @@
   border-radius: 12px !important;
   font-size: 14px !important;
   background: hsl(0 0% 100%) !important;
-  color: hsl(222 47% 11%) !important;
+  color: hsl(224 47% 11%) !important;
   box-shadow: 0 2px 8px hsl(0 0% 0% / 0.02) !important;
   transition: all 0.3s ease !important;
 }
 
 .dark .auth-input {
-  background: hsla(222, 25%, 15%, 1) !important;
-  border-color: hsla(222, 20%, 25%, 1) !important;
+  background: hsla(224, 25%, 15%, 1) !important;
+  border-color: hsla(224, 20%, 25%, 1) !important;
   color: hsl(40 10% 92%) !important;
 }
 
@@ -1482,29 +1482,29 @@
 }
 
 .auth-input-student:focus {
-  border-color: hsl(180 75% 40%) !important;
-  box-shadow: 0 0 0 4px hsl(180 75% 40% / 0.15), 0 2px 8px hsl(0 0% 0% / 0.02) !important;
-  background: hsl(180 75% 40% / 0.02) !important;
+  border-color: hsl(209 75% 40%) !important;
+  box-shadow: 0 0 0 4px hsl(209 75% 40% / 0.15), 0 2px 8px hsl(0 0% 0% / 0.02) !important;
+  background: hsl(209 75% 40% / 0.02) !important;
   outline: none !important;
 }
 
 .dark .auth-input-student:focus {
-  box-shadow: 0 0 0 4px hsl(180 75% 50% / 0.2), 0 0 20px hsl(180 75% 50% / 0.1) !important;
-  background: hsl(180 75% 50% / 0.05) !important;
+  box-shadow: 0 0 0 4px hsl(209 75% 50% / 0.2), 0 0 20px hsl(209 75% 50% / 0.1) !important;
+  background: hsl(209 75% 50% / 0.05) !important;
 }
 
 .auth-input-teacher:focus,
 .auth-input-admin:focus {
-  border-color: hsl(239 84% 67%) !important;
-  box-shadow: 0 0 0 4px hsl(239 84% 67% / 0.15), 0 2px 8px hsl(0 0% 0% / 0.02) !important;
-  background: hsl(239 84% 67% / 0.02) !important;
+  border-color: hsl(220 84% 67%) !important;
+  box-shadow: 0 0 0 4px hsl(220 84% 67% / 0.15), 0 2px 8px hsl(0 0% 0% / 0.02) !important;
+  background: hsl(220 84% 67% / 0.02) !important;
   outline: none !important;
 }
 
 .dark .auth-input-teacher:focus,
 .dark .auth-input-admin:focus {
-  box-shadow: 0 0 0 4px hsl(239 84% 70% / 0.2), 0 0 20px hsl(239 84% 70% / 0.1) !important;
-  background: hsl(239 84% 70% / 0.05) !important;
+  box-shadow: 0 0 0 4px hsl(220 84% 70% / 0.2), 0 0 20px hsl(220 84% 70% / 0.1) !important;
+  background: hsl(220 84% 70% / 0.05) !important;
 }
 
 .auth-input-error {
@@ -1569,26 +1569,26 @@
 }
 
 .auth-button-student {
-  background: linear-gradient(135deg, hsl(180 75% 42%), hsl(180 75% 35%));
+  background: linear-gradient(135deg, hsl(209 75% 42%), hsl(209 75% 35%));
   box-shadow: 
-    0 8px 24px hsl(180 75% 40% / 0.35),
+    0 8px 24px hsl(209 75% 40% / 0.35),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.15);
 }
 
 .auth-button-student:hover:not(:disabled) {
   transform: translateY(-3px);
   box-shadow: 
-    0 12px 35px hsl(180 75% 40% / 0.45),
-    0 0 40px hsl(180 75% 45% / 0.2),
+    0 12px 35px hsl(209 75% 40% / 0.45),
+    0 0 40px hsl(209 75% 45% / 0.2),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.2);
   filter: brightness(1.08);
 }
 
 .auth-button-teacher,
 .auth-button-admin {
-  background: linear-gradient(135deg, hsl(239 84% 67%), hsl(239 84% 55%));
+  background: linear-gradient(135deg, hsl(220 84% 67%), hsl(220 84% 55%));
   box-shadow: 
-    0 8px 24px hsl(239 84% 67% / 0.35),
+    0 8px 24px hsl(220 84% 67% / 0.35),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.15);
 }
 
@@ -1596,8 +1596,8 @@
 .auth-button-admin:hover:not(:disabled) {
   transform: translateY(-3px);
   box-shadow: 
-    0 12px 35px hsl(239 84% 67% / 0.45),
-    0 0 40px hsl(239 84% 67% / 0.2),
+    0 12px 35px hsl(220 84% 67% / 0.45),
+    0 0 40px hsl(220 84% 67% / 0.2),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.2);
   filter: brightness(1.08);
 }
@@ -1636,23 +1636,23 @@
 }
 
 .auth-footer-link-student {
-  color: hsl(180 75% 40%);
+  color: hsl(209 75% 40%);
 }
 
 .auth-footer-link-student:hover {
   text-decoration: underline;
-  color: hsl(180 75% 35%);
+  color: hsl(209 75% 35%);
 }
 
 .auth-footer-link-teacher,
 .auth-footer-link-admin {
-  color: hsl(239 84% 67%);
+  color: hsl(220 84% 67%);
 }
 
 .auth-footer-link-teacher:hover,
 .auth-footer-link-admin:hover {
   text-decoration: underline;
-  color: hsl(239 84% 55%);
+  color: hsl(220 84% 55%);
 }
 
 /* Auth Info Box */
@@ -1663,14 +1663,14 @@
 }
 
 .auth-info-box-student {
-  background: hsl(180 75% 40% / 0.05);
-  border: 1px solid hsl(180 75% 40% / 0.1);
+  background: hsl(209 75% 40% / 0.05);
+  border: 1px solid hsl(209 75% 40% / 0.1);
 }
 
 .auth-info-box-teacher,
 .auth-info-box-admin {
-  background: hsl(239 84% 67% / 0.05);
-  border: 1px solid hsl(239 84% 67% / 0.1);
+  background: hsl(220 84% 67% / 0.05);
+  border: 1px solid hsl(220 84% 67% / 0.1);
 }
 
 .auth-info-box p {
@@ -1740,24 +1740,24 @@
 /* Dashboard Page Backgrounds */
 .dashboard-page-student {
   background: linear-gradient(135deg, 
-    hsl(180 75% 98%) 0%, 
-    hsl(239 84% 99%) 100%
+    hsl(209 75% 98%) 0%, 
+    hsl(220 84% 99%) 100%
   );
   background-attachment: fixed;
 }
 
 .dark .dashboard-page-student {
   background: 
-    radial-gradient(ellipse 1200px 600px at 0% 0%, hsla(180, 75%, 45%, 0.06), transparent 50%),
-    radial-gradient(ellipse 1000px 500px at 100% 100%, hsla(180, 75%, 50%, 0.04), transparent 45%),
-    linear-gradient(135deg, hsl(222 30% 7%) 0%, hsl(222 25% 9%) 100%);
+    radial-gradient(ellipse 1200px 600px at 0% 0%, hsla(209, 75%, 45%, 0.06), transparent 50%),
+    radial-gradient(ellipse 1000px 500px at 100% 100%, hsla(209, 75%, 50%, 0.04), transparent 45%),
+    linear-gradient(135deg, hsl(224 30% 7%) 0%, hsl(224 25% 9%) 100%);
 }
 
 .dashboard-page-teacher,
 .dashboard-page-admin {
   background: linear-gradient(135deg, 
-    hsl(239 84% 99%) 0%, 
-    hsl(250 60% 99%) 100%
+    hsl(220 84% 99%) 0%, 
+    hsl(220 60% 99%) 100%
   );
   background-attachment: fixed;
 }
@@ -1765,9 +1765,9 @@
 .dark .dashboard-page-teacher,
 .dark .dashboard-page-admin {
   background: 
-    radial-gradient(ellipse 1200px 600px at 0% 0%, hsla(239, 84%, 60%, 0.06), transparent 50%),
-    radial-gradient(ellipse 1000px 500px at 100% 100%, hsla(250, 60%, 55%, 0.04), transparent 45%),
-    linear-gradient(135deg, hsl(222 30% 7%) 0%, hsl(222 25% 9%) 100%);
+    radial-gradient(ellipse 1200px 600px at 0% 0%, hsla(220, 84%, 60%, 0.06), transparent 50%),
+    radial-gradient(ellipse 1000px 500px at 100% 100%, hsla(220, 60%, 55%, 0.04), transparent 45%),
+    linear-gradient(135deg, hsl(224 30% 7%) 0%, hsl(224 25% 9%) 100%);
 }
 
 /* Dashboard Layout */
@@ -1795,8 +1795,8 @@
 }
 
 .dark .dashboard-sidebar {
-  background: linear-gradient(180deg, hsla(222, 25%, 11%, 0.98), hsla(222, 25%, 9%, 0.98));
-  border-right-color: hsla(43, 80%, 55%, 0.06);
+  background: linear-gradient(180deg, hsla(224, 25%, 11%, 0.98), hsla(224, 25%, 9%, 0.98));
+  border-right-color: hsla(38, 80%, 55%, 0.06);
   box-shadow: 2px 0 20px hsla(0, 0%, 0%, 0.3);
 }
 
@@ -1833,8 +1833,8 @@
 }
 
 .dark .dashboard-sidebar-mobile-toggle {
-  background: hsla(222, 25%, 14%, 0.95);
-  border-color: hsla(43, 80%, 55%, 0.08);
+  background: hsla(224, 25%, 14%, 0.95);
+  border-color: hsla(38, 80%, 55%, 0.08);
   box-shadow: 0 4px 16px hsla(0, 0%, 0%, 0.3);
 }
 
@@ -1909,30 +1909,30 @@
 }
 
 .dashboard-sidebar-item-active-student {
-  background: hsl(180 75% 40% / 0.08);
-  color: hsl(180 75% 35%);
+  background: hsl(209 75% 40% / 0.08);
+  color: hsl(209 75% 35%);
 }
 
 .dashboard-sidebar-item-active-student .dashboard-sidebar-item-indicator {
-  background: hsl(180 75% 40%);
+  background: hsl(209 75% 40%);
 }
 
 .dashboard-sidebar-item-active-teacher {
-  background: hsl(239 84% 67% / 0.08);
-  color: hsl(239 84% 55%);
+  background: hsl(220 84% 67% / 0.08);
+  color: hsl(220 84% 55%);
 }
 
 .dashboard-sidebar-item-active-teacher .dashboard-sidebar-item-indicator {
-  background: hsl(239 84% 67%);
+  background: hsl(220 84% 67%);
 }
 
 .dashboard-sidebar-item-active-admin {
-  background: hsl(250 60% 55% / 0.08);
-  color: hsl(250 60% 45%);
+  background: hsl(220 60% 55% / 0.08);
+  color: hsl(220 60% 45%);
 }
 
 .dashboard-sidebar-item-active-admin .dashboard-sidebar-item-indicator {
-  background: hsl(250 60% 55%);
+  background: hsl(220 60% 55%);
 }
 
 /* Dashboard Main Content */
@@ -1989,7 +1989,7 @@
   font-size: 28px;
   font-weight: 700;
   color: hsl(var(--foreground));
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif);
 }
 
 .dashboard-role-badge {
@@ -2000,21 +2000,21 @@
 }
 
 .dashboard-role-badge-student {
-  background: hsl(180 75% 40% / 0.1);
-  color: hsl(180 75% 35%);
-  border: 1px solid hsl(180 75% 40% / 0.2);
+  background: hsl(209 75% 40% / 0.1);
+  color: hsl(209 75% 35%);
+  border: 1px solid hsl(209 75% 40% / 0.2);
 }
 
 .dashboard-role-badge-teacher {
-  background: hsl(239 84% 67% / 0.1);
-  color: hsl(239 84% 55%);
-  border: 1px solid hsl(239 84% 67% / 0.2);
+  background: hsl(220 84% 67% / 0.1);
+  color: hsl(220 84% 55%);
+  border: 1px solid hsl(220 84% 67% / 0.2);
 }
 
 .dashboard-role-badge-admin {
-  background: hsl(250 60% 55% / 0.1);
-  color: hsl(250 60% 45%);
-  border: 1px solid hsl(250 60% 55% / 0.2);
+  background: hsl(220 60% 55% / 0.1);
+  color: hsl(220 60% 45%);
+  border: 1px solid hsl(220 60% 55% / 0.2);
 }
 
 /* Dashboard Stat Card - Enhanced with premium shadows */
@@ -2034,12 +2034,12 @@
 }
 
 .dark .dashboard-stat-card {
-  background: linear-gradient(145deg, hsla(222, 25%, 14%, 0.95), hsla(222, 25%, 11%, 0.95));
-  border-color: hsla(43, 80%, 55%, 0.05);
+  background: linear-gradient(145deg, hsla(224, 25%, 14%, 0.95), hsla(224, 25%, 11%, 0.95));
+  border-color: hsla(38, 80%, 55%, 0.05);
 }
 
 .dark .dashboard-stat-card:hover {
-  border-color: hsla(180, 75%, 50%, 0.1);
+  border-color: hsla(209, 75%, 50%, 0.1);
 }
 
 .dashboard-stat-icon {
@@ -2190,15 +2190,15 @@
 }
 
 .dashboard-table-student thead th {
-  background: hsl(180 75% 40% / 0.05);
+  background: hsl(209 75% 40% / 0.05);
 }
 
 .dashboard-table-teacher thead th {
-  background: hsl(239 84% 67% / 0.05);
+  background: hsl(220 84% 67% / 0.05);
 }
 
 .dashboard-table-admin thead th {
-  background: hsl(250 60% 55% / 0.05);
+  background: hsl(220 60% 55% / 0.05);
 }
 
 .dashboard-table tbody td {
@@ -2251,18 +2251,18 @@
 }
 
 .dashboard-tab-active-student {
-  background: hsl(180 75% 40% / 0.1);
-  color: hsl(180 75% 35%);
+  background: hsl(209 75% 40% / 0.1);
+  color: hsl(209 75% 35%);
 }
 
 .dashboard-tab-active-teacher {
-  background: hsl(239 84% 67% / 0.1);
-  color: hsl(239 84% 55%);
+  background: hsl(220 84% 67% / 0.1);
+  color: hsl(220 84% 55%);
 }
 
 .dashboard-tab-active-admin {
-  background: hsl(250 60% 55% / 0.1);
-  color: hsl(250 60% 45%);
+  background: hsl(220 60% 55% / 0.1);
+  color: hsl(220 60% 45%);
 }
 
 /* Dashboard Animations */
@@ -2343,18 +2343,18 @@
 }
 
 .dashboard-form-input-student:focus {
-  border-color: hsl(180 75% 40%);
-  box-shadow: 0 0 0 4px hsl(180 75% 40% / 0.1);
+  border-color: hsl(209 75% 40%);
+  box-shadow: 0 0 0 4px hsl(209 75% 40% / 0.1);
 }
 
 .dashboard-form-input-teacher:focus {
-  border-color: hsl(239 84% 67%);
-  box-shadow: 0 0 0 4px hsl(239 84% 67% / 0.1);
+  border-color: hsl(220 84% 67%);
+  box-shadow: 0 0 0 4px hsl(220 84% 67% / 0.1);
 }
 
 .dashboard-form-input-admin:focus {
-  border-color: hsl(250 60% 55%);
-  box-shadow: 0 0 0 4px hsl(250 60% 55% / 0.1);
+  border-color: hsl(220 60% 55%);
+  box-shadow: 0 0 0 4px hsl(220 60% 55% / 0.1);
 }
 
 /* Dashboard Alerts */
@@ -2444,49 +2444,49 @@
 }
 
 .dashboard-btn-student {
-  background: linear-gradient(135deg, hsl(180 75% 42%), hsl(180 75% 35%));
+  background: linear-gradient(135deg, hsl(209 75% 42%), hsl(209 75% 35%));
   color: white;
   box-shadow: 
-    0 4px 15px hsl(180 75% 40% / 0.35),
+    0 4px 15px hsl(209 75% 40% / 0.35),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.15);
 }
 
 .dashboard-btn-student:hover {
   box-shadow: 
-    0 8px 25px hsl(180 75% 40% / 0.45),
-    0 0 30px hsl(180 75% 45% / 0.2),
+    0 8px 25px hsl(209 75% 40% / 0.45),
+    0 0 30px hsl(209 75% 45% / 0.2),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.2);
   filter: brightness(1.05);
 }
 
 .dashboard-btn-teacher {
-  background: linear-gradient(135deg, hsl(239 84% 67%), hsl(239 84% 55%));
+  background: linear-gradient(135deg, hsl(220 84% 67%), hsl(220 84% 55%));
   color: white;
   box-shadow: 
-    0 4px 15px hsl(239 84% 67% / 0.35),
+    0 4px 15px hsl(220 84% 67% / 0.35),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.15);
 }
 
 .dashboard-btn-teacher:hover {
   box-shadow: 
-    0 8px 25px hsl(239 84% 67% / 0.45),
-    0 0 30px hsl(239 84% 67% / 0.2),
+    0 8px 25px hsl(220 84% 67% / 0.45),
+    0 0 30px hsl(220 84% 67% / 0.2),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.2);
   filter: brightness(1.05);
 }
 
 .dashboard-btn-admin {
-  background: linear-gradient(135deg, hsl(250 60% 58%), hsl(250 60% 48%));
+  background: linear-gradient(135deg, hsl(220 60% 58%), hsl(220 60% 48%));
   color: white;
   box-shadow: 
-    0 4px 15px hsl(250 60% 55% / 0.35),
+    0 4px 15px hsl(220 60% 55% / 0.35),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.15);
 }
 
 .dashboard-btn-admin:hover {
   box-shadow: 
-    0 8px 25px hsl(250 60% 55% / 0.45),
-    0 0 30px hsl(250 60% 55% / 0.2),
+    0 8px 25px hsl(220 60% 55% / 0.45),
+    0 0 30px hsl(220 60% 55% / 0.2),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.2);
   filter: brightness(1.05);
 }
@@ -2509,7 +2509,7 @@
 }
 
 .dark .dashboard-btn-outline:hover {
-  background: hsla(222, 25%, 18%, 0.6);
+  background: hsla(224, 25%, 18%, 0.6);
 }
 
 /* Dashboard Empty State */
