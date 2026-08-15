@@ -102,10 +102,10 @@ export default function AttendanceTab({ ctx }: { ctx: TabContext }) {
                         <td className="px-4 py-3 text-muted-foreground">{record.topic || "—"}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditAttendance(record)}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditAttendance(record)} aria-label="Edit">
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => openDeleteDialog("attendance_records", record.id, `${students.find(s => s.user_id === record.student_user_id)?.student_name || "student"}'s attendance`)}>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => openDeleteDialog("attendance_records", record.id, `${students.find(s => s.user_id === record.student_user_id)?.student_name || "student"}'s attendance`)} aria-label="Delete">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -202,10 +202,10 @@ export default function AttendanceTab({ ctx }: { ctx: TabContext }) {
                     <Badge className={record.status === "present" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}>
                       {record.hours ? `${record.hours}h` : record.status}
                     </Badge>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditAttendance(record)}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditAttendance(record)} aria-label="Edit">
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => openDeleteDialog("attendance_records", record.id, `${record.student_name}'s attendance`)}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => openDeleteDialog("attendance_records", record.id, `${record.student_name}'s attendance`)} aria-label="Delete">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>

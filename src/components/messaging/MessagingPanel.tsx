@@ -65,8 +65,7 @@ export const MessagingPanel = ({ userRole, preselectedConversationId }: Messagin
               variant="ghost"
               size="icon"
               onClick={() => setSelectedConversationId(null)}
-              className="md:hidden"
-            >
+              className="md:hidden" aria-label="Go back">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}

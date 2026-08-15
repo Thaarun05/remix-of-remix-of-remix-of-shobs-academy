@@ -117,8 +117,7 @@ export const RecentItemsList = ({
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={() => setDeleteId(item.id)}
-                    >
+                      onClick={() => setDeleteId(item.id)} aria-label="Delete">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   )}

@@ -1070,8 +1070,7 @@ function SortableQuestion({ id, q, idx, total, editing, regenerating, onEditTogg
             onClick={() => {
               if (window.confirm(`Remove question ${q.number}?`)) onDelete();
             }}
-            title={total <= 1 ? "A worksheet needs at least one question" : "Delete"}
-          >
+            title={total <= 1 ? "A worksheet needs at least one question" : "Delete"} aria-label="Delete">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>

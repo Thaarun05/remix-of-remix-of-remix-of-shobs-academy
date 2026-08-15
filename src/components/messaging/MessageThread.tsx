@@ -299,8 +299,7 @@ export const MessageThread = ({ conversationId, userRole }: MessageThreadProps) 
                             size="icon" 
                             variant="ghost" 
                             className="h-6 w-6"
-                            onClick={() => handleEdit(message)}
-                          >
+                            onClick={() => handleEdit(message)} aria-label="Edit">
                             <Pencil className="h-3 w-3" />
                           </Button>
                         )}
@@ -309,8 +308,7 @@ export const MessageThread = ({ conversationId, userRole }: MessageThreadProps) 
                             size="icon" 
                             variant="ghost" 
                             className="h-6 w-6 text-destructive"
-                            onClick={() => setDeleteConfirmId(message.id)}
-                          >
+                            onClick={() => setDeleteConfirmId(message.id)} aria-label="Delete">
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         )}

@@ -428,8 +428,7 @@ export const FeeSheetCalculator = () => {
                           variant="ghost"
                           size="icon"
                           className="h-10 w-10 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                          onClick={() => removeRow(index)}
-                        >
+                          onClick={() => removeRow(index)} aria-label="Delete">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>

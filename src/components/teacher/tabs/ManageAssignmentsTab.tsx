@@ -94,7 +94,7 @@ export default function ManageAssignmentsTab({ ctx }: { ctx: TabContext }) {
                     ) : (
                       <Badge variant="outline" className="text-warning border-warning/30 bg-warning/5">Pending</Badge>
                     )}
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleSoftDelete("assignments", assignment.id)}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleSoftDelete("assignments", assignment.id)} aria-label="Delete">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>

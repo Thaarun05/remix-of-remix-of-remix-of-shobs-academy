@@ -515,7 +515,7 @@ export function TeacherResources() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => handleDownload(r)} title="Download">
+                          <Button variant="ghost" size="icon" onClick={() => handleDownload(r)} title="Download" aria-label="Download">
                             <Download className="h-4 w-4" />
                           </Button>
                           {user?.id === r.uploaded_by && (
@@ -526,8 +526,7 @@ export function TeacherResources() {
                                 setDeleting(r);
                                 setDeleteDialogOpen(true);
                               }}
-                              title="Delete"
-                            >
+                              title="Delete" aria-label="Delete">
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           )}

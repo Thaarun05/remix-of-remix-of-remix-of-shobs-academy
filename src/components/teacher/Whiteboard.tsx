@@ -2218,8 +2218,8 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
                         <p className="text-[10px] text-muted-foreground">{new Date(sw.sent_at).toLocaleDateString()}</p>
                       </div>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => editSentWhiteboard(sw)} title="Edit"><Pencil className="h-3 w-3" /></Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteConfirmId(sw.id)} title="Delete"><Trash2 className="h-3 w-3" /></Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => editSentWhiteboard(sw)} title="Edit" aria-label="Edit"><Pencil className="h-3 w-3" /></Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteConfirmId(sw.id)} title="Delete" aria-label="Delete"><Trash2 className="h-3 w-3" /></Button>
                       </div>
                     </div>
                   ))}
