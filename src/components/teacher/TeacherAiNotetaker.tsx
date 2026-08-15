@@ -416,7 +416,7 @@ export function TeacherAiNotetaker() {
     setDownloading(true);
     try {
       const { pdf, safeTitle } = await buildPdf();
-      pdf.save(`shobs-academy-notes-${safeTitle}.pdf`);
+      downloadPdf(pdf, `shobs-academy-notes-${safeTitle.replace(/^-+|-+$/g, "").slice(0, 60) || "notes"}.pdf`);
       toast({ title: "Download started", description: "Your notes PDF has been saved." });
     } catch (e: any) {
       toast({ title: "Download failed", description: e?.message ?? "Could not generate PDF.", variant: "destructive" });
