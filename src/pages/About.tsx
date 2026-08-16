@@ -4,7 +4,7 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { 
   BookOpen, User, ClipboardCheck, Target, Calendar, Zap, 
-  GraduationCap, Users, Mail, ArrowLeft, Award, Globe, 
+  GraduationCap, Users, Mail, ArrowLeft, ArrowRight, Award, Globe, 
   Heart, Lightbulb, CheckCircle2, Star, Phone
 } from "lucide-react";
 import { Seo } from "@/components/Seo";
