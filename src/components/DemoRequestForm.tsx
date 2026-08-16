@@ -108,8 +108,8 @@ export function DemoRequestForm() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="hero" size="lg" className="gap-2.5">
-          <CalendarCheck className="h-5 w-5" />
+        <Button variant="hero" size="lg" className="group gap-2.5 cta-motion">
+          <CalendarCheck className="h-5 w-5 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110" />
           Book a Free Demo Class
         </Button>
       </DialogTrigger>
