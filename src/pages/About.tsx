@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { SiteFooter } from "@/components/SiteFooter";
+import { Reveal } from "@/components/Reveal";
 
 const features = [
   {
@@ -98,8 +99,8 @@ const About = () => {
       <section className="pt-24 px-6">
         <div className="max-w-5xl mx-auto">
           <Link to="/">
-            <Button variant="outline" size="sm" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
+            <Button variant="outline" size="sm" className="group gap-2">
+              <ArrowLeft className="arrow-travel arrow-travel-back h-4 w-4" />
               Back to Home
             </Button>
           </Link>
@@ -109,14 +110,18 @@ const About = () => {
       {/* Hero */}
       <section className="pt-8 pb-12 px-6 text-center">
         <div className="mb-6">
-          <Logo size="lg" className="mx-auto" />
+          <Logo size="lg" className="mx-auto float-slow" />
         </div>
-        <h1 className="font-serif text-4xl sm:text-5xl font-bold text-foreground mb-4">
-          About Shobs Academy
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Empowering Education, One Student at a Time
-        </p>
+        <Reveal>
+          <h1 className="font-serif text-4xl sm:text-5xl font-bold text-foreground mb-4">
+            About Shobs Academy
+          </h1>
+        </Reveal>
+        <Reveal delay={120}>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Empowering Education, One Student at a Time
+          </p>
+        </Reveal>
       </section>
 
       {/* Mission & Vision Section */}
@@ -124,7 +129,7 @@ const About = () => {
         <div className="max-w-4xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8">
             {/* Mission */}
-            <div className="p-8 rounded-2xl bg-card border border-border/50 shadow-lg">
+            <Reveal className="p-8 rounded-2xl bg-card border border-border/50 shadow-lg lift-hover">
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Target className="h-6 w-6 text-primary" />
@@ -136,10 +141,10 @@ const About = () => {
                 to achieve their full academic potential. We believe every student deserves 
                 individual attention and a learning experience tailored to their unique needs.
               </p>
-            </div>
+            </Reveal>
 
             {/* Vision */}
-            <div className="p-8 rounded-2xl bg-card border border-border/50 shadow-lg">
+            <Reveal delay={120} className="p-8 rounded-2xl bg-card border border-border/50 shadow-lg lift-hover">
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Star className="h-6 w-6 text-primary" />
@@ -151,7 +156,7 @@ const About = () => {
                 students' academic journeys through innovative teaching methods, dedicated mentorship, 
                 and a commitment to excellence in education.
               </p>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
