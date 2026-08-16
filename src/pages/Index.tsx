@@ -128,7 +128,7 @@ const Index = () => {
         {/* SIGN IN STRIP */}
         <div className="border-b border-border bg-secondary">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-6 py-3 text-sm">
-            <span className="font-medium text-muted-foreground">Already with us? Sign in as</span>
+            <span className="font-medium text-muted-foreground">Already with ShobsAcademy? Sign in as</span>
             <Link to="/student-login" className="link-underline font-semibold text-student">Student</Link>
             <span aria-hidden="true" className="text-border">|</span>
             <Link to="/teacher-login" className="link-underline font-semibold text-teacher">Teacher</Link>
