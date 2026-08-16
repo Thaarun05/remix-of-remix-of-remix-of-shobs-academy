@@ -152,14 +152,14 @@ const Index = () => {
             </div>
 
             <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {pillars.map(({ icon: Icon, title, body }) => (
-                <article key={title} className="rounded-xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
-                    <Icon className="h-5 w-5 text-primary" aria-hidden="true" />
+              {pillars.map(({ icon: Icon, title, body }, i) => (
+                <Reveal key={title} as="article" delay={i * 80} className="group rounded-xl border border-border bg-card p-6 shadow-sm lift-hover hover:shadow-md">
+                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 transition-colors duration-300 group-hover:bg-primary/20">
+                    <Icon className="h-5 w-5 text-primary transition-transform duration-300 group-hover:scale-110" aria-hidden="true" />
                   </div>
                   <h3 className="font-serif text-lg font-bold text-foreground">{title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
-                </article>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -175,12 +175,12 @@ const Index = () => {
               From first enquiry to steady progress, the path is the same for every family.
             </p>
             <ol className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {steps.map(({ step, title, body }) => (
-                <li key={step} className="rounded-xl border border-border bg-card p-6 shadow-sm">
+              {steps.map(({ step, title, body }, i) => (
+                <Reveal key={step} as="li" delay={i * 90} className="rounded-xl border border-border bg-card p-6 shadow-sm lift-hover">
                   <span className="font-mono text-sm font-semibold text-primary">{step}</span>
                   <h3 className="mt-3 font-serif text-lg font-bold text-foreground">{title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
-                </li>
+                </Reveal>
               ))}
             </ol>
           </div>
@@ -201,30 +201,30 @@ const Index = () => {
             </div>
 
             <ul className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {countries.map((country) => (
-                <li key={country.code} className="rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
+              {countries.map((country, i) => (
+                <Reveal key={country.code} as="li" delay={i * 60} className="group rounded-xl border border-border bg-card p-5 shadow-sm lift-hover hover:shadow-md">
                   <img
                     src={country.flagUrl}
                     alt={`Flag of ${country.name}`}
                     loading="lazy"
                     width={64}
                     height={42}
-                    className="mb-4 h-8 w-auto rounded border border-border object-cover"
+                    className="mb-4 h-8 w-auto rounded border border-border object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   <span className="block font-mono text-xs font-semibold uppercase tracking-[0.16em] text-primary">
                     {country.code}
                   </span>
                   <h3 className="mt-1 font-serif text-base font-bold text-foreground">{country.name}</h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{country.description}</p>
-                </li>
+                </Reveal>
               ))}
             </ul>
 
             <div className="mt-12">
               <Link to="/about">
-                <Button variant="outline" size="lg">
+                <Button variant="outline" size="lg" className="group">
                   Learn more about us
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  <ArrowRight className="arrow-travel h-4 w-4" aria-hidden="true" />
                 </Button>
               </Link>
             </div>
@@ -241,20 +241,20 @@ const Index = () => {
               Accounts are created by the academy office. If you need access, request it from your teacher.
             </p>
             <div className="mt-12 grid gap-6 md:grid-cols-3">
-              {portals.map(({ to, icon: Icon, iconWrap, iconColor, title, body, variant }) => (
-                <article key={to} className="flex flex-col rounded-xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+              {portals.map(({ to, icon: Icon, iconWrap, iconColor, title, body, variant }, i) => (
+                <Reveal key={to} as="article" delay={i * 90} className="flex flex-col rounded-xl border border-border bg-card p-6 shadow-sm lift-hover hover:shadow-md">
                   <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-lg border ${iconWrap}`}>
                     <Icon className={`h-6 w-6 ${iconColor}`} aria-hidden="true" />
                   </div>
                   <h3 className="font-serif text-lg font-bold text-foreground">{title}</h3>
                   <p className="mb-6 mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{body}</p>
                   <Link to={to} className="mt-auto">
-                    <Button variant={variant} className="w-full">
+                    <Button variant={variant} className="group w-full">
                       Sign in
-                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                      <ArrowRight className="arrow-travel h-4 w-4" aria-hidden="true" />
                     </Button>
                   </Link>
-                </article>
+                </Reveal>
               ))}
             </div>
           </div>
