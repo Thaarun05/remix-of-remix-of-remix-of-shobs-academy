@@ -1,5 +1,6 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1063,16 +1064,19 @@ function SortableQuestion({ id, q, idx, total, editing, regenerating, onEditTogg
           <Button size="icon" variant="ghost" onClick={onRegenerate} disabled={regenerating} title="Regenerate" aria-label="Regenerate">
             {regenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
           </Button>
-          <Button
+          <ConfirmButton
             size="icon"
             variant="ghost"
             disabled={total <= 1}
-            onClick={() => {
-              if (window.confirm(`Remove question ${q.number}?`)) onDelete();
-            }}
-            title={total <= 1 ? "A worksheet needs at least one question" : "Delete"} aria-label="Delete">
+            confirmTitle={`Remove question ${q.number}?`}
+            confirmDescription="The question is removed from this worksheet. You can regenerate or add questions afterwards."
+            confirmLabel="Remove question"
+            onConfirm={onDelete}
+            title={total <= 1 ? "A worksheet needs at least one question" : "Delete question"}
+            aria-label="Delete question"
+          >
             <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          </ConfirmButton>
         </div>
       </div>
     </li>

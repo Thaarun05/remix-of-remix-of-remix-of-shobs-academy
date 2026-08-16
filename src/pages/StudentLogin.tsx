@@ -67,7 +67,7 @@ const StudentLogin = () => {
         return;
       }
       toast({
-        title: "Welcome back!",
+        title: "Welcome back",
         description: "You have successfully signed in."
       });
     } catch (error: any) {

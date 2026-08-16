@@ -341,7 +341,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
       if (data?.error) throw new Error(data.error);
 
       toast({
-        title: "Teacher created!",
+        title: "Teacher created",
         description: `Account created for ${addTeacherForm.email}.`,
       });
 
@@ -395,7 +395,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
       if (data?.error) throw new Error(data.error);
 
       toast({
-        title: "Student created!",
+        title: "Student created",
         description: `Account created for ${addStudentForm.email}.`,
       });
 
@@ -718,7 +718,7 @@ export function UserManagement({ profiles, onRefresh }: UserManagementProps) {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogTitle>Delete user</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete {deletingUser?.full_name || "this user"}? This action cannot be undone and will remove all associated data.
             </AlertDialogDescription>

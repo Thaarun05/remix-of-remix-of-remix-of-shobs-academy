@@ -34,7 +34,7 @@ export const MessageInput = ({ conversationId, receiverUserId }: MessageInputPro
     } catch (error) {
       console.error("Error sending message:", error);
       toast({
-        title: "Error",
+        title: "Something went wrong",
         description: "Failed to send message. Please try again.",
         variant: "destructive",
       });

@@ -1,3 +1,4 @@
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -80,9 +81,7 @@ export default function ManageAssignmentsTab({ ctx }: { ctx: TabContext }) {
                   <div className="flex flex-col items-end gap-2">
                     {assignment.status === "submitted" ? (
                       <>
-                        <Badge className="bg-success/10 text-success border-success/20">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />Submitted
-                        </Badge>
+                        <StatusBadge status="submitted" />
                         <Button size="sm" className="dashboard-btn dashboard-btn-teacher" onClick={() => handleMarkAssignmentViewed(assignment.id, assignment.student_user_id)}>
                           <Eye className="h-4 w-4 mr-1" />Mark Viewed
                         </Button>

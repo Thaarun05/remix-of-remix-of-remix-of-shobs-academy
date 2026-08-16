@@ -1,5 +1,15 @@
 import { useState, useEffect } from "react";
-import { Bell } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  CalendarDays,
+  FileText,
+  IndianRupee,
+  ListChecks,
+  MessageSquare,
+  Info,
+  type LucideIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,6 +32,15 @@ interface Notification {
   body: string | null;
   is_read: boolean;
 }
+
+const TYPE_ICONS: Record<string, LucideIcon> = {
+  fee: IndianRupee,
+  assignment: FileText,
+  quiz: ListChecks,
+  message: MessageSquare,
+  event: CalendarDays,
+  calendar: CalendarDays,
+};
 
 export function NotificationBell() {
   const { user } = useAuth();
@@ -84,7 +103,12 @@ export function NotificationBell() {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative min-h-11 min-w-11"
+          aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
+        >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-destructive text-destructive-foreground">
@@ -104,11 +128,17 @@ export function NotificationBell() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {notifications.length === 0 ? (
-          <div className="p-4 text-sm text-muted-foreground text-center">
-            No notifications yet
+          <div className="flex flex-col items-center gap-2 px-4 py-6 text-center">
+            <BellOff className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            <p className="text-sm font-medium text-foreground">You're all caught up</p>
+            <p className="text-xs text-muted-foreground">
+              Updates about classes, assignments and fees will appear here.
+            </p>
           </div>
         ) : (
-          notifications.map((n) => (
+          notifications.map((n) => {
+            const Icon = TYPE_ICONS[n.type] ?? Info;
+            return (
             <DropdownMenuItem
               key={n.id}
               className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${
@@ -117,21 +147,25 @@ export function NotificationBell() {
               onClick={() => markAsRead(n.id)}
             >
               <div className="flex items-start justify-between w-full gap-2">
-                <span className={`text-sm font-medium ${!n.is_read ? "text-foreground" : "text-muted-foreground"}`}>
-                  {n.title}
+                <span className="flex items-start gap-2">
+                  <Icon className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span className={`text-sm font-medium ${!n.is_read ? "text-foreground" : "text-muted-foreground"}`}>
+                    {n.title}
+                  </span>
                 </span>
                 {!n.is_read && (
-                  <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1.5" />
+                  <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1.5" aria-label="Unread" />
                 )}
               </div>
               {n.body && (
-                <span className="text-xs text-muted-foreground line-clamp-2">{n.body}</span>
+                <span className="text-xs text-muted-foreground line-clamp-2 pl-6">{n.body}</span>
               )}
-              <span className="text-xs text-muted-foreground/70">
+              <span className="text-xs text-muted-foreground/70 pl-6">
                 {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
               </span>
             </DropdownMenuItem>
-          ))
+            );
+          })
         )}
       </DropdownMenuContent>
     </DropdownMenu>

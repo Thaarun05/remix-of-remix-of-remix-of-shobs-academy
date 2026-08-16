@@ -18,6 +18,10 @@ import { StudentAttendanceHistory } from "@/components/student/StudentAttendance
 import { StudentNotes } from "@/components/student/StudentNotes";
 import { StudentWhiteboards } from "@/components/student/StudentWhiteboards";
 import { StudentQuizzes } from "@/components/student/StudentQuizzes";
+import { NextUpPanel, type NextUpClass, type NextUpAssignment } from "@/components/student/NextUpPanel";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { DueDateChip } from "@/components/ui/due-date-chip";
+import { SkeletonList, SkeletonStats } from "@/components/ui/loading-skeletons";
 import { 
   Calendar, 
   Video, 
@@ -110,6 +114,8 @@ const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState("schedule");
   const [feeDialogOpen, setFeeDialogOpen] = useState(false);
   const [selectedFee, setSelectedFee] = useState<StudentFee | null>(null);
+  const [nextClass, setNextClass] = useState<NextUpClass | null>(null);
+  const [openQuizzes, setOpenQuizzes] = useState(0);
 
   // File upload states
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -179,6 +185,37 @@ const StudentDashboard = () => {
         }))
       );
       setFees(feesRes.data || []);
+
+      // "Next up" signals — derived from existing tables, no new schema.
+      const nowIso = new Date().toISOString();
+      const [eventsRes, quizRes] = await Promise.all([
+        supabase
+          .from("events")
+          .select("title, start_time, event_type")
+          .eq("student_user_id", user.id)
+          .gte("start_time", nowIso)
+          .order("start_time", { ascending: true })
+          .limit(1),
+        (supabase as any)
+          .from("quiz_assignments")
+          .select("id, max_attempts, quiz_attempts(id, status)")
+          .eq("student_user_id", user.id)
+          .is("deleted_at", null),
+      ]);
+
+      const upcoming = (eventsRes.data || [])[0] as { title: string; start_time: string } | undefined;
+      setNextClass(upcoming ? { title: upcoming.title, startTime: upcoming.start_time } : null);
+
+      const quizRows = ((quizRes as any)?.data || []) as Array<{
+        max_attempts: number | null;
+        quiz_attempts?: Array<{ status: string }>;
+      }>;
+      setOpenQuizzes(
+        quizRows.filter((q) => {
+          const used = (q.quiz_attempts || []).filter((a) => a.status === "submitted").length;
+          return used < (q.max_attempts ?? 1);
+        }).length,
+      );
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -257,7 +294,7 @@ const StudentDashboard = () => {
       fetchData();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Upload failed";
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+      toast({ title: "Something went wrong", description: errorMessage, variant: "destructive" });
     } finally {
       setUploadingFor(null);
       setUploadProgress(0);
@@ -273,11 +310,11 @@ const StudentDashboard = () => {
 
       if (error) throw error;
 
-      toast({ title: "Assignment submitted!", description: "Your assignment has been marked as submitted." });
+      toast({ title: "Assignment submitted", description: "Your assignment has been marked as submitted." });
       setAssignments(prev => prev.map(a => a.id === assignmentId ? { ...a, status: "submitted" } : a));
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to submit";
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+      toast({ title: "Something went wrong", description: errorMessage, variant: "destructive" });
     }
   };
 
@@ -288,10 +325,13 @@ const StudentDashboard = () => {
   const totalHours = attendance.reduce((sum, a) => sum + (a.hours || 0), 0);
   const pendingAssignments = assignments.filter(a => a.status === "pending").length;
 
-  const isOverdue = (dueDate: string | null) => {
-    if (!dueDate) return false;
-    return new Date(dueDate) < new Date();
-  };
+  const nextAssignment: NextUpAssignment | null = (() => {
+    const open = assignments
+      .filter((a) => a.status !== "submitted" && a.due_date)
+      .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+    const first = open[0];
+    return first ? { id: first.id, title: first.title, dueDate: first.due_date } : null;
+  })();
   
   const handleFeeResponse = async (feeId: string, response: "ok" | "needs_correction") => {
     try {
@@ -326,14 +366,14 @@ const StudentDashboard = () => {
       
       setFeeDialogOpen(false);
       toast({ 
-        title: response === "ok" ? "Thank you!" : "Correction requested",
+        title: response === "ok" ? "Fee acknowledged" : "Correction requested",
         description: response === "ok" 
-          ? "Thank you for your cooperation." 
-          : "The corrected fee details will be sent shortly."
+          ? "Thanks — the academy has been notified." 
+          : "The corrected fee details will be sent to you shortly."
       });
       fetchData();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     }
   };
 
@@ -347,8 +387,9 @@ const StudentDashboard = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
       >
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-student" />
+        <div className="space-y-8">
+          <SkeletonStats count={5} className="lg:grid-cols-5" />
+          <SkeletonList rows={3} />
         </div>
       </DashboardLayout>
     );
@@ -371,6 +412,15 @@ const StudentDashboard = () => {
         <StatCard icon={GraduationCap} label="Attendance" value={`${attendancePercent}%`} variant="student" />
         <StatCard icon={FileText} label="Pending Tasks" value={pendingAssignments} variant="warning" />
       </div>
+
+      <NextUpPanel
+        nextClass={nextClass}
+        nextAssignment={nextAssignment}
+        openQuizzes={openQuizzes}
+        onGoToSchedule={() => setActiveTab("schedule")}
+        onGoToAssignments={() => setActiveTab("assignments")}
+        onGoToQuizzes={() => setActiveTab("quizzes")}
+      />
 
       {/* Tab Content */}
       <div className="dashboard-section">
@@ -468,29 +518,18 @@ const StudentDashboard = () => {
                           {assignment.subject && <p className="text-sm text-student">{assignment.subject}</p>}
                           {assignment.description && <p className="text-sm text-muted-foreground mt-1">{assignment.description}</p>}
                           <div className="flex items-center gap-4 mt-2">
-                            {assignment.due_date && (
-                              <span className={`text-xs flex items-center gap-1 ${isOverdue(assignment.due_date) && assignment.status !== "submitted" ? "text-destructive" : "text-muted-foreground"}`}>
-                                <Clock className="h-3 w-3" />
-                                Due: {new Date(assignment.due_date).toLocaleDateString()}
-                                {isOverdue(assignment.due_date) && assignment.status !== "submitted" && " (Overdue)"}
-                              </span>
-                            )}
+                            <DueDateChip
+                              dueDate={assignment.due_date}
+                              completed={assignment.status === "submitted"}
+                            />
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2">
-                          {assignment.status === "submitted" ? (
-                            <Badge className="bg-success/10 text-success border-success/20">
-                              <CheckCircle2 className="h-3 w-3 mr-1" />Submitted
-                            </Badge>
-                          ) : assignment.status === "viewed" ? (
-                            <Badge className="bg-primary/10 text-primary border-primary/20">
-                              <Eye className="h-3 w-3 mr-1" />Viewed
-                            </Badge>
-                          ) : (
+                          <StatusBadge status={assignment.status} />
+                          {assignment.status !== "submitted" && assignment.status !== "viewed" && (
                             <>
-                              <Badge variant="outline" className="text-warning border-warning/30 bg-warning/5">Pending</Badge>
                               <Button size="sm" className="dashboard-btn dashboard-btn-student" onClick={() => markAsSubmitted(assignment.id)}>
-                                Mark as Submitted
+                                Mark as submitted
                               </Button>
                             </>
                           )}
@@ -607,13 +646,14 @@ const StudentDashboard = () => {
                           <div className="flex items-center gap-2">
                             <h4 className="font-semibold">{fee.month}</h4>
                             {fee.student_ack_status && (
-                              <Badge className={fee.student_ack_status === "ok" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}>
-                                {fee.student_ack_status === "ok" ? "Acknowledged" : "Correction Requested"}
-                              </Badge>
+                              <StatusBadge
+                                status={fee.student_ack_status === "ok" ? "approved" : "pending"}
+                                label={fee.student_ack_status === "ok" ? "Acknowledged" : "Correction requested"}
+                              />
                             )}
                           </div>
                           <p className="text-lg font-semibold">
-                            {fee.total_hours}h × ${fee.fee_per_hour}/h = ${fee.total_amount?.toFixed(2)}
+                            {fee.total_hours}h × INR {fee.fee_per_hour}/h = INR {fee.total_amount?.toFixed(2)}
                           </p>
                           {fee.subjects && <p className="text-sm text-muted-foreground">Subjects: {fee.subjects}</p>}
                           {fee.class_dates && <p className="text-sm text-muted-foreground">Dates: {fee.class_dates}</p>}
@@ -623,7 +663,7 @@ const StudentDashboard = () => {
                             className="dashboard-btn dashboard-btn-student"
                             onClick={() => { setSelectedFee(fee); setFeeDialogOpen(true); }}
                           >
-                            View & Respond
+                            View and respond
                           </Button>
                         )}
                       </div>
@@ -642,29 +682,29 @@ const StudentDashboard = () => {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-warning" />
-              Please Call Your Parents
+              Review this with your parents
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Please call your parents before viewing this fee information. They should review the details with you.
+              Fee details should be checked with a parent or guardian before you confirm them.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {selectedFee && (
             <div className="p-4 rounded-lg bg-muted my-4">
               <p className="font-semibold">{selectedFee.month}</p>
-              <p className="text-xl font-bold">${selectedFee.total_amount?.toFixed(2)}</p>
-              <p className="text-sm text-muted-foreground">{selectedFee.total_hours}h × ${selectedFee.fee_per_hour}/h</p>
+              <p className="text-xl font-bold">INR {selectedFee.total_amount?.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">{selectedFee.total_hours}h × INR {selectedFee.fee_per_hour}/h</p>
             </div>
           )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => selectedFee && handleFeeResponse(selectedFee.id, "needs_correction")}>
-              No, Corrections Needed
+              Corrections needed
             </AlertDialogAction>
             <AlertDialogAction 
               className="bg-success hover:bg-success/90"
               onClick={() => selectedFee && handleFeeResponse(selectedFee.id, "ok")}
             >
-              OK, All Correct
+              Confirm, all correct
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

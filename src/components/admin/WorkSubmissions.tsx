@@ -7,7 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/EmptyState";
+import { ConfirmButton } from "@/components/ui/confirm-button";
 import { ClipboardList, Loader2, CheckCircle2, Trash2, RotateCcw } from "lucide-react";
+import { SkeletonTable } from "@/components/ui/loading-skeletons";
 
 interface Row {
   id: string;
@@ -90,7 +92,6 @@ export function WorkSubmissions() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this submission?")) return;
     const { error } = await supabase
       .from("teacher_work_submissions")
       .delete()
@@ -143,7 +144,7 @@ export function WorkSubmissions() {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>
+          <SkeletonTable rows={5} columns={5} />
         ) : rows.length === 0 ? (
           <EmptyState icon={ClipboardList} title="No submissions yet" description="Teacher work log submissions will appear here." />
         ) : (
@@ -183,9 +184,15 @@ export function WorkSubmissions() {
                           <RotateCcw className="h-4 w-4" /> Edit
                         </Button>
                       )}
-                      <Button size="sm" variant="destructive" onClick={() => remove(r.id)}>
+                      <ConfirmButton
+                        size="sm"
+                        variant="destructive"
+                        confirmTitle="Delete this submission?"
+                        confirmDescription="The work log submission will be removed for this teacher. This cannot be undone."
+                        onConfirm={() => remove(r.id)}
+                      >
                         <Trash2 className="h-4 w-4" /> Delete
-                      </Button>
+                      </ConfirmButton>
                     </div>
                   </TableCell>
                 </TableRow>
