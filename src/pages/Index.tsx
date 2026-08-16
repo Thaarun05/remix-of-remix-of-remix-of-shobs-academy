@@ -11,6 +11,7 @@ import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Seo } from "@/components/Seo";
+import { Reveal } from "@/components/Reveal";
 
 const countries = [
   { flagUrl: "https://flagcdn.com/w320/us.png", code: "US", name: "USA", description: "Students across multiple states" },
@@ -83,8 +84,8 @@ const Index = () => {
           />
           <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 pb-20 pt-28 md:grid-cols-[1.1fr_0.9fr] md:pb-24 md:pt-32">
             <div>
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary-foreground/25 bg-primary-foreground/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em]">
-                <Globe2 className="h-3.5 w-3.5" aria-hidden="true" />
+              <p className="float-gentle-sm mb-5 inline-flex items-center gap-2 rounded-full border border-primary-foreground/25 bg-primary-foreground/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em]">
+                <Globe2 className="spin-slow h-3.5 w-3.5" aria-hidden="true" />
                 Teaching students in 8 countries
               </p>
               <h1 className="font-serif text-4xl font-bold leading-[1.1] text-primary-foreground sm:text-5xl md:text-6xl">
@@ -101,10 +102,10 @@ const Index = () => {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-primary-foreground/35 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                    className="group border-primary-foreground/35 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
                   >
                     How we teach
-                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    <ArrowRight className="arrow-travel h-4 w-4" aria-hidden="true" />
                   </Button>
                 </Link>
               </div>
@@ -114,7 +115,7 @@ const Index = () => {
             </div>
 
             <div className="relative hidden justify-self-center md:block">
-              <div className="rounded-2xl border border-primary-foreground/20 bg-primary-foreground/[0.07] p-10 backdrop-blur-sm">
+              <div className="float-slow rounded-2xl border border-primary-foreground/20 bg-primary-foreground/[0.07] p-10 backdrop-blur-sm">
                 <Logo size="lg" className="mx-auto" />
                 <p className="mt-6 text-center font-serif text-lg italic text-primary-foreground/85">
                   Guiding students to academic excellence
@@ -128,11 +129,11 @@ const Index = () => {
         <div className="border-b border-border bg-secondary">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-6 py-3 text-sm">
             <span className="font-medium text-muted-foreground">Already with us? Sign in as</span>
-            <Link to="/student-login" className="font-semibold text-student hover:underline">Student</Link>
+            <Link to="/student-login" className="link-underline font-semibold text-student">Student</Link>
             <span aria-hidden="true" className="text-border">|</span>
-            <Link to="/teacher-login" className="font-semibold text-teacher hover:underline">Teacher</Link>
+            <Link to="/teacher-login" className="link-underline font-semibold text-teacher">Teacher</Link>
             <span aria-hidden="true" className="text-border">|</span>
-            <Link to="/admin-login" className="font-semibold text-admin hover:underline">Admin</Link>
+            <Link to="/admin-login" className="link-underline font-semibold text-admin">Admin</Link>
           </div>
         </div>
 
