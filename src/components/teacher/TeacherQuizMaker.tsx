@@ -479,7 +479,7 @@ export function TeacherQuizMaker() {
             )}
           </div>
           <Button onClick={handleGenerate} disabled={loading} className="dashboard-btn dashboard-btn-teacher">
-            {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Generating…</> : <><Sparkles className="h-4 w-4 mr-2" />Generate Quiz</>}
+            {loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Generating…</> : <><Sparkles className="h-4 w-4 mr-2" />Generate quiz</>}
           </Button>
         </CardContent>
       </Card>
@@ -542,7 +542,7 @@ export function TeacherQuizMaker() {
             ) : editMode ? (
               <div className="flex gap-2">
                 <Button onClick={handlePublish} disabled={publishing} className="dashboard-btn dashboard-btn-teacher">
-                  {publishing ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving…</> : <><Save className="h-4 w-4 mr-2" />Save Changes</>}
+                  {publishing ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving…</> : <><Save className="h-4 w-4 mr-2" />Save changes</>}
                 </Button>
                 <Button variant="outline" onClick={() => { setQuiz(null); setQuizId(null); setEditMode(false); setTimeLimit(""); }}>
                   Cancel

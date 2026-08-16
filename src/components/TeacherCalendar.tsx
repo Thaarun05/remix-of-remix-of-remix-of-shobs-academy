@@ -204,7 +204,7 @@ export const TeacherCalendar = ({ students }: TeacherCalendarProps) => {
       fetchEvents();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to create event";
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+      toast({ title: "Something went wrong", description: errorMessage, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -234,7 +234,7 @@ export const TeacherCalendar = ({ students }: TeacherCalendarProps) => {
       setDeletingEventId(null);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to delete event";
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+      toast({ title: "Something went wrong", description: errorMessage, variant: "destructive" });
     }
   };
   
@@ -295,7 +295,7 @@ export const TeacherCalendar = ({ students }: TeacherCalendarProps) => {
       fetchEvents();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to update event";
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+      toast({ title: "Something went wrong", description: errorMessage, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }

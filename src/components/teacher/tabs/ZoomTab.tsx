@@ -54,11 +54,11 @@ export default function ZoomTab({ ctx }: { ctx: TabContext }) {
                   updated_at: new Date().toISOString(),
                 }, { onConflict: "student_user_id,teacher_user_id" });
                 if (error) throw error;
-                toast({ title: "Success", description: "Zoom link saved!" });
+                toast({ title: "Zoom link saved", description: "Your students can now see the updated link." });
                 setMeetForm({ ...meetForm, zoomLink: "", classLabel: "" });
                 fetchData();
               } catch (error: unknown) {
-                toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to save link", variant: "destructive" });
+                toast({ title: "Something went wrong", description: error instanceof Error ? error.message : "Failed to save link", variant: "destructive" });
               } finally {
                 setSubmitting(false);
               }

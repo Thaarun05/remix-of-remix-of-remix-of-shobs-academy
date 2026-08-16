@@ -255,7 +255,7 @@ const AdminDashboard = () => {
       setSalaryForm({ teacherId: "", numClasses: "", totalHours: "", salaryPerHour: "", note: "" });
       fetchData();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -284,7 +284,7 @@ const AdminDashboard = () => {
       toast({ title: "Fee forwarded", description: "Fee details have been sent to the student." });
       fetchData();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     }
   };
 
@@ -311,7 +311,7 @@ const AdminDashboard = () => {
         .eq("id", request.id);
 
       toast({
-        title: "Confirmation sent!",
+        title: "Confirmation sent",
         description: `Email sent to ${request.parent_email}`,
       });
 
@@ -411,7 +411,7 @@ const AdminDashboard = () => {
 
       setCreateTeacherSuccess(true);
       toast({
-        title: "Teacher created!",
+        title: "Teacher created",
         description: `Account created for ${validated.email}. Share the credentials with the teacher.`,
       });
 
@@ -470,7 +470,7 @@ const AdminDashboard = () => {
 
       setCreateStudentSuccess(true);
       toast({
-        title: "Student created!",
+        title: "Student created",
         description: `Account created for ${validated.email}. Share the credentials with the student/parent.`,
       });
 

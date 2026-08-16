@@ -61,7 +61,7 @@ export const StartConversationButton = ({
     } catch (error) {
       console.error("Error creating conversation:", error);
       toast({
-        title: "Error",
+        title: "Something went wrong",
         description: "Failed to start conversation. Please try again.",
         variant: "destructive",
       });

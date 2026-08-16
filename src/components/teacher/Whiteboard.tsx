@@ -1089,7 +1089,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       toast({ title: "Deleted", description: "Whiteboard removed." });
       if (selectedStudentId) fetchSentWhiteboards(selectedStudentId);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: err.message, variant: "destructive" });
     } finally {
       setDeleteConfirmId(null);
     }
@@ -1811,7 +1811,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       toast({ title: "Saved", description: "Whiteboard saved successfully." });
       if (mode === "teacher") fetchSavedBoards();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -1844,7 +1844,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       forceUpdate(n => n + 1);
       render();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -1907,11 +1907,11 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       }));
       await supabase.from("notifications").insert(notifications);
 
-      toast({ title: "✅ Whiteboard shared!", description: "Students will see it in their dashboard." });
+      toast({ title: "Whiteboard shared", description: "Students will see it in their dashboard." });
       if (selectedStudentId) fetchSentWhiteboards(selectedStudentId);
       setTimeout(() => setSendModalOpen(false), 1500);
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     } finally {
       setSending(false);
     }
@@ -1964,7 +1964,7 @@ export function Whiteboard({ mode = "teacher", sessionId, onBack }: WhiteboardPr
       setLiveShareOn(true);
       toast({ title: "🔴 Live Share ON", description: `Auto-shared with ${studentIds.length} student(s)` });
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: e.message, variant: "destructive" });
     }
   };
 

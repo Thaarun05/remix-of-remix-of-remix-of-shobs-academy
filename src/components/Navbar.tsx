@@ -42,7 +42,7 @@ export function Navbar({
       window.location.href = loginPath;
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Something went wrong",
         description: "Failed to sign out. Please try again.",
         variant: "destructive"
       });

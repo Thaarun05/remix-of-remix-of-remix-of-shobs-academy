@@ -357,13 +357,13 @@ export const AttendanceBasedFeeCalculator = () => {
           entity_table: "student_fees",
           entity_id: editingFeeId,
         });
-        toast({ title: "Sent to student!", description: `Fee sheet sent to ${selectedStudent.student_name}` });
+        toast({ title: "Fee sheet sent", description: `Fee sheet sent to ${selectedStudent.student_name}` });
         handleClear();
       }
 
       fetchFeeRecords();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
       setSending(false);
@@ -393,7 +393,7 @@ export const AttendanceBasedFeeCalculator = () => {
       if (editingFeeId === id) handleClear();
       fetchFeeRecords();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     } finally {
       setDeleting(false);
     }

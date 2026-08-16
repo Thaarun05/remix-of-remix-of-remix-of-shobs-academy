@@ -254,7 +254,7 @@ export const FeeSheetCalculator = () => {
       }
 
       toast({
-        title: sendToStudent ? "Fee sheet sent!" : "Draft saved",
+        title: sendToStudent ? "Fee sheet sent" : "Draft saved",
         description: sendToStudent 
           ? `Fee sheet sent to ${selectedStudent.student_name}` 
           : "Your draft has been saved."
@@ -263,7 +263,7 @@ export const FeeSheetCalculator = () => {
       resetForm();
       fetchRecentInvoices();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
       setSending(false);
@@ -286,7 +286,7 @@ export const FeeSheetCalculator = () => {
       setDeletingInvoiceId(null);
       fetchRecentInvoices();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     } finally {
       setDeleting(false);
     }

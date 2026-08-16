@@ -116,17 +116,18 @@ export const StudentAttendanceHistory = ({ attendance }: Props) => {
 
   // Default open the current or selected month
   const defaultOpen = `${selectedYear}-${selectedMonthIndex}`;
+  const selectedGroup = monthGroups[selectedMonthIndex];
 
   return (
     <Card className="dashboard-list-card">
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <CardTitle>Attendance History</CardTitle>
+            <CardTitle>Attendance history</CardTitle>
             <CardDescription>Your complete attendance record</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)} aria-label="Previous">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateMonth(-1)} aria-label="Previous month">
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Select value={String(selectedMonthIndex)} onValueChange={v => setSelectedMonthIndex(Number(v))}>
@@ -149,13 +150,32 @@ export const StudentAttendanceHistory = ({ attendance }: Props) => {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateMonth(1)} aria-label="Next">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => navigateMonth(1)} aria-label="Next month">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
+        {/* Month summary — readable in five seconds by a parent */}
+        <div className="mb-5 grid grid-cols-2 gap-3 rounded-xl border border-border bg-muted/30 p-4 sm:grid-cols-4">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Month</p>
+            <p className="text-sm font-semibold text-foreground">{selectedGroup.label} {selectedGroup.year}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Classes attended</p>
+            <p className="text-sm font-semibold text-foreground">{selectedGroup.present} of {selectedGroup.records.length}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Hours taught</p>
+            <p className="text-sm font-semibold text-foreground">{selectedGroup.totalHours} hrs</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Attendance rate</p>
+            <p className="text-sm font-semibold text-foreground">{selectedGroup.percentage}%</p>
+          </div>
+        </div>
         <Accordion type="single" collapsible defaultValue={defaultOpen} key={`${selectedYear}`}>
           {monthGroups.map(group => {
             const isCurrent = group.key === currentMonthKey;
@@ -164,7 +184,7 @@ export const StudentAttendanceHistory = ({ attendance }: Props) => {
                 <AccordionTrigger className="hover:no-underline px-2">
                   <div className="flex items-center gap-3 flex-1 text-left">
                     <span className="text-sm font-semibold">
-                      📅 {group.label} {group.year}
+                      {group.label} {group.year}
                     </span>
                     {isCurrent && (
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary">
@@ -225,7 +245,7 @@ export const StudentAttendanceHistory = ({ attendance }: Props) => {
                       <div className="px-4 py-2 bg-muted/30 text-xs text-muted-foreground flex flex-wrap gap-4 justify-between">
                         <span>Present: {group.present} days</span>
                         <span>Absent: {group.absent} days</span>
-                        <span>Total Hours: {group.totalHours} hrs</span>
+                        <span>Total hours: {group.totalHours} hrs</span>
                         <span>Attendance: {group.percentage}%</span>
                       </div>
                     </div>

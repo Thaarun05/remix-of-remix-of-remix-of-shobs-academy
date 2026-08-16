@@ -26,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SkeletonTable } from "@/components/ui/loading-skeletons";
 
 const SUBJECTS = ["Math", "Science", "English", "Social Studies", "Hindi", "Computer Science", "Physics", "Chemistry", "Biology", "Other"];
 const GRADES = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
@@ -107,7 +108,7 @@ export function StudentNotes() {
       window.open(data.signedUrl, "_blank");
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Could not open file";
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      toast({ title: "Something went wrong", description: msg, variant: "destructive" });
     }
   };
 
@@ -153,7 +154,7 @@ export function StudentNotes() {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-student" /></div>
+          <SkeletonTable rows={5} columns={4} />
         ) : filteredNotes.length === 0 ? (
           <EmptyState icon={BookOpen} title="No notes available" description="Your teacher hasn't uploaded any notes yet." />
         ) : (

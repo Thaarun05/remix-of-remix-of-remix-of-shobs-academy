@@ -1,3 +1,4 @@
+import { StatusBadge } from "@/components/ui/status-badge";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/EmptyState";
 import { Film, Loader2, ExternalLink, CheckCircle2 } from "lucide-react";
+import { SkeletonTable } from "@/components/ui/loading-skeletons";
 
 interface Row {
   id: string;
@@ -75,7 +77,7 @@ export function AdminRecordingSubmissions() {
           </TabsList>
           <TabsContent value={tab}>
             {loading ? (
-              <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>
+              <SkeletonTable rows={4} columns={5} />
             ) : filtered.length === 0 ? (
               <EmptyState icon={Film} title={tab === "pending" ? "No pending recordings" : "No reviewed recordings"} description="Submissions from teachers will appear here." />
             ) : (
@@ -108,9 +110,10 @@ export function AdminRecordingSubmissions() {
                       </TableCell>
                       <TableCell>{new Date(r.created_at).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <Badge className={r.status === "reviewed" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}>
-                          {r.status === "reviewed" ? "Reviewed" : "Pending"}
-                        </Badge>
+                        <StatusBadge
+                          status={r.status === "reviewed" ? "approved" : "pending"}
+                          label={r.status === "reviewed" ? "Reviewed" : "Pending"}
+                        />
                       </TableCell>
                       <TableCell className="text-right">
                         {r.status !== "reviewed" && (

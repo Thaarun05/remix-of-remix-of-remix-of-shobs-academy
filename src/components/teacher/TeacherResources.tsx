@@ -41,6 +41,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SkeletonList } from "@/components/ui/loading-skeletons";
 
 interface Resource {
   id: string;
@@ -176,7 +177,7 @@ export function TeacherResources() {
       setResources(list);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load resources";
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      toast({ title: "Something went wrong", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -243,7 +244,7 @@ export function TeacherResources() {
       fetchResources();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Upload failed";
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      toast({ title: "Something went wrong", description: msg, variant: "destructive" });
     } finally {
       setSubmitting(false);
       setUploading(false);
@@ -260,7 +261,7 @@ export function TeacherResources() {
       window.open(data.signedUrl, "_blank");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Download failed";
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      toast({ title: "Something went wrong", description: msg, variant: "destructive" });
     }
   };
 
@@ -278,7 +279,7 @@ export function TeacherResources() {
       fetchResources();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Delete failed";
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      toast({ title: "Something went wrong", description: msg, variant: "destructive" });
     }
   };
 
@@ -465,9 +466,7 @@ export function TeacherResources() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-teacher" />
-            </div>
+            <SkeletonList rows={3} />
           ) : filtered.length === 0 ? (
             <EmptyState icon={FolderOpen} title="No resources yet" description="Uploaded resources will appear here." />
           ) : (

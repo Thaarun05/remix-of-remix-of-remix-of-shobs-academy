@@ -91,7 +91,7 @@ export const FamilyManagement = () => {
       .insert({ name: `${student.student_name} Family` })
       .select("id")
       .single();
-    if (error || !fam) return toast({ title: "Error", description: error?.message, variant: "destructive" });
+    if (error || !fam) return toast({ title: "Something went wrong", description: error?.message, variant: "destructive" });
     const { error: memErr } = await supabase
       .from("family_members")
       .insert({ family_id: fam.id, student_user_id: newFamilyStudentId });
@@ -106,7 +106,7 @@ export const FamilyManagement = () => {
 
   const softDeleteFamily = async (f: Family) => {
     const { error } = await supabase.from("families").update({ deleted_at: new Date().toISOString() }).eq("id", f.id);
-    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     toast({ title: "Family removed" });
     setConfirmDelete(null);
     loadAll();
@@ -126,7 +126,7 @@ export const FamilyManagement = () => {
           variant: "destructive",
         });
       }
-      return toast({ title: "Error", description: error.message, variant: "destructive" });
+      return toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     }
     setAddingMember((s) => ({ ...s, [familyId]: "" }));
     toast({ title: "Student added" });
@@ -136,7 +136,7 @@ export const FamilyManagement = () => {
   const updateEnrolledAt = async (m: Member, value: string) => {
     const iso = new Date(value).toISOString();
     const { error } = await supabase.from("family_members").update({ enrolled_at: iso }).eq("id", m.id);
-    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     loadAll();
   };
 
@@ -145,7 +145,7 @@ export const FamilyManagement = () => {
       .from("family_members")
       .update({ withdrawn_at: new Date().toISOString() })
       .eq("id", m.id);
-    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     toast({ title: "Marked withdrawn", description: "Sibling ranks recalc from next cycle." });
     setConfirmWithdraw(null);
     loadAll();
@@ -153,7 +153,7 @@ export const FamilyManagement = () => {
 
   const removeMember = async (m: Member) => {
     const { error } = await supabase.from("family_members").delete().eq("id", m.id);
-    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     loadAll();
   };
 
@@ -170,7 +170,7 @@ export const FamilyManagement = () => {
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
-    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     toast({ title: "Settings saved" });
   };
 
@@ -213,7 +213,7 @@ export const FamilyManagement = () => {
                 onChange={(e) => setSettings({ ...settings, per_student_floor_pct: Number(e.target.value) })} />
             </div>
             <div className="col-span-full">
-              <Button onClick={saveSettings}><Save className="h-4 w-4 mr-2" />Save Settings</Button>
+              <Button onClick={saveSettings}><Save className="h-4 w-4 mr-2" />Save settings</Button>
             </div>
           </CardContent>
         </Card>

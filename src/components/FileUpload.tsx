@@ -72,7 +72,7 @@ export function FileUpload({
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to delete file";
       toast({
-        title: "Error",
+        title: "Something went wrong",
         description: errorMessage,
         variant: "destructive",
       });
@@ -83,7 +83,7 @@ export function FileUpload({
     if (pendingFiles.length === 0) return existingFiles;
     if (!assignmentId) {
       toast({
-        title: "Error",
+        title: "Something went wrong",
         description: "Cannot upload files without an assignment ID.",
         variant: "destructive",
       });

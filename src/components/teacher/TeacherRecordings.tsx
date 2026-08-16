@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/EmptyState";
 import { Film, Send, Loader2, ExternalLink } from "lucide-react";
+import { SkeletonList } from "@/components/ui/loading-skeletons";
 
 interface Submission {
   id: string;
@@ -117,7 +118,7 @@ export function TeacherRecordings() {
       setForm({ recording_url: "", title: "", class_date: "", topic: "", notes: "", student_user_id: "" });
       load();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -176,7 +177,7 @@ export function TeacherRecordings() {
         <CardHeader><CardTitle className="text-base">My Submissions</CardTitle></CardHeader>
         <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>
+            <SkeletonList rows={3} />
           ) : items.length === 0 ? (
             <EmptyState icon={Film} title="No recordings submitted" description="Submitted recordings will appear here." />
           ) : (

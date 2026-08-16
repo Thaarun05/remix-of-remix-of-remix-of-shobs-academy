@@ -137,7 +137,7 @@ export const MessageThread = ({ conversationId, userRole }: MessageThreadProps) 
       setEditingId(null);
       setEditContent("");
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     }
   };
 
@@ -171,7 +171,7 @@ export const MessageThread = ({ conversationId, userRole }: MessageThreadProps) 
       toast({ title: "Message deleted" });
       setDeleteConfirmId(null);
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     }
   };
 

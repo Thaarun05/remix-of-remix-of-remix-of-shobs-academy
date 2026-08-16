@@ -62,7 +62,7 @@ export const RecentItemsList = ({
       toast({ title: "Deleted", description: "Item has been removed." });
       onDeleted();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     } finally {
       setDeleting(false);
       setDeleteId(null);

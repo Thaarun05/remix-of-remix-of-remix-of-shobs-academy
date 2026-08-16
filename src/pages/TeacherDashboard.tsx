@@ -389,7 +389,7 @@ const TeacherDashboard = () => {
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to save attendance.";
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+      toast({ title: "Something went wrong", description: errorMessage, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -458,7 +458,7 @@ const TeacherDashboard = () => {
       fetchData();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to create assignment.";
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+      toast({ title: "Something went wrong", description: errorMessage, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -485,7 +485,7 @@ const TeacherDashboard = () => {
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to update profile.";
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+      toast({ title: "Something went wrong", description: errorMessage, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -551,7 +551,7 @@ const TeacherDashboard = () => {
       toast({ title: "Fee sent", description: "Fee details have been sent to admin for review." });
       setFeeForm({ month: new Date().toISOString().slice(0, 7), totalHours: "", feePerHour: "", classDates: "", subjects: "" });
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -594,7 +594,7 @@ const TeacherDashboard = () => {
       });
       fetchData();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     }
   };
   
@@ -618,7 +618,7 @@ const TeacherDashboard = () => {
       setDeletingItem(null);
       fetchData();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     }
   };
   
@@ -673,7 +673,7 @@ const TeacherDashboard = () => {
       setEditingAttendance(null);
       fetchData();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -723,7 +723,7 @@ const TeacherDashboard = () => {
       setEditingAssignment(null);
       fetchData();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -767,7 +767,7 @@ const TeacherDashboard = () => {
       setEditingMeet(null);
       fetchData();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -797,7 +797,7 @@ const TeacherDashboard = () => {
       toast({ title: "Marked as viewed", description: "Assignment has been reviewed successfully." });
       fetchData();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
     }
   };
 

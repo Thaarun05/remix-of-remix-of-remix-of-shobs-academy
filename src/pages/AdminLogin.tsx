@@ -66,7 +66,7 @@ const AdminLogin = () => {
         return;
       }
       toast({
-        title: "Welcome back!",
+        title: "Welcome back",
         description: "You have successfully signed in as administrator."
       });
     } catch (error: any) {

@@ -210,7 +210,7 @@ export const AdminTeacherMessaging = ({ userRole }: Props) => {
         .select("id")
         .single();
       if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
+        toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
         return;
       }
       conversationId = data.id;
@@ -235,7 +235,7 @@ export const AdminTeacherMessaging = ({ userRole }: Props) => {
       setContent("");
       await loadMessages(selectedPeer.conversation_id);
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: "Something went wrong", description: e.message, variant: "destructive" });
     } finally {
       setSending(false);
     }
