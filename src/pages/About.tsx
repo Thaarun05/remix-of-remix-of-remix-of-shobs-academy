@@ -197,17 +197,17 @@ const About = () => {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {coreValues.map((value, idx) => (
-              <div
+              <Reveal
                 key={value.title}
-                className="text-center p-6 rounded-2xl bg-card border border-border/50 shadow-md hover:shadow-lg transition-shadow animate-fade-in"
-                style={{ animationDelay: `${0.1 * idx}s` }}
+                delay={idx * 90}
+                className="group text-center p-6 rounded-2xl bg-card border border-border/50 shadow-md hover:shadow-lg lift-hover"
               >
-                <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <value.icon className="h-7 w-7 text-primary" />
+                <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 transition-colors duration-300 group-hover:bg-primary/20">
+                  <value.icon className="h-7 w-7 text-primary transition-transform duration-300 group-hover:scale-110" />
                 </div>
                 <h4 className="font-semibold text-lg text-foreground mb-2">{value.title}</h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">{value.description}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -224,17 +224,17 @@ const About = () => {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, idx) => (
-              <div
+              <Reveal
                 key={feature.title}
-                className="feature-card animate-fade-in"
-                style={{ animationDelay: `${0.1 * idx}s` }}
+                delay={idx * 80}
+                className="feature-card group lift-hover"
               >
                 <div className="feature-icon-wrapper">
-                  <feature.icon className="h-8 w-8 text-primary" />
+                  <feature.icon className="h-8 w-8 text-primary transition-transform duration-300 group-hover:scale-110" />
                 </div>
                 <h4 className="font-semibold text-lg text-foreground mb-2">{feature.title}</h4>
                 <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -251,14 +251,14 @@ const About = () => {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
             {subjects.map((subject, idx) => (
-              <div
+              <Reveal
                 key={subject}
-                className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50 animate-fade-in"
-                style={{ animationDelay: `${0.05 * idx}s` }}
+                delay={idx * 55}
+                className="group flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50 lift-hover"
               >
-                <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
+                <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0 transition-transform duration-300 group-hover:scale-110" />
                 <span className="text-foreground font-medium">{subject}</span>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -272,7 +272,7 @@ const About = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Students Card */}
-            <div className="serve-card animate-fade-in" style={{ animationDelay: "0.1s" }}>
+            <Reveal className="serve-card lift-hover" delay={80}>
               <div className="serve-icon-wrapper">
                 <GraduationCap className="h-10 w-10 text-student" />
               </div>
@@ -299,10 +299,10 @@ const About = () => {
                   Those looking to get ahead or catch up in school
                 </li>
               </ul>
-            </div>
+            </Reveal>
 
             {/* Parents Card */}
-            <div className="serve-card animate-fade-in" style={{ animationDelay: "0.2s" }}>
+            <Reveal className="serve-card lift-hover" delay={180}>
               <div className="serve-icon-wrapper">
                 <Users className="h-10 w-10 text-teacher" />
               </div>
@@ -329,7 +329,7 @@ const About = () => {
                   Families in different time zones worldwide
                 </li>
               </ul>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -350,16 +350,16 @@ const About = () => {
               "Modern technology platform for seamless online learning",
               "Commitment to student success and continuous improvement"
             ].map((reason, idx) => (
-              <div
+              <Reveal
                 key={idx}
-                className="flex items-start gap-4 p-4 rounded-xl bg-card border border-border/50 animate-fade-in"
-                style={{ animationDelay: `${0.05 * idx}s` }}
+                delay={idx * 55}
+                className="group flex items-start gap-4 p-4 rounded-xl bg-card border border-border/50 lift-hover"
               >
-                <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5 transition-transform duration-300 group-hover:scale-110">
                   <span className="text-primary font-bold text-sm">{idx + 1}</span>
                 </div>
                 <p className="text-foreground">{reason}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -389,9 +389,9 @@ const About = () => {
             </div>
             <div className="mt-8">
               <Link to="/">
-                <Button size="lg" className="gap-2">
+                <Button size="lg" className="group gap-2 cta-motion">
                   Book a Free Demo
-                  <ArrowLeft className="h-4 w-4 rotate-180" />
+                  <ArrowRight className="arrow-travel h-4 w-4" />
                 </Button>
               </Link>
             </div>
