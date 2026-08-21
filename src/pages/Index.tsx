@@ -12,6 +12,25 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Seo } from "@/components/Seo";
 import { Reveal } from "@/components/Reveal";
+import { KineticHeadline } from "@/components/marketing/KineticHeadline";
+import { MagneticButton } from "@/components/marketing/MagneticButton";
+import { AnimatedCounter } from "@/components/marketing/AnimatedCounter";
+import { SubjectExplorer } from "@/components/marketing/SubjectExplorer";
+import { HowItWorks } from "@/components/marketing/HowItWorks";
+
+const stats = [
+  { value: 8, suffix: "", label: "Countries taught in" },
+  { value: 12, suffix: "", label: "Grades covered, 1 to 12" },
+  { value: 15, suffix: "+", label: "Subject specialists" },
+  { value: 5000, suffix: "+", label: "Lessons delivered" },
+];
+
+const floatingChips = [
+  { label: "Mathematics", top: "-4%", left: "-14%", delay: "0s" },
+  { label: "Physics", top: "22%", left: "88%", delay: "1.2s" },
+  { label: "English", top: "78%", left: "-10%", delay: "2.1s" },
+  { label: "Chemistry", top: "96%", left: "72%", delay: "0.6s" },
+];
 
 const countries = [
   { flagUrl: "https://flagcdn.com/w320/us.png", code: "US", name: "USA", description: "Students across multiple states" },
