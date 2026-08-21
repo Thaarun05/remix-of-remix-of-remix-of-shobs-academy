@@ -2773,3 +2773,137 @@
     transform: none !important;
   }
 }
+
+/* ============================================================
+   Midnight Indigo — modern surfaces, gradients & lively motion
+   ============================================================ */
+@layer components {
+  .text-gradient {
+    background-image: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .surface-glass {
+    background: hsl(var(--card) / 0.72);
+    backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid hsl(var(--border) / 0.8);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+  }
+
+  .surface-rim {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .surface-rim::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(140deg, hsl(var(--primary) / 0.45), transparent 45%, hsl(var(--primary-glow) / 0.28));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+  }
+
+  .surface-rim:hover::before { opacity: 1; }
+
+  .glow-hover {
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+
+  .glow-hover:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-glow);
+  }
+
+  .hero-mesh {
+    position: absolute;
+    inset: -20% -10% auto -10%;
+    height: 130%;
+    pointer-events: none;
+    background:
+      radial-gradient(closest-side, hsl(var(--primary) / 0.30), transparent 70%) 12% 18% / 55% 60% no-repeat,
+      radial-gradient(closest-side, hsl(var(--primary-glow) / 0.26), transparent 70%) 82% 8% / 50% 55% no-repeat,
+      radial-gradient(closest-side, hsl(265 80% 60% / 0.22), transparent 70%) 55% 78% / 60% 55% no-repeat;
+    filter: blur(6px);
+    animation: mesh-drift 22s ease-in-out infinite alternate;
+  }
+
+  .grid-lines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(hsl(var(--foreground) / 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.045) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, #000 30%, transparent 80%);
+  }
+
+  .chip-float {
+    animation: chip-float 9s ease-in-out infinite;
+  }
+
+  .magnetic {
+    transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease;
+    will-change: transform;
+  }
+
+  .kinetic-word {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(0.5em) rotate(2deg);
+    animation: kinetic-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .shimmer-text {
+    background: linear-gradient(100deg, hsl(var(--primary)) 20%, hsl(var(--primary-glow)) 40%, hsl(var(--primary)) 60%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer-slide 5s linear infinite;
+  }
+}
+
+@keyframes mesh-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(-2%, 2%, 0) scale(1.06); }
+  100% { transform: translate3d(2%, -2%, 0) scale(1.02); }
+}
+
+@keyframes chip-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50%      { transform: translateY(-14px) rotate(1.5deg); }
+}
+
+@keyframes kinetic-in {
+  to { opacity: 1; transform: translateY(0) rotate(0); }
+}
+
+@keyframes shimmer-slide {
+  to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-mesh,
+  .chip-float,
+  .shimmer-text { animation: none !important; }
+
+  .kinetic-word {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+
+  .glow-hover:hover,
+  .magnetic { transform: none !important; }
+}
