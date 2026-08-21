@@ -26,10 +26,10 @@ const stats = [
 ];
 
 const floatingChips = [
-  { label: "Mathematics", top: "-4%", left: "-14%", delay: "0s" },
-  { label: "Physics", top: "22%", left: "88%", delay: "1.2s" },
-  { label: "English", top: "78%", left: "-10%", delay: "2.1s" },
-  { label: "Chemistry", top: "96%", left: "72%", delay: "0.6s" },
+  { label: "Mathematics", top: "-8%", left: "-16%", delay: "0s" },
+  { label: "Physics", top: "18%", left: "100%", delay: "1.2s" },
+  { label: "English", top: "86%", left: "-18%", delay: "2.1s" },
+  { label: "Chemistry", top: "102%", left: "62%", delay: "0.6s" },
 ];
 
 const countries = [
@@ -154,7 +154,7 @@ const Index = () => {
             <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {stats.map(({ value, suffix, label }, i) => (
                 <Reveal key={label} delay={i * 90}>
-                  <AnimatedCounter value={value} suffix={suffix} label={label} />
+                  <AnimatedCounter value={value} suffix={suffix} label={label} onDark />
                 </Reveal>
               ))}
             </div>
