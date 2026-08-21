@@ -246,34 +246,34 @@ const Index = () => {
 
 
         {/* WHERE WE TEACH */}
-        <section id="about-section" className="px-6 py-20" aria-labelledby="reach-heading">
+        <section id="about-section" className="border-y border-border bg-secondary/50 px-6 py-20" aria-labelledby="reach-heading">
           <div className="mx-auto max-w-6xl">
-            <div className="max-w-2xl">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Where we teach</p>
-              <h2 id="reach-heading" className="font-serif text-3xl font-bold text-foreground sm:text-4xl">
+            <Reveal className="max-w-2xl">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">Where we teach</p>
+              <h2 id="reach-heading" className="font-display text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
                 An academy without borders
               </h2>
               <p className="mt-4 text-base leading-relaxed text-muted-foreground">
                 Headquartered in Coimbatore, India, we teach families across eight countries with
                 timetables built around each student's local school day.
               </p>
-            </div>
+            </Reveal>
 
             <ul className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {countries.map((country, i) => (
-                <Reveal key={country.code} as="li" delay={i * 60} className="group rounded-xl border border-border bg-card p-5 shadow-sm lift-hover hover:shadow-md">
+                <Reveal key={country.code} as="li" delay={i * 60} className="group surface-rim glow-hover rounded-2xl border border-border/70 bg-card p-5">
                   <img
                     src={country.flagUrl}
                     alt={`Flag of ${country.name}`}
                     loading="lazy"
                     width={64}
                     height={42}
-                    className="mb-4 h-8 w-auto rounded border border-border object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="mb-4 h-8 w-auto rounded border border-border object-cover transition-transform duration-300 group-hover:scale-110"
                   />
                   <span className="block font-mono text-xs font-semibold uppercase tracking-[0.16em] text-primary">
                     {country.code}
                   </span>
-                  <h3 className="mt-1 font-serif text-base font-bold text-foreground">{country.name}</h3>
+                  <h3 className="mt-1 font-display text-base font-bold text-foreground">{country.name}</h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{country.description}</p>
                 </Reveal>
               ))}
@@ -291,21 +291,23 @@ const Index = () => {
         </section>
 
         {/* PORTALS */}
-        <section className="border-t border-border bg-secondary/60 px-6 py-20" aria-labelledby="portals-heading">
+        <section className="px-6 py-20" aria-labelledby="portals-heading">
           <div className="mx-auto max-w-6xl">
-            <h2 id="portals-heading" className="font-serif text-3xl font-bold text-foreground sm:text-4xl">
-              Sign in to your portal
-            </h2>
-            <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
-              Accounts are created by the academy office. If you need access, request it from your teacher.
-            </p>
+            <Reveal>
+              <h2 id="portals-heading" className="font-display text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+                Sign in to your portal
+              </h2>
+              <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
+                Accounts are created by the academy office. If you need access, request it from your teacher.
+              </p>
+            </Reveal>
             <div className="mt-12 grid gap-6 md:grid-cols-3">
               {portals.map(({ to, icon: Icon, iconWrap, iconColor, title, body, variant }, i) => (
-                <Reveal key={to} as="article" delay={i * 90} className="flex flex-col rounded-xl border border-border bg-card p-6 shadow-sm lift-hover hover:shadow-md">
-                  <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-lg border ${iconWrap}`}>
+                <Reveal key={to} as="article" delay={i * 90} className="surface-rim glow-hover flex flex-col rounded-2xl border border-border/70 bg-card p-6">
+                  <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-xl border ${iconWrap}`}>
                     <Icon className={`h-6 w-6 ${iconColor}`} aria-hidden="true" />
                   </div>
-                  <h3 className="font-serif text-lg font-bold text-foreground">{title}</h3>
+                  <h3 className="font-display text-lg font-bold text-foreground">{title}</h3>
                   <p className="mb-6 mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{body}</p>
                   <Link to={to} className="mt-auto">
                     <Button variant={variant} className="group w-full">
@@ -320,14 +322,16 @@ const Index = () => {
         </section>
 
         {/* CTA */}
-        <section className="px-6 py-20" aria-labelledby="cta-heading">
-          <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-primary px-8 py-14 text-center text-primary-foreground shadow-lg">
-            <h2 id="cta-heading" className="font-serif text-3xl font-bold text-primary-foreground sm:text-4xl">
-              Start with a free demo lesson
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-primary-foreground/80">
-              Tell us the subject and year group. We will match a specialist teacher and arrange a
-              trial lesson at a time that suits your family.
+        <section className="px-6 pb-24 pt-4" aria-labelledby="cta-heading">
+          <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-border bg-[image:var(--gradient-midnight)] px-8 py-16 text-center text-primary-foreground shadow-[var(--shadow-xl)]">
+            <span aria-hidden="true" className="hero-mesh" />
+            <div className="relative">
+              <h2 id="cta-heading" className="font-display text-3xl font-extrabold tracking-tight text-primary-foreground sm:text-4xl">
+                Start with a free demo lesson
+              </h2>
+              <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-primary-foreground/80">
+                Tell us the subject and year group. We will match a specialist teacher and arrange a
+                trial lesson at a time that suits your family.
             </p>
             <div className="mt-8 flex justify-center">
               <DemoRequestForm />
