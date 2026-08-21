@@ -52,13 +52,6 @@ const pillars = [
   { icon: BookOpen, title: "Wide subject cover", body: "Mathematics, Physics, Chemistry, Biology, English and standardised test preparation for K-12 and beyond." },
 ];
 
-const steps = [
-  { step: "01", title: "Book a free demo", body: "Tell us the student's year group, subject and goals. We arrange a no-obligation trial lesson." },
-  { step: "02", title: "Meet your teacher", body: "The demo doubles as an assessment. The teacher identifies gaps and proposes a plan for the term." },
-  { step: "03", title: "Start regular classes", body: "Lessons run to an agreed timetable with worksheets, quizzes and attendance logged after every session." },
-  { step: "04", title: "Track the results", body: "Parents and students follow attendance, submissions and scores in the portal and receive regular updates." },
-];
-
 const portals = [
   { to: "/student-login", icon: GraduationCap, iconWrap: "bg-student/10 border-student/20", iconColor: "text-student", title: "Student portal", body: "Class links, assignments, worksheets, quizzes and attendance in one place.", variant: "student" as const },
   { to: "/teacher-login", icon: Users, iconWrap: "bg-teacher/10 border-teacher/20", iconColor: "text-teacher", title: "Teacher portal", body: "Record attendance, set work, build worksheets and message students.", variant: "teacher" as const },
