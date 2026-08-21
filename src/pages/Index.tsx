@@ -332,9 +332,12 @@ const Index = () => {
               <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-primary-foreground/80">
                 Tell us the subject and year group. We will match a specialist teacher and arrange a
                 trial lesson at a time that suits your family.
-            </p>
-            <div className="mt-8 flex justify-center">
-              <DemoRequestForm />
+              </p>
+              <div className="mt-8 flex justify-center">
+                <MagneticButton>
+                  <DemoRequestForm />
+                </MagneticButton>
+              </div>
             </div>
           </div>
         </section>
