@@ -113,7 +113,7 @@ const About = () => {
           <Logo size="lg" className="mx-auto float-slow" />
         </div>
         <Reveal>
-          <h1 className="font-serif text-4xl sm:text-5xl font-bold text-foreground mb-4">
+          <h1 className="font-display text-4xl sm:text-5xl font-bold text-foreground mb-4">
             About Shobs Academy
           </h1>
         </Reveal>
@@ -134,7 +134,7 @@ const About = () => {
                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Target className="h-6 w-6 text-primary" />
                 </div>
-                <h2 className="text-2xl font-serif font-bold text-foreground">Our Mission</h2>
+                <h2 className="text-2xl font-display font-bold text-foreground">Our Mission</h2>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 To provide accessible, high-quality, personalized education that empowers students 
@@ -149,7 +149,7 @@ const About = () => {
                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Star className="h-6 w-6 text-primary" />
                 </div>
-                <h2 className="text-2xl font-serif font-bold text-foreground">Our Vision</h2>
+                <h2 className="text-2xl font-display font-bold text-foreground">Our Vision</h2>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 To become the leading global online tutoring platform, recognized for transforming 
@@ -164,7 +164,7 @@ const About = () => {
       {/* Our Story Section */}
       <section className="py-16 px-6 bg-secondary/60 border-t border-border/50">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-center mb-8 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-8 text-foreground">
             Our Story
           </h2>
           <div className="prose prose-lg max-w-none text-muted-foreground space-y-4">
@@ -192,7 +192,7 @@ const About = () => {
       {/* Core Values Section */}
       <section className="py-16 px-6 bg-background">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-center mb-12 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-12 text-foreground">
             Our Core Values
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -216,7 +216,7 @@ const About = () => {
       {/* Features Section */}
       <section className="py-16 px-6 bg-secondary/60 border-t border-border/50">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-center mb-4 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-4 text-foreground">
             What We Offer
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
@@ -243,7 +243,7 @@ const About = () => {
       {/* Subjects Section */}
       <section className="py-16 px-6 bg-background border-t border-border/50">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-center mb-4 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-4 text-foreground">
             Subjects We Teach
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
@@ -267,7 +267,7 @@ const About = () => {
       {/* Who We Serve Section */}
       <section className="py-16 px-6 bg-secondary/60">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-center mb-12 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-12 text-foreground">
             Who We Serve
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -337,7 +337,7 @@ const About = () => {
       {/* Why Choose Us Section */}
       <section className="py-16 px-6 bg-background border-t border-border/50">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-center mb-12 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-12 text-foreground">
             Why Choose Shobs Academy?
           </h2>
           <div className="grid gap-4">
