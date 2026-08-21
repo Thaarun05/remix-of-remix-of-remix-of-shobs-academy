@@ -6,105 +6,106 @@
 
 @layer base {
   :root {
-    /* ===== Navy Trust — Shobs Academy (Light) ===== */
-    --background: 210 33% 98%;
-    --background-alt: 212 33% 95%;
-    --foreground: 226 45% 14%;
+    /* ===== Midnight Indigo — Shobs Academy (Light) ===== */
+    --background: 240 40% 99%;
+    --background-alt: 240 33% 96%;
+    --foreground: 240 45% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 226 45% 14%;
+    --card-foreground: 240 45% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 226 45% 14%;
+    --popover-foreground: 240 45% 11%;
 
-    /* Deep navy primary */
-    --primary: 212 52% 25%;
-    --primary-foreground: 210 40% 98%;
-    --primary-glow: 209 46% 43%;
+    /* Electric indigo primary */
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 246 85% 71%;
 
-    --secondary: 212 33% 93%;
-    --secondary-foreground: 226 45% 18%;
+    --secondary: 240 30% 95%;
+    --secondary-foreground: 240 45% 16%;
 
-    --muted: 212 26% 94%;
-    --muted-foreground: 214 16% 42%;
+    --muted: 240 24% 95%;
+    --muted-foreground: 240 12% 42%;
 
-    --accent: 212 33% 93%;
-    --accent-foreground: 226 45% 16%;
+    --accent: 243 60% 96%;
+    --accent-foreground: 243 60% 30%;
 
-    --destructive: 0 65% 45%;
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 158 52% 32%;
+    --success: 158 58% 34%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 72% 42%;
+    --warning: 38 82% 45%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 212 24% 88%;
-    --input: 212 24% 86%;
-    --ring: 209 46% 43%;
+    --border: 240 22% 89%;
+    --input: 240 22% 87%;
+    --ring: 243 75% 59%;
 
-    --radius: 0.75rem;
+    --radius: 0.9rem;
 
-    /* Brass accent (authority / admin) */
-    --gold: 38 55% 42%;
-    --gold-light: 38 60% 55%;
-    --gold-dark: 38 55% 32%;
+    /* Secondary accent (authority / admin) */
+    --gold: 43 74% 49%;
+    --gold-light: 43 80% 62%;
+    --gold-dark: 43 70% 38%;
 
-    /* Gradients — restrained, single family */
-    --gradient-primary: linear-gradient(135deg, hsl(226 55% 18%), hsl(209 46% 43%));
-    --gradient-secondary: linear-gradient(135deg, hsl(212 52% 25%), hsl(209 46% 50%));
-    --gradient-success: linear-gradient(135deg, hsl(158 52% 30%), hsl(158 45% 38%));
-    --gradient-hero: linear-gradient(180deg, hsl(210 33% 99%), hsl(212 33% 95%));
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(212 30% 99%));
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(243 75% 59%), hsl(258 80% 66%));
+    --gradient-secondary: linear-gradient(135deg, hsl(240 51% 24%), hsl(243 75% 59%));
+    --gradient-success: linear-gradient(135deg, hsl(158 55% 32%), hsl(165 50% 40%));
+    --gradient-hero: linear-gradient(180deg, hsl(240 40% 99%), hsl(240 33% 96%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(240 40% 99%));
+    --gradient-midnight: linear-gradient(140deg, hsl(240 45% 6%), hsl(240 41% 14%) 55%, hsl(240 51% 22%));
 
-    /* Ambient background — very subtle */
+    /* Ambient mesh */
     --bg-pattern:
-      radial-gradient(ellipse 1200px 600px at 12% 0%, hsla(212, 45%, 45%, 0.05), transparent 60%),
-      radial-gradient(ellipse 900px 480px at 88% 8%, hsla(226, 50%, 35%, 0.04), transparent 55%);
+      radial-gradient(ellipse 1100px 620px at 12% -5%, hsla(243, 75%, 59%, 0.08), transparent 60%),
+      radial-gradient(ellipse 900px 520px at 92% 4%, hsla(258, 80%, 66%, 0.07), transparent 55%);
 
-    /* Three shadow levels + focus */
-    --shadow-sm: 0 1px 2px 0 hsla(226, 45%, 14%, 0.06);
-    --shadow-md: 0 2px 6px -1px hsla(226, 45%, 14%, 0.08), 0 1px 3px -1px hsla(226, 45%, 14%, 0.05);
-    --shadow-lg: 0 10px 24px -8px hsla(226, 45%, 14%, 0.14), 0 2px 6px -2px hsla(226, 45%, 14%, 0.06);
-    --shadow-xl: var(--shadow-lg);
-    --shadow-2xl: var(--shadow-lg);
+    --shadow-sm: 0 1px 2px 0 hsla(240, 45%, 11%, 0.06);
+    --shadow-md: 0 2px 8px -2px hsla(240, 45%, 11%, 0.09), 0 1px 3px -1px hsla(240, 45%, 11%, 0.05);
+    --shadow-lg: 0 14px 34px -12px hsla(243, 60%, 30%, 0.20), 0 3px 8px -3px hsla(240, 45%, 11%, 0.07);
+    --shadow-xl: 0 24px 60px -20px hsla(243, 60%, 30%, 0.26);
+    --shadow-2xl: var(--shadow-xl);
     --shadow-2xs: var(--shadow-sm);
     --shadow-xs: var(--shadow-sm);
     --shadow: var(--shadow-md);
-    --shadow-glow: none;
-    --shadow-primary: var(--shadow-md);
-    --shadow-indigo: var(--shadow-md);
+    --shadow-glow: 0 0 0 1px hsl(var(--primary) / 0.14), 0 12px 40px -12px hsl(var(--primary) / 0.35);
+    --shadow-primary: var(--shadow-lg);
+    --shadow-indigo: 0 10px 30px -12px hsl(243 75% 59% / 0.45);
     --shadow-card: var(--shadow-sm);
-    --shadow-card-hover: var(--shadow-md);
+    --shadow-card-hover: var(--shadow-lg);
 
-    --sidebar-background: 226 52% 16%;
-    --sidebar-foreground: 210 30% 88%;
-    --sidebar-primary: 209 46% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 226 45% 22%;
+    --sidebar-background: 240 45% 8%;
+    --sidebar-foreground: 240 20% 84%;
+    --sidebar-primary: 246 85% 71%;
+    --sidebar-primary-foreground: 240 45% 8%;
+    --sidebar-accent: 240 45% 16%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 226 40% 24%;
-    --sidebar-ring: 209 46% 48%;
-    --sidebar: 226 52% 16%;
+    --sidebar-border: 240 38% 20%;
+    --sidebar-ring: 246 85% 71%;
+    --sidebar: 240 45% 8%;
 
-    /* Role accents — one family */
-    --student: 209 46% 40%;
+    /* Role accents */
+    --student: 243 75% 59%;
     --student-foreground: 0 0% 100%;
-    --teacher: 226 50% 24%;
+    --teacher: 265 70% 58%;
     --teacher-foreground: 0 0% 100%;
-    --admin: 38 55% 38%;
+    --admin: 43 74% 45%;
     --admin-foreground: 0 0% 100%;
 
-    --chart-1: 212 52% 30%;
-    --chart-2: 209 46% 45%;
-    --chart-3: 196 40% 50%;
-    --chart-4: 38 55% 45%;
-    --chart-5: 214 16% 55%;
+    --chart-1: 243 75% 59%;
+    --chart-2: 258 80% 66%;
+    --chart-3: 196 70% 50%;
+    --chart-4: 43 74% 52%;
+    --chart-5: 240 12% 58%;
 
-    --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    --font-serif: 'Libre Baskerville', ui-serif, Georgia, 'Times New Roman', serif;
-    --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --font-sans: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-display: 'Sora', 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: 'Sora', 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
     --tracking-normal: 0em;
     --spacing: 0.25rem;
