@@ -43,7 +43,7 @@ export function AdminWorkDone() {
 
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<StudentRow[]>([]);
-  const [yearEntries, setYearEntries] = useState<WorkEntry[]>([]);
+  const [monthCounts, setMonthCounts] = useState<number[]>(new Array(12).fill(0));
   const [monthEntries, setMonthEntries] = useState<WorkEntry[]>([]);
   const [monthSubmissions, setMonthSubmissions] = useState<Submission[]>([]);
   const [loadingYear, setLoadingYear] = useState(false);
