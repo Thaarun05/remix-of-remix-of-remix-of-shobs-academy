@@ -28,6 +28,7 @@ function toISODate(y: number, m: number, d: number) { return `${y}-${pad(m + 1)}
 
 type View = "year" | "month" | "week";
 const ALL = "__all__";
+const PAGE_SIZE = 1000;
 
 export function AdminWorkDone() {
   const { toast } = useToast();
