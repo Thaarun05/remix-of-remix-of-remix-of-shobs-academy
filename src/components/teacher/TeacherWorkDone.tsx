@@ -279,57 +279,43 @@ export function TeacherWorkDone() {
                 <h3 className="font-semibold text-lg">{expandedHeading}</h3>
 
                 {expandedEntries.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No entries logged for this day yet.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No attendance marked for this day. Work Done updates automatically when you mark
+                    attendance in the Attendance tab.
+                  </p>
                 ) : (
                   <div className="divide-y divide-border">
                     {expandedEntries.map(e => {
                       const sName = students.find(s => s.user_id === e.student_user_id)?.student_name || "Unknown";
+                      const present = (e.status || "present") === "present";
                       return (
-                        <div key={e.id} className="flex items-start justify-between py-3 first:pt-0 last:pb-0">
-                          <div className="flex flex-col">
+                        <div key={e.id} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                          <div className="flex flex-col gap-1">
                             <span className="font-semibold text-base">{sName}</span>
-                            <span className="text-xs text-muted-foreground mt-0.5">
-                              {e.start_time || "--"} – {e.end_time || "--"}{e.topic ? ` · ${e.topic}` : ""}
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(e.date + "T00:00:00").toLocaleDateString()}
+                              {e.start_time && e.end_time
+                                ? ` · ${e.start_time.slice(0, 5)} – ${e.end_time.slice(0, 5)}`
+                                : ""}
+                              {e.hours != null ? ` · ${e.hours}h` : ""}
+                            </span>
+                            <span className="text-sm">
+                              {e.topic ? e.topic : <span className="text-muted-foreground">No work noted</span>}
                             </span>
                           </div>
-                          <Button variant="ghost" size="icon" aria-label="Delete entry" onClick={() => handleDelete(e.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <Badge className={present ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}>
+                            {present ? "Present" : "Absent"}
+                          </Badge>
                         </div>
                       );
                     })}
                   </div>
                 )}
 
-                <div className="pt-4 border-t space-y-4">
-                  <h4 className="font-medium">Add Entry</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Student</Label>
-                      <Select value={form.student_user_id} onValueChange={(v) => setForm({ ...form, student_user_id: v })}>
-                        <SelectTrigger><SelectValue placeholder="Select student" /></SelectTrigger>
-                        <SelectContent>
-                          {students.map(s => (
-                            <SelectItem key={s.user_id} value={s.user_id}>{s.student_name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Topic</Label>
-                      <Input value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} placeholder="e.g. Algebra basics" />
-                    </div>
-                    <div>
-                      <Label>Start Time</Label>
-                      <Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
-                    </div>
-                    <div>
-                      <Label>End Time</Label>
-                      <Input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
-                    </div>
-                  </div>
-                  <Button onClick={handleSave} variant="teacher">Save entry</Button>
-                </div>
+                <p className="text-xs text-muted-foreground italic pt-3 border-t">
+                  This log mirrors your attendance records. To add, edit or remove an entry, use the
+                  Attendance tab — changes appear here automatically.
+                </p>
               </div>
             )}
           </CardContent>
