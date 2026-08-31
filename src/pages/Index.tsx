@@ -85,7 +85,7 @@ const Index = () => {
 
       <main id="main-content">
         {/* HERO */}
-        <section className="relative overflow-hidden border-b border-border bg-[image:var(--gradient-midnight)] text-primary-foreground">
+        <section className="relative overflow-hidden border-b border-border bg-[image:var(--gradient-midnight)] text-white">
           <span aria-hidden="true" className="hero-mesh" />
           <span aria-hidden="true" className="grid-lines" />
 
