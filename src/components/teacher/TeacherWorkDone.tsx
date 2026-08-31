@@ -37,12 +37,6 @@ const DAY_SHORT = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
 function pad(n: number) { return n.toString().padStart(2, "0"); }
 function toISODate(y: number, m: number, d: number) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
-function diffHours(start: string, end: string): number {
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  const mins = (eh * 60 + em) - (sh * 60 + sm);
-  return mins > 0 ? +(mins / 60).toFixed(2) : 0;
-}
 
 type View = "year" | "month" | "week";
 
