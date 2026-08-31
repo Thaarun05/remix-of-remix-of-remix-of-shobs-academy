@@ -49,6 +49,8 @@ export interface AttendanceRecord {
   topic: string | null;
   student_user_id: string;
   student_name?: string;
+  start_time?: string | null;
+  end_time?: string | null;
   deleted_at?: string | null;
 }
 
@@ -75,6 +77,8 @@ export interface AttendanceForm {
   status: "present" | "absent";
   hours: string;
   topic: string;
+  startTime: string;
+  endTime: string;
 }
 
 export interface AssignmentForm {

@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -15,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ChevronLeft, ChevronRight, ArrowLeft, Trash2, Loader2, Send } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Loader2, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -24,7 +21,11 @@ interface Student { user_id: string; student_name: string; }
 interface WorkEntry {
   id: string; date: string; student_user_id: string;
   start_time: string | null; end_time: string | null; topic: string | null; hours: number | null;
+  status: string | null;
 }
+
+const PAGE_SIZE = 1000;
+const ENTRY_COLUMNS = "id, date, student_user_id, start_time, end_time, topic, hours, status";
 
 const MONTH_NAMES = [
   "January","February","March","April","May","June",
@@ -36,12 +37,6 @@ const DAY_SHORT = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
 function pad(n: number) { return n.toString().padStart(2, "0"); }
 function toISODate(y: number, m: number, d: number) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
-function diffHours(start: string, end: string): number {
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  const mins = (eh * 60 + em) - (sh * 60 + sm);
-  return mins > 0 ? +(mins / 60).toFixed(2) : 0;
-}
 
 type View = "year" | "month" | "week";
 
@@ -58,17 +53,13 @@ export function TeacherWorkDone() {
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
 
   const [students, setStudents] = useState<Student[]>([]);
-  const [yearEntries, setYearEntries] = useState<WorkEntry[]>([]);
+  const [monthCounts, setMonthCounts] = useState<number[]>(new Array(12).fill(0));
   const [monthEntries, setMonthEntries] = useState<WorkEntry[]>([]);
   const [monthSubmission, setMonthSubmission] = useState<{ status: string } | null>(null);
   const [loadingYear, setLoadingYear] = useState(false);
   const [loadingMonth, setLoadingMonth] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  const [form, setForm] = useState({
-    student_user_id: "", start_time: "09:00", end_time: "10:00", topic: "",
-  });
 
   // Load students once
   useEffect(() => {
@@ -90,24 +81,28 @@ export function TeacherWorkDone() {
     })();
   }, [user]);
 
-  // Load year entries (for month badges in Level 1)
+  // Level 1 badges: exact per-month counts (count-only queries, never row-capped)
   const loadYear = async () => {
     if (!user) return;
     setLoadingYear(true);
-    const start = `${year}-01-01`;
-    const end = `${year}-12-31`;
-    const { data } = await supabase
-      .from("attendance_records")
-      .select("id, date, student_user_id, start_time, end_time, topic, hours")
-      .eq("teacher_user_id", user.id)
-      .gte("date", start).lte("date", end)
-      .is("deleted_at", null);
-    setYearEntries(((data || []) as unknown) as WorkEntry[]);
+    const results = await Promise.all(
+      Array.from({ length: 12 }, (_, m) => {
+        const lastDay = new Date(year, m + 1, 0).getDate();
+        return supabase
+          .from("attendance_records")
+          .select("id", { count: "exact", head: true })
+          .eq("teacher_user_id", user.id)
+          .gte("date", toISODate(year, m, 1))
+          .lte("date", toISODate(year, m, lastDay))
+          .is("deleted_at", null);
+      })
+    );
+    setMonthCounts(results.map(r => r.count || 0));
     setLoadingYear(false);
   };
   useEffect(() => { loadYear(); /* eslint-disable-next-line */ }, [user, year]);
 
-  // Load month entries + submission (Level 2/3)
+  // Load month entries + submission (Level 2/3), paginated so nothing is dropped
   const loadMonth = async () => {
     if (!user) return;
     setLoadingMonth(true);
@@ -115,22 +110,32 @@ export function TeacherWorkDone() {
     const start = toISODate(year, selectedMonth, 1);
     const end = toISODate(year, selectedMonth, lastDay);
     const monthKey = `${year}-${pad(selectedMonth + 1)}`;
-    const [recsRes, subRes] = await Promise.all([
-      supabase
+
+    const rows: WorkEntry[] = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await supabase
         .from("attendance_records")
-        .select("id, date, student_user_id, start_time, end_time, topic, hours")
+        .select(ENTRY_COLUMNS)
         .eq("teacher_user_id", user.id)
         .gte("date", start).lte("date", end)
-        .is("deleted_at", null),
-      supabase
-        .from("teacher_work_submissions")
-        .select("status")
-        .eq("teacher_user_id", user.id)
-        .eq("work_date", `${monthKey}-01`)
-        .maybeSingle(),
-    ]);
-    setMonthEntries(((recsRes.data || []) as unknown) as WorkEntry[]);
-    setMonthSubmission(subRes.data ? { status: (subRes.data as any).status } : null);
+        .is("deleted_at", null)
+        .order("date", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) break;
+      const page = ((data || []) as unknown) as WorkEntry[];
+      rows.push(...page);
+      if (page.length < PAGE_SIZE) break;
+    }
+
+    const { data: sub } = await supabase
+      .from("teacher_work_submissions")
+      .select("status")
+      .eq("teacher_user_id", user.id)
+      .eq("work_date", `${monthKey}-01`)
+      .maybeSingle();
+
+    setMonthEntries(rows);
+    setMonthSubmission(sub ? { status: (sub as any).status } : null);
     setLoadingMonth(false);
   };
   useEffect(() => {
@@ -138,15 +143,6 @@ export function TeacherWorkDone() {
     // eslint-disable-next-line
   }, [user, year, selectedMonth, view]);
 
-  // Year-level: count per month
-  const monthCounts = useMemo(() => {
-    const arr = new Array(12).fill(0);
-    for (const e of yearEntries) {
-      const m = parseInt(e.date.slice(5, 7), 10) - 1;
-      if (m >= 0 && m < 12) arr[m] += 1;
-    }
-    return arr;
-  }, [yearEntries]);
 
   // Build weeks of selectedMonth (Mon-Sun)
   const weeks = useMemo(() => {
@@ -199,66 +195,8 @@ export function TeacherWorkDone() {
     return `${SHORT_MONTH[start.getMonth()]} ${start.getDate()} to ${SHORT_MONTH[end.getMonth()]} ${end.getDate()}`;
   };
 
-  const handleSave = async () => {
-    if (!user || !expandedDate) return;
-    if (!form.student_user_id) return toast({ title: "Select a student", variant: "destructive" });
-    if (!form.start_time || !form.end_time) return toast({ title: "Set start and end time", variant: "destructive" });
-    const hours = diffHours(form.start_time, form.end_time);
-    if (hours <= 0) return toast({ title: "End time must be after start time", variant: "destructive" });
 
-    // Check if an attendance row already exists for this student+date+teacher.
-    // Work Done / notes must only ever UPDATE the existing row — never insert a duplicate.
-    const { data: existing, error: findErr } = await supabase
-      .from("attendance_records")
-      .select("id")
-      .eq("teacher_user_id", user.id)
-      .eq("student_user_id", form.student_user_id)
-      .eq("date", expandedDate)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (findErr) return toast({ title: "Failed to save", description: findErr.message, variant: "destructive" });
 
-    if (existing?.id) {
-      const { error } = await supabase
-        .from("attendance_records")
-        .update({
-          start_time: form.start_time,
-          end_time: form.end_time,
-          hours,
-          topic: form.topic || null,
-        } as any)
-        .eq("id", existing.id);
-      if (error) return toast({ title: "Failed to save", description: error.message, variant: "destructive" });
-    } else {
-      const { error } = await supabase.from("attendance_records").insert({
-        student_user_id: form.student_user_id,
-        teacher_user_id: user.id,
-        date: expandedDate,
-        start_time: form.start_time,
-        end_time: form.end_time,
-        hours,
-        topic: form.topic || null,
-        status: "present",
-      } as any);
-      if (error) return toast({ title: "Failed to save", description: error.message, variant: "destructive" });
-    }
-
-    toast({ title: "Entry saved" });
-    setForm({ ...form, topic: "" });
-    loadMonth(); loadYear();
-  };
-
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from("attendance_records")
-      .update({ deleted_at: new Date().toISOString() } as any)
-      .eq("id", id);
-    if (error) return toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
-    toast({ title: "Entry removed" });
-    loadMonth(); loadYear();
-  };
 
   const handleSubmitMonth = async () => {
     if (!user) return;
@@ -332,57 +270,43 @@ export function TeacherWorkDone() {
                 <h3 className="font-semibold text-lg">{expandedHeading}</h3>
 
                 {expandedEntries.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No entries logged for this day yet.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No attendance marked for this day. Work Done updates automatically when you mark
+                    attendance in the Attendance tab.
+                  </p>
                 ) : (
                   <div className="divide-y divide-border">
                     {expandedEntries.map(e => {
                       const sName = students.find(s => s.user_id === e.student_user_id)?.student_name || "Unknown";
+                      const present = (e.status || "present") === "present";
                       return (
-                        <div key={e.id} className="flex items-start justify-between py-3 first:pt-0 last:pb-0">
-                          <div className="flex flex-col">
+                        <div key={e.id} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                          <div className="flex flex-col gap-1">
                             <span className="font-semibold text-base">{sName}</span>
-                            <span className="text-xs text-muted-foreground mt-0.5">
-                              {e.start_time || "--"} – {e.end_time || "--"}{e.topic ? ` · ${e.topic}` : ""}
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(e.date + "T00:00:00").toLocaleDateString()}
+                              {e.start_time && e.end_time
+                                ? ` · ${e.start_time.slice(0, 5)} – ${e.end_time.slice(0, 5)}`
+                                : ""}
+                              {e.hours != null ? ` · ${e.hours}h` : ""}
+                            </span>
+                            <span className="text-sm">
+                              {e.topic ? e.topic : <span className="text-muted-foreground">No work noted</span>}
                             </span>
                           </div>
-                          <Button variant="ghost" size="icon" aria-label="Delete entry" onClick={() => handleDelete(e.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <Badge className={present ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}>
+                            {present ? "Present" : "Absent"}
+                          </Badge>
                         </div>
                       );
                     })}
                   </div>
                 )}
 
-                <div className="pt-4 border-t space-y-4">
-                  <h4 className="font-medium">Add Entry</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Student</Label>
-                      <Select value={form.student_user_id} onValueChange={(v) => setForm({ ...form, student_user_id: v })}>
-                        <SelectTrigger><SelectValue placeholder="Select student" /></SelectTrigger>
-                        <SelectContent>
-                          {students.map(s => (
-                            <SelectItem key={s.user_id} value={s.user_id}>{s.student_name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Topic</Label>
-                      <Input value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })} placeholder="e.g. Algebra basics" />
-                    </div>
-                    <div>
-                      <Label>Start Time</Label>
-                      <Input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
-                    </div>
-                    <div>
-                      <Label>End Time</Label>
-                      <Input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} />
-                    </div>
-                  </div>
-                  <Button onClick={handleSave} variant="teacher">Save entry</Button>
-                </div>
+                <p className="text-xs text-muted-foreground italic pt-3 border-t">
+                  This log mirrors your attendance records. To add, edit or remove an entry, use the
+                  Attendance tab — changes appear here automatically.
+                </p>
               </div>
             )}
           </CardContent>

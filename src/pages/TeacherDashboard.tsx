@@ -66,6 +66,16 @@ const ProfileTab = lazy(() => import("@/components/teacher/tabs/ProfileTab"));
 const FeesTab = lazy(() => import("@/components/teacher/tabs/FeesTab"));
 const SalaryTab = lazy(() => import("@/components/teacher/tabs/SalaryTab"));
 
+/** Hours between two HH:MM strings; null when either is missing or invalid. */
+function hoursBetween(start: string, end: string): number | null {
+  if (!start || !end) return null;
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return null;
+  const mins = (eh * 60 + em) - (sh * 60 + sm);
+  return mins > 0 ? +(mins / 60).toFixed(2) : null;
+}
+
 const TeacherDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -89,6 +99,8 @@ const TeacherDashboard = () => {
     status: "present" as "present" | "absent",
     hours: "",
     topic: "",
+    startTime: "",
+    endTime: "",
   });
   const [assignmentForm, setAssignmentForm] = useState({
     title: "",
@@ -134,6 +146,8 @@ const TeacherDashboard = () => {
     hours: "",
     topic: "",
     student_user_id: "",
+    startTime: "",
+    endTime: "",
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState<{ table: string; id: string; name: string } | null>(null);
@@ -190,7 +204,7 @@ const TeacherDashboard = () => {
           .order("created_at", { ascending: false }),
         supabase
           .from("attendance_records")
-          .select("id, date, status, hours, topic, student_user_id, deleted_at")
+          .select("id, date, status, hours, topic, student_user_id, start_time, end_time, deleted_at")
           .eq("teacher_user_id", user.id)
           .is("deleted_at", null)
           .order("created_at", { ascending: false })
@@ -277,7 +291,7 @@ const TeacherDashboard = () => {
 
       const { data, error } = await supabase
         .from("attendance_records")
-        .select("id, date, status, hours, topic, student_user_id, deleted_at")
+        .select("id, date, status, hours, topic, student_user_id, start_time, end_time, deleted_at")
         .eq("teacher_user_id", user.id)
         .eq("student_user_id", filterStudent)
         .gte("date", startDate)
@@ -365,13 +379,19 @@ const TeacherDashboard = () => {
     setSubmitting(true);
 
     try {
+      const computedHours = attendanceForm.hours
+        ? parseFloat(attendanceForm.hours)
+        : hoursBetween(attendanceForm.startTime, attendanceForm.endTime);
+
       const { error } = await supabase.from("attendance_records").insert({
         student_user_id: selectedStudent,
         teacher_user_id: user.id,
         date: attendanceForm.date,
         status: attendanceForm.status,
-        hours: attendanceForm.hours ? parseFloat(attendanceForm.hours) : null,
+        hours: computedHours,
         topic: attendanceForm.topic || null,
+        start_time: attendanceForm.startTime || null,
+        end_time: attendanceForm.endTime || null,
       });
 
       if (error) throw error;
@@ -386,7 +406,10 @@ const TeacherDashboard = () => {
         status: "present",
         hours: "",
         topic: "",
+        startTime: "",
+        endTime: "",
       });
+      fetchData();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to save attendance.";
       toast({ title: "Something went wrong", description: errorMessage, variant: "destructive" });
@@ -635,6 +658,8 @@ const TeacherDashboard = () => {
       hours: record.hours?.toString() || "",
       topic: record.topic || "",
       student_user_id: record.student_user_id,
+      startTime: record.start_time ? record.start_time.slice(0, 5) : "",
+      endTime: record.end_time ? record.end_time.slice(0, 5) : "",
     });
     setEditAttendanceDialog(true);
   };
@@ -649,9 +674,13 @@ const TeacherDashboard = () => {
         .update({
           date: editAttendanceForm.date,
           status: editAttendanceForm.status,
-          hours: editAttendanceForm.hours ? parseFloat(editAttendanceForm.hours) : null,
+          hours: editAttendanceForm.hours
+            ? parseFloat(editAttendanceForm.hours)
+            : hoursBetween(editAttendanceForm.startTime, editAttendanceForm.endTime),
           topic: editAttendanceForm.topic || null,
           student_user_id: editAttendanceForm.student_user_id,
+          start_time: editAttendanceForm.startTime || null,
+          end_time: editAttendanceForm.endTime || null,
         })
         .eq("id", editingAttendance.id);
 
@@ -966,6 +995,16 @@ const TeacherDashboard = () => {
                     <SelectItem value="absent">Absent</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Start Time</Label>
+                <Input type="time" value={editAttendanceForm.startTime} onChange={(e) => setEditAttendanceForm({ ...editAttendanceForm, startTime: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>End Time</Label>
+                <Input type="time" value={editAttendanceForm.endTime} onChange={(e) => setEditAttendanceForm({ ...editAttendanceForm, endTime: e.target.value })} />
               </div>
             </div>
             <div className="space-y-2">

@@ -28,6 +28,7 @@ function toISODate(y: number, m: number, d: number) { return `${y}-${pad(m + 1)}
 
 type View = "year" | "month" | "week";
 const ALL = "__all__";
+const PAGE_SIZE = 1000;
 
 export function AdminWorkDone() {
   const { toast } = useToast();
@@ -43,7 +44,7 @@ export function AdminWorkDone() {
 
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<StudentRow[]>([]);
-  const [yearEntries, setYearEntries] = useState<WorkEntry[]>([]);
+  const [monthCounts, setMonthCounts] = useState<number[]>(new Array(12).fill(0));
   const [monthEntries, setMonthEntries] = useState<WorkEntry[]>([]);
   const [monthSubmissions, setMonthSubmissions] = useState<Submission[]>([]);
   const [loadingYear, setLoadingYear] = useState(false);
@@ -65,41 +66,57 @@ export function AdminWorkDone() {
     })();
   }, []);
 
-  // Year-level fetch
+  // Year-level: exact per-month counts (count-only queries, never row-capped)
   const loadYear = async () => {
     setLoadingYear(true);
-    const start = `${year}-01-01`;
-    const end = `${year}-12-31`;
-    const { data } = await supabase
-      .from("attendance_records")
-      .select("id, date, student_user_id, teacher_user_id, start_time, end_time, topic, hours")
-      .gte("date", start).lte("date", end)
-      .is("deleted_at", null);
-    setYearEntries(((data || []) as unknown) as WorkEntry[]);
+    const results = await Promise.all(
+      Array.from({ length: 12 }, (_, m) => {
+        const lastDay = new Date(year, m + 1, 0).getDate();
+        let q = supabase
+          .from("attendance_records")
+          .select("id", { count: "exact", head: true })
+          .gte("date", toISODate(year, m, 1))
+          .lte("date", toISODate(year, m, lastDay))
+          .is("deleted_at", null);
+        if (teacherFilter !== ALL) q = q.eq("teacher_user_id", teacherFilter);
+        return q;
+      })
+    );
+    setMonthCounts(results.map(r => r.count || 0));
     setLoadingYear(false);
   };
-  useEffect(() => { loadYear(); /* eslint-disable-next-line */ }, [year]);
+  useEffect(() => { loadYear(); /* eslint-disable-next-line */ }, [year, teacherFilter]);
 
-  // Month-level fetch
+  // Month-level fetch (paginated so nothing is dropped)
   const loadMonth = async () => {
     setLoadingMonth(true);
     const lastDay = new Date(year, selectedMonth + 1, 0).getDate();
     const start = toISODate(year, selectedMonth, 1);
     const end = toISODate(year, selectedMonth, lastDay);
     const monthAnchor = `${year}-${pad(selectedMonth + 1)}-01`;
-    const [recsRes, subRes] = await Promise.all([
-      supabase
+
+    const rows: WorkEntry[] = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await supabase
         .from("attendance_records")
         .select("id, date, student_user_id, teacher_user_id, start_time, end_time, topic, hours")
         .gte("date", start).lte("date", end)
-        .is("deleted_at", null),
-      supabase
-        .from("teacher_work_submissions")
-        .select("id, teacher_user_id, work_date, status, submitted_at")
-        .eq("work_date", monthAnchor),
-    ]);
-    setMonthEntries(((recsRes.data || []) as unknown) as WorkEntry[]);
-    setMonthSubmissions(((subRes.data || []) as unknown) as Submission[]);
+        .is("deleted_at", null)
+        .order("date", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) break;
+      const page = ((data || []) as unknown) as WorkEntry[];
+      rows.push(...page);
+      if (page.length < PAGE_SIZE) break;
+    }
+
+    const { data: subs } = await supabase
+      .from("teacher_work_submissions")
+      .select("id, teacher_user_id, work_date, status, submitted_at")
+      .eq("work_date", monthAnchor);
+
+    setMonthEntries(rows);
+    setMonthSubmissions(((subs || []) as unknown) as Submission[]);
     setLoadingMonth(false);
   };
   useEffect(() => {
@@ -107,23 +124,11 @@ export function AdminWorkDone() {
     // eslint-disable-next-line
   }, [year, selectedMonth, view]);
 
-  const filteredYearEntries = useMemo(
-    () => teacherFilter === ALL ? yearEntries : yearEntries.filter(e => e.teacher_user_id === teacherFilter),
-    [yearEntries, teacherFilter]
-  );
   const filteredMonthEntries = useMemo(
     () => teacherFilter === ALL ? monthEntries : monthEntries.filter(e => e.teacher_user_id === teacherFilter),
     [monthEntries, teacherFilter]
   );
 
-  const monthCounts = useMemo(() => {
-    const arr = new Array(12).fill(0);
-    for (const e of filteredYearEntries) {
-      const m = parseInt(e.date.slice(5, 7), 10) - 1;
-      if (m >= 0 && m < 12) arr[m] += 1;
-    }
-    return arr;
-  }, [filteredYearEntries]);
 
   const weeks = useMemo(() => {
     const firstDay = new Date(year, selectedMonth, 1);
