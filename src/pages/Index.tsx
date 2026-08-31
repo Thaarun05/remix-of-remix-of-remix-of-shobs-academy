@@ -85,13 +85,13 @@ const Index = () => {
 
       <main id="main-content">
         {/* HERO */}
-        <section className="relative overflow-hidden border-b border-border bg-[image:var(--gradient-midnight)] text-primary-foreground">
+        <section className="relative overflow-hidden border-b border-border bg-[image:var(--gradient-midnight)] text-white">
           <span aria-hidden="true" className="hero-mesh" />
           <span aria-hidden="true" className="grid-lines" />
 
           <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 pb-24 pt-28 md:grid-cols-[1.05fr_0.95fr] md:pb-28 md:pt-32">
             <div>
-              <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground backdrop-blur-sm">
+              <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white backdrop-blur-sm">
                 <Globe2 className="spin-slow h-3.5 w-3.5" aria-hidden="true" />
                 Teaching students in 8 countries
               </p>
@@ -99,10 +99,10 @@ const Index = () => {
               <KineticHeadline
                 text="Online tutoring built around one student at a time"
                 highlight={["one", "student"]}
-                className="text-4xl font-extrabold leading-[1.08] tracking-tight text-primary-foreground sm:text-5xl md:text-[3.4rem]"
+                className="text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl md:text-[3.4rem]"
               />
 
-              <p className="mt-6 max-w-xl text-lg leading-relaxed text-primary-foreground/80">
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/80">
                 Shobs Academy pairs K-12 students with subject specialists for live one-to-one
                 classes, written practice after every lesson and progress that parents can inspect
                 in the portal.
@@ -116,7 +116,7 @@ const Index = () => {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="group border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                    className="group border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
                   >
                     How we teach
                     <ArrowRight className="arrow-travel h-4 w-4" aria-hidden="true" />
@@ -124,7 +124,7 @@ const Index = () => {
                 </Link>
               </div>
 
-              <p className="mt-5 text-sm text-primary-foreground/65">
+              <p className="mt-5 text-sm text-white/65">
                 Free trial lesson · No card required · Flexible timetables across time zones
               </p>
             </div>
@@ -134,7 +134,7 @@ const Index = () => {
                 <span
                   key={label}
                   aria-hidden="true"
-                  className="chip-float absolute rounded-full border border-primary-foreground/20 bg-primary-foreground/10 px-3 py-1.5 text-xs font-semibold text-primary-foreground/90 backdrop-blur-sm"
+                  className="chip-float absolute rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-sm"
                   style={{ top, left, animationDelay: delay }}
                 >
                   {label}
@@ -142,7 +142,7 @@ const Index = () => {
               ))}
               <div className="float-slow surface-rim rounded-3xl border border-primary-foreground/15 bg-primary-foreground/[0.06] p-10 backdrop-blur-md">
                 <Logo size="lg" className="mx-auto" />
-                <p className="mt-6 text-center font-display text-lg font-semibold text-primary-foreground/90">
+                <p className="mt-6 text-center font-display text-lg font-semibold text-white/90">
                   Guiding students to academic excellence
                 </p>
               </div>
@@ -316,13 +316,13 @@ const Index = () => {
 
         {/* CTA */}
         <section className="px-6 pb-24 pt-4" aria-labelledby="cta-heading">
-          <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-border bg-[image:var(--gradient-midnight)] px-8 py-16 text-center text-primary-foreground shadow-[var(--shadow-xl)]">
+          <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-border bg-[image:var(--gradient-midnight)] px-8 py-16 text-center text-white shadow-[var(--shadow-xl)]">
             <span aria-hidden="true" className="hero-mesh" />
             <div className="relative">
-              <h2 id="cta-heading" className="font-display text-3xl font-extrabold tracking-tight text-primary-foreground sm:text-4xl">
+              <h2 id="cta-heading" className="font-display text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
                 Start with a free demo lesson
               </h2>
-              <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-primary-foreground/80">
+              <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/80">
                 Tell us the subject and year group. We will match a specialist teacher and arrange a
                 trial lesson at a time that suits your family.
               </p>
