@@ -156,8 +156,28 @@ export default function AttendanceTab({ ctx }: { ctx: TabContext }) {
                   </Select>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startTime">Start Time (optional)</Label>
+                  <Input
+                    id="startTime"
+                    type="time"
+                    value={attendanceForm.startTime}
+                    onChange={(e) => setAttendanceForm({ ...attendanceForm, startTime: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endTime">End Time (optional)</Label>
+                  <Input
+                    id="endTime"
+                    type="time"
+                    value={attendanceForm.endTime}
+                    onChange={(e) => setAttendanceForm({ ...attendanceForm, endTime: e.target.value })}
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
-                <Label htmlFor="hours">Hours (optional)</Label>
+                <Label htmlFor="hours">Hours (optional — auto-filled from times)</Label>
                 <Input
                   id="hours"
                   type="number"
