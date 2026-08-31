@@ -369,13 +369,19 @@ const TeacherDashboard = () => {
     setSubmitting(true);
 
     try {
+      const computedHours = attendanceForm.hours
+        ? parseFloat(attendanceForm.hours)
+        : hoursBetween(attendanceForm.startTime, attendanceForm.endTime);
+
       const { error } = await supabase.from("attendance_records").insert({
         student_user_id: selectedStudent,
         teacher_user_id: user.id,
         date: attendanceForm.date,
         status: attendanceForm.status,
-        hours: attendanceForm.hours ? parseFloat(attendanceForm.hours) : null,
+        hours: computedHours,
         topic: attendanceForm.topic || null,
+        start_time: attendanceForm.startTime || null,
+        end_time: attendanceForm.endTime || null,
       });
 
       if (error) throw error;
@@ -390,7 +396,10 @@ const TeacherDashboard = () => {
         status: "present",
         hours: "",
         topic: "",
+        startTime: "",
+        endTime: "",
       });
+      fetchData();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Failed to save attendance.";
       toast({ title: "Something went wrong", description: errorMessage, variant: "destructive" });
