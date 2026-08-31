@@ -136,6 +136,8 @@ const TeacherDashboard = () => {
     hours: "",
     topic: "",
     student_user_id: "",
+    startTime: "",
+    endTime: "",
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingItem, setDeletingItem] = useState<{ table: string; id: string; name: string } | null>(null);
