@@ -66,6 +66,16 @@ const ProfileTab = lazy(() => import("@/components/teacher/tabs/ProfileTab"));
 const FeesTab = lazy(() => import("@/components/teacher/tabs/FeesTab"));
 const SalaryTab = lazy(() => import("@/components/teacher/tabs/SalaryTab"));
 
+/** Hours between two HH:MM strings; null when either is missing or invalid. */
+function hoursBetween(start: string, end: string): number | null {
+  if (!start || !end) return null;
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return null;
+  const mins = (eh * 60 + em) - (sh * 60 + sm);
+  return mins > 0 ? +(mins / 60).toFixed(2) : null;
+}
+
 const TeacherDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
