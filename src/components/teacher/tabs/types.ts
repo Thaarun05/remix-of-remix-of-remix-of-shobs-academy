@@ -77,6 +77,8 @@ export interface AttendanceForm {
   status: "present" | "absent";
   hours: string;
   topic: string;
+  startTime: string;
+  endTime: string;
 }
 
 export interface AssignmentForm {
