@@ -89,6 +89,8 @@ const TeacherDashboard = () => {
     status: "present" as "present" | "absent",
     hours: "",
     topic: "",
+    startTime: "",
+    endTime: "",
   });
   const [assignmentForm, setAssignmentForm] = useState({
     title: "",
