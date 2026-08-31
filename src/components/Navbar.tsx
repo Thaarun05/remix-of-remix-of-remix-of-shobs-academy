@@ -61,7 +61,9 @@ export function Navbar({
 
       {/* CENTER: Navigation Links */}
       <div className="navbar-nav">
-        {showAboutLink && !isLoggedIn}
+        {showAboutLink && !isLoggedIn && (
+          <Link to="/about" className="navbar-link">About us</Link>
+        )}
       </div>
 
       {/* RIGHT: Theme Toggle + User Info + Logout */}
