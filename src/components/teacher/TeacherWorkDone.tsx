@@ -24,7 +24,11 @@ interface Student { user_id: string; student_name: string; }
 interface WorkEntry {
   id: string; date: string; student_user_id: string;
   start_time: string | null; end_time: string | null; topic: string | null; hours: number | null;
+  status: string | null;
 }
+
+const PAGE_SIZE = 1000;
+const ENTRY_COLUMNS = "id, date, student_user_id, start_time, end_time, topic, hours, status";
 
 const MONTH_NAMES = [
   "January","February","March","April","May","June",
