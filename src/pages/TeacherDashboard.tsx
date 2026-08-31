@@ -997,6 +997,16 @@ const TeacherDashboard = () => {
                 </Select>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Start Time</Label>
+                <Input type="time" value={editAttendanceForm.startTime} onChange={(e) => setEditAttendanceForm({ ...editAttendanceForm, startTime: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>End Time</Label>
+                <Input type="time" value={editAttendanceForm.endTime} onChange={(e) => setEditAttendanceForm({ ...editAttendanceForm, endTime: e.target.value })} />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Hours</Label>
               <Input type="number" step="0.5" value={editAttendanceForm.hours} onChange={(e) => setEditAttendanceForm({ ...editAttendanceForm, hours: e.target.value })} />
