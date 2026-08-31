@@ -194,7 +194,7 @@ const TeacherDashboard = () => {
           .order("created_at", { ascending: false }),
         supabase
           .from("attendance_records")
-          .select("id, date, status, hours, topic, student_user_id, deleted_at")
+          .select("id, date, status, hours, topic, student_user_id, start_time, end_time, deleted_at")
           .eq("teacher_user_id", user.id)
           .is("deleted_at", null)
           .order("created_at", { ascending: false })
@@ -281,7 +281,7 @@ const TeacherDashboard = () => {
 
       const { data, error } = await supabase
         .from("attendance_records")
-        .select("id, date, status, hours, topic, student_user_id, deleted_at")
+        .select("id, date, status, hours, topic, student_user_id, start_time, end_time, deleted_at")
         .eq("teacher_user_id", user.id)
         .eq("student_user_id", filterStudent)
         .gte("date", startDate)
