@@ -62,17 +62,13 @@ export function TeacherWorkDone() {
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
 
   const [students, setStudents] = useState<Student[]>([]);
-  const [yearEntries, setYearEntries] = useState<WorkEntry[]>([]);
+  const [monthCounts, setMonthCounts] = useState<number[]>(new Array(12).fill(0));
   const [monthEntries, setMonthEntries] = useState<WorkEntry[]>([]);
   const [monthSubmission, setMonthSubmission] = useState<{ status: string } | null>(null);
   const [loadingYear, setLoadingYear] = useState(false);
   const [loadingMonth, setLoadingMonth] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  const [form, setForm] = useState({
-    student_user_id: "", start_time: "09:00", end_time: "10:00", topic: "",
-  });
 
   // Load students once
   useEffect(() => {
@@ -94,24 +90,28 @@ export function TeacherWorkDone() {
     })();
   }, [user]);
 
-  // Load year entries (for month badges in Level 1)
+  // Level 1 badges: exact per-month counts (count-only queries, never row-capped)
   const loadYear = async () => {
     if (!user) return;
     setLoadingYear(true);
-    const start = `${year}-01-01`;
-    const end = `${year}-12-31`;
-    const { data } = await supabase
-      .from("attendance_records")
-      .select("id, date, student_user_id, start_time, end_time, topic, hours")
-      .eq("teacher_user_id", user.id)
-      .gte("date", start).lte("date", end)
-      .is("deleted_at", null);
-    setYearEntries(((data || []) as unknown) as WorkEntry[]);
+    const results = await Promise.all(
+      Array.from({ length: 12 }, (_, m) => {
+        const lastDay = new Date(year, m + 1, 0).getDate();
+        return supabase
+          .from("attendance_records")
+          .select("id", { count: "exact", head: true })
+          .eq("teacher_user_id", user.id)
+          .gte("date", toISODate(year, m, 1))
+          .lte("date", toISODate(year, m, lastDay))
+          .is("deleted_at", null);
+      })
+    );
+    setMonthCounts(results.map(r => r.count || 0));
     setLoadingYear(false);
   };
   useEffect(() => { loadYear(); /* eslint-disable-next-line */ }, [user, year]);
 
-  // Load month entries + submission (Level 2/3)
+  // Load month entries + submission (Level 2/3), paginated so nothing is dropped
   const loadMonth = async () => {
     if (!user) return;
     setLoadingMonth(true);
@@ -119,22 +119,32 @@ export function TeacherWorkDone() {
     const start = toISODate(year, selectedMonth, 1);
     const end = toISODate(year, selectedMonth, lastDay);
     const monthKey = `${year}-${pad(selectedMonth + 1)}`;
-    const [recsRes, subRes] = await Promise.all([
-      supabase
+
+    const rows: WorkEntry[] = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await supabase
         .from("attendance_records")
-        .select("id, date, student_user_id, start_time, end_time, topic, hours")
+        .select(ENTRY_COLUMNS)
         .eq("teacher_user_id", user.id)
         .gte("date", start).lte("date", end)
-        .is("deleted_at", null),
-      supabase
-        .from("teacher_work_submissions")
-        .select("status")
-        .eq("teacher_user_id", user.id)
-        .eq("work_date", `${monthKey}-01`)
-        .maybeSingle(),
-    ]);
-    setMonthEntries(((recsRes.data || []) as unknown) as WorkEntry[]);
-    setMonthSubmission(subRes.data ? { status: (subRes.data as any).status } : null);
+        .is("deleted_at", null)
+        .order("date", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) break;
+      const page = ((data || []) as unknown) as WorkEntry[];
+      rows.push(...page);
+      if (page.length < PAGE_SIZE) break;
+    }
+
+    const { data: sub } = await supabase
+      .from("teacher_work_submissions")
+      .select("status")
+      .eq("teacher_user_id", user.id)
+      .eq("work_date", `${monthKey}-01`)
+      .maybeSingle();
+
+    setMonthEntries(rows);
+    setMonthSubmission(sub ? { status: (sub as any).status } : null);
     setLoadingMonth(false);
   };
   useEffect(() => {
@@ -142,15 +152,6 @@ export function TeacherWorkDone() {
     // eslint-disable-next-line
   }, [user, year, selectedMonth, view]);
 
-  // Year-level: count per month
-  const monthCounts = useMemo(() => {
-    const arr = new Array(12).fill(0);
-    for (const e of yearEntries) {
-      const m = parseInt(e.date.slice(5, 7), 10) - 1;
-      if (m >= 0 && m < 12) arr[m] += 1;
-    }
-    return arr;
-  }, [yearEntries]);
 
   // Build weeks of selectedMonth (Mon-Sun)
   const weeks = useMemo(() => {
