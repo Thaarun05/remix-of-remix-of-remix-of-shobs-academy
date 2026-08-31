@@ -316,13 +316,13 @@ const Index = () => {
 
         {/* CTA */}
         <section className="px-6 pb-24 pt-4" aria-labelledby="cta-heading">
-          <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-border bg-[image:var(--gradient-midnight)] px-8 py-16 text-center text-primary-foreground shadow-[var(--shadow-xl)]">
+          <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-border bg-[image:var(--gradient-midnight)] px-8 py-16 text-center text-white shadow-[var(--shadow-xl)]">
             <span aria-hidden="true" className="hero-mesh" />
             <div className="relative">
-              <h2 id="cta-heading" className="font-display text-3xl font-extrabold tracking-tight text-primary-foreground sm:text-4xl">
+              <h2 id="cta-heading" className="font-display text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
                 Start with a free demo lesson
               </h2>
-              <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-primary-foreground/80">
+              <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/80">
                 Tell us the subject and year group. We will match a specialist teacher and arrange a
                 trial lesson at a time that suits your family.
               </p>
