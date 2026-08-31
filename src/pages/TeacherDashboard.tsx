@@ -658,6 +658,8 @@ const TeacherDashboard = () => {
       hours: record.hours?.toString() || "",
       topic: record.topic || "",
       student_user_id: record.student_user_id,
+      startTime: record.start_time ? record.start_time.slice(0, 5) : "",
+      endTime: record.end_time ? record.end_time.slice(0, 5) : "",
     });
     setEditAttendanceDialog(true);
   };
@@ -672,9 +674,13 @@ const TeacherDashboard = () => {
         .update({
           date: editAttendanceForm.date,
           status: editAttendanceForm.status,
-          hours: editAttendanceForm.hours ? parseFloat(editAttendanceForm.hours) : null,
+          hours: editAttendanceForm.hours
+            ? parseFloat(editAttendanceForm.hours)
+            : hoursBetween(editAttendanceForm.startTime, editAttendanceForm.endTime),
           topic: editAttendanceForm.topic || null,
           student_user_id: editAttendanceForm.student_user_id,
+          start_time: editAttendanceForm.startTime || null,
+          end_time: editAttendanceForm.endTime || null,
         })
         .eq("id", editingAttendance.id);
 
