@@ -218,49 +218,8 @@ const AdminDashboard = () => {
   
   const teachers = profiles.filter(p => p.role === "teacher");
   
-  const handleSendSalary = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!salaryForm.teacherId) return;
-    setSubmitting(true);
-    
-    try {
-      const teacher = teachers.find(t => t.user_id === salaryForm.teacherId);
-      const totalHours = parseFloat(salaryForm.totalHours) || 0;
-      const salaryPerHour = parseFloat(salaryForm.salaryPerHour) || 0;
-      const totalAmount = totalHours * salaryPerHour;
-      
-      const { error } = await supabase.from("teacher_salary").insert({
-        teacher_id: salaryForm.teacherId,
-        teacher_name: teacher?.full_name || null,
-        num_classes: parseInt(salaryForm.numClasses) || null,
-        total_hours: totalHours,
-        salary_per_hour: salaryPerHour,
-        amount: totalAmount,
-        note: salaryForm.note || null,
-        status: "sent_to_teacher",
-      });
-      
-      if (error) throw error;
-      
-      // Create notification for teacher
-      await supabase.from("notifications").insert({
-        recipient_id: salaryForm.teacherId,
-        sender_id: user.id,
-        type: "salary",
-        title: "Salary Details Sent",
-        body: `Your salary details have been sent. Total amount: $${totalAmount.toFixed(2)}`,
-        entity_table: "teacher_salary",
-      });
-      
-      toast({ title: "Salary sent", description: "Salary details have been sent to the teacher." });
-      setSalaryForm({ teacherId: "", numClasses: "", totalHours: "", salaryPerHour: "", note: "" });
-      fetchData();
-    } catch (error: any) {
-      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+
+
   
   const handleMarkFeeViewed = async (fee: StudentFee) => {
     try {
