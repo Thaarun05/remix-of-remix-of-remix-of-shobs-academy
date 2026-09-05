@@ -87,7 +87,7 @@ export function StudentFeeSettings() {
 
     const [{ data: nameRows, error: namesError }, { data: settings, error: settingsError }] = await Promise.all([
       supabase.from("student_profiles").select("user_id, student_name").in("user_id", ids),
-      supabase.from("student_fee_settings").select("student_user_id, fee_collected, fee_given").eq("teacher_user_id", teacherId).in("student_user_id", ids),
+      supabase.from("student_fee_settings").select("student_user_id, fee_given").eq("teacher_user_id", teacherId).in("student_user_id", ids),
     ]);
 
     if (namesError || settingsError) {
@@ -99,8 +99,8 @@ export function StudentFeeSettings() {
     const nameMap = new Map<string, string>();
     (nameRows ?? []).forEach((r) => nameMap.set(r.user_id, r.student_name));
 
-    const settingsMap = new Map<string, { fee_collected: number | null; fee_given: number | null }>();
-    (settings ?? []).forEach((s) => settingsMap.set(s.student_user_id, { fee_collected: s.fee_collected, fee_given: s.fee_given }));
+    const settingsMap = new Map<string, { fee_given: number | null }>();
+    (settings ?? []).forEach((s) => settingsMap.set(s.student_user_id, { fee_given: s.fee_given }));
 
     const rows: StudentRow[] = ids
       .map((id) => {
