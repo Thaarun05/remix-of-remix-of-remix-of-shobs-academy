@@ -22,6 +22,7 @@ import { UserManagement } from "@/components/admin/UserManagement";
 import { MultiTeacherAssign } from "@/components/admin/MultiTeacherAssign";
 import { WorkSubmissions } from "@/components/admin/WorkSubmissions";
 import { AdminWorkDone } from "@/components/admin/AdminWorkDone";
+import { StudentFeeSettings } from "@/components/admin/StudentFeeSettings";
 import { TeacherResources } from "@/components/teacher/TeacherResources";
 import { AdminRecordingSubmissions } from "@/components/admin/AdminRecordingSubmissions";
 import { 
@@ -1138,6 +1139,10 @@ const AdminDashboard = () => {
 
         {activeTab === "work-done" && (
           <AdminWorkDone />
+        )}
+
+        {activeTab === "fee-settings" && (
+          <StudentFeeSettings />
         )}
 
         {activeTab === "fees" && (
