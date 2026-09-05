@@ -16,7 +16,6 @@ interface Teacher {
 interface StudentRow {
   student_user_id: string;
   student_name: string;
-  fee_collected: string;
   fee_given: string;
   dirty: boolean;
   saving: boolean;
