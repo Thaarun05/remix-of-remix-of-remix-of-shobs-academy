@@ -135,11 +135,10 @@ export function StudentFeeSettings() {
       prev.map((r) => (r.student_user_id === row.student_user_id ? { ...r, saving: true } : r)),
     );
 
-    const feeCollected = row.fee_collected.trim() === "" ? null : parseFloat(row.fee_collected);
     const feeGiven = row.fee_given.trim() === "" ? null : parseFloat(row.fee_given);
 
-    if ((row.fee_collected.trim() !== "" && isNaN(feeCollected as number)) || (row.fee_given.trim() !== "" && isNaN(feeGiven as number))) {
-      toast.error("Please enter valid numbers for the fee amounts");
+    if (row.fee_given.trim() !== "" && isNaN(feeGiven as number)) {
+      toast.error("Please enter a valid number for the fee given");
       setStudents((prev) =>
         prev.map((r) => (r.student_user_id === row.student_user_id ? { ...r, saving: false } : r)),
       );
@@ -152,7 +151,6 @@ export function StudentFeeSettings() {
         {
           student_user_id: row.student_user_id,
           teacher_user_id: selectedTeacher,
-          fee_collected: feeCollected,
           fee_given: feeGiven,
         },
         { onConflict: "student_user_id,teacher_user_id" },
