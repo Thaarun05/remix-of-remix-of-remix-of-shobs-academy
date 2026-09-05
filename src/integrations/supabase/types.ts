@@ -893,6 +893,36 @@ export type Database = {
         }
         Relationships: []
       }
+      student_fee_settings: {
+        Row: {
+          created_at: string
+          fee_collected: number | null
+          fee_given: number | null
+          id: string
+          student_user_id: string
+          teacher_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fee_collected?: number | null
+          fee_given?: number | null
+          id?: string
+          student_user_id: string
+          teacher_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fee_collected?: number | null
+          fee_given?: number | null
+          id?: string
+          student_user_id?: string
+          teacher_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       student_fees: {
         Row: {
           admin_viewed_at: string | null
