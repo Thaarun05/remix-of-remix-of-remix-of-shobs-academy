@@ -16,7 +16,6 @@ interface Teacher {
 interface StudentRow {
   student_user_id: string;
   student_name: string;
-  fee_collected: string;
   fee_given: string;
   dirty: boolean;
   saving: boolean;
@@ -88,7 +87,7 @@ export function StudentFeeSettings() {
 
     const [{ data: nameRows, error: namesError }, { data: settings, error: settingsError }] = await Promise.all([
       supabase.from("student_profiles").select("user_id, student_name").in("user_id", ids),
-      supabase.from("student_fee_settings").select("student_user_id, fee_collected, fee_given").eq("teacher_user_id", teacherId).in("student_user_id", ids),
+      supabase.from("student_fee_settings").select("student_user_id, fee_given").eq("teacher_user_id", teacherId).in("student_user_id", ids),
     ]);
 
     if (namesError || settingsError) {
@@ -100,8 +99,8 @@ export function StudentFeeSettings() {
     const nameMap = new Map<string, string>();
     (nameRows ?? []).forEach((r) => nameMap.set(r.user_id, r.student_name));
 
-    const settingsMap = new Map<string, { fee_collected: number | null; fee_given: number | null }>();
-    (settings ?? []).forEach((s) => settingsMap.set(s.student_user_id, { fee_collected: s.fee_collected, fee_given: s.fee_given }));
+    const settingsMap = new Map<string, { fee_given: number | null }>();
+    (settings ?? []).forEach((s) => settingsMap.set(s.student_user_id, { fee_given: s.fee_given }));
 
     const rows: StudentRow[] = ids
       .map((id) => {
@@ -109,7 +108,6 @@ export function StudentFeeSettings() {
         return {
           student_user_id: id,
           student_name: nameMap.get(id) || "Unnamed Student",
-          fee_collected: s?.fee_collected != null ? String(s.fee_collected) : "",
           fee_given: s?.fee_given != null ? String(s.fee_given) : "",
           dirty: false,
           saving: false,
@@ -126,9 +124,9 @@ export function StudentFeeSettings() {
     loadStudents(teacherId);
   };
 
-  const updateRow = (studentId: string, field: "fee_collected" | "fee_given", value: string) => {
+  const updateRow = (studentId: string, value: string) => {
     setStudents((prev) =>
-      prev.map((r) => (r.student_user_id === studentId ? { ...r, [field]: value, dirty: true } : r)),
+      prev.map((r) => (r.student_user_id === studentId ? { ...r, fee_given: value, dirty: true } : r)),
     );
   };
 
@@ -137,11 +135,10 @@ export function StudentFeeSettings() {
       prev.map((r) => (r.student_user_id === row.student_user_id ? { ...r, saving: true } : r)),
     );
 
-    const feeCollected = row.fee_collected.trim() === "" ? null : parseFloat(row.fee_collected);
     const feeGiven = row.fee_given.trim() === "" ? null : parseFloat(row.fee_given);
 
-    if ((row.fee_collected.trim() !== "" && isNaN(feeCollected as number)) || (row.fee_given.trim() !== "" && isNaN(feeGiven as number))) {
-      toast.error("Please enter valid numbers for the fee amounts");
+    if (row.fee_given.trim() !== "" && isNaN(feeGiven as number)) {
+      toast.error("Please enter a valid number for the fee given");
       setStudents((prev) =>
         prev.map((r) => (r.student_user_id === row.student_user_id ? { ...r, saving: false } : r)),
       );
@@ -154,7 +151,6 @@ export function StudentFeeSettings() {
         {
           student_user_id: row.student_user_id,
           teacher_user_id: selectedTeacher,
-          fee_collected: feeCollected,
           fee_given: feeGiven,
         },
         { onConflict: "student_user_id,teacher_user_id" },
@@ -183,7 +179,7 @@ export function StudentFeeSettings() {
           Student Fee Settings
         </CardTitle>
         <CardDescription>
-          Select a teacher to set the fee collected from parents and the fee given to the teacher for each of their students.
+          Select a teacher to set the fee given to the teacher for each of their students.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -214,35 +210,23 @@ export function StudentFeeSettings() {
             </p>
           ) : (
             <div className="space-y-3">
-              <div className="hidden md:grid md:grid-cols-[1fr_180px_180px_110px] gap-3 px-3 text-xs font-medium text-muted-foreground">
+              <div className="hidden md:grid md:grid-cols-[1fr_180px_110px] gap-3 px-3 text-xs font-medium text-muted-foreground">
                 <span>Student</span>
-                <span>Fee Collected (from parent)</span>
                 <span>Fee Given (to teacher)</span>
                 <span />
               </div>
               {students.map((row) => (
                 <div
                   key={row.student_user_id}
-                  className="grid grid-cols-1 md:grid-cols-[1fr_180px_180px_110px] gap-3 items-center p-3 rounded-lg border border-border"
+                  className="grid grid-cols-1 md:grid-cols-[1fr_180px_110px] gap-3 items-center p-3 rounded-lg border border-border"
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{row.student_name}</p>
-                    {(row.fee_collected || row.fee_given) && (
+                    {row.fee_given && (
                       <p className="text-xs text-muted-foreground">
-                        Collected: {formatInr(row.fee_collected)} • Given: {formatInr(row.fee_given)}
+                        Given: {formatInr(row.fee_given)}
                       </p>
                     )}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="md:hidden text-xs">Fee Collected (from parent)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="e.g., 5000"
-                      value={row.fee_collected}
-                      onChange={(e) => updateRow(row.student_user_id, "fee_collected", e.target.value)}
-                    />
                   </div>
                   <div className="space-y-1">
                     <Label className="md:hidden text-xs">Fee Given (to teacher)</Label>
@@ -252,7 +236,7 @@ export function StudentFeeSettings() {
                       min="0"
                       placeholder="e.g., 3500"
                       value={row.fee_given}
-                      onChange={(e) => updateRow(row.student_user_id, "fee_given", e.target.value)}
+                      onChange={(e) => updateRow(row.student_user_id, e.target.value)}
                     />
                   </div>
                   <Button
