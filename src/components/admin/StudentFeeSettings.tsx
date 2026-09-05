@@ -108,7 +108,6 @@ export function StudentFeeSettings() {
         return {
           student_user_id: id,
           student_name: nameMap.get(id) || "Unnamed Student",
-          fee_collected: s?.fee_collected != null ? String(s.fee_collected) : "",
           fee_given: s?.fee_given != null ? String(s.fee_given) : "",
           dirty: false,
           saving: false,
