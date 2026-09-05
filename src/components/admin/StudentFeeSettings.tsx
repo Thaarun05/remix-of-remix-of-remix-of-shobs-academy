@@ -179,7 +179,7 @@ export function StudentFeeSettings() {
           Student Fee Settings
         </CardTitle>
         <CardDescription>
-          Select a teacher to set the fee collected from parents and the fee given to the teacher for each of their students.
+          Select a teacher to set the fee given to the teacher for each of their students.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
