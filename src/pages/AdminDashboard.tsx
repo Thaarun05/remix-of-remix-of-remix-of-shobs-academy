@@ -146,14 +146,8 @@ const AdminDashboard = () => {
   const [demoFilter, setDemoFilter] = useState<"all" | "pending" | "approved" | "done">("pending");
   const [activeTab, setActiveTab] = useState("demo-requests");
   
-  // Salary calculator form
-  const [salaryForm, setSalaryForm] = useState({
-    teacherId: "",
-    numClasses: "",
-    totalHours: "",
-    salaryPerHour: "",
-    note: "",
-  });
+
+
   
   const [teacherForm, setTeacherForm] = useState({
     email: "",
