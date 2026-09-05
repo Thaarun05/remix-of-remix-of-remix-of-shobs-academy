@@ -23,6 +23,8 @@ import { MultiTeacherAssign } from "@/components/admin/MultiTeacherAssign";
 import { WorkSubmissions } from "@/components/admin/WorkSubmissions";
 import { AdminWorkDone } from "@/components/admin/AdminWorkDone";
 import { StudentFeeSettings } from "@/components/admin/StudentFeeSettings";
+import { TeacherSalaryCalculator } from "@/components/admin/TeacherSalaryCalculator";
+
 import { TeacherResources } from "@/components/teacher/TeacherResources";
 import { AdminRecordingSubmissions } from "@/components/admin/AdminRecordingSubmissions";
 import { 
@@ -146,14 +148,8 @@ const AdminDashboard = () => {
   const [demoFilter, setDemoFilter] = useState<"all" | "pending" | "approved" | "done">("pending");
   const [activeTab, setActiveTab] = useState("demo-requests");
   
-  // Salary calculator form
-  const [salaryForm, setSalaryForm] = useState({
-    teacherId: "",
-    numClasses: "",
-    totalHours: "",
-    salaryPerHour: "",
-    note: "",
-  });
+
+
   
   const [teacherForm, setTeacherForm] = useState({
     email: "",
@@ -218,49 +214,8 @@ const AdminDashboard = () => {
   
   const teachers = profiles.filter(p => p.role === "teacher");
   
-  const handleSendSalary = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!salaryForm.teacherId) return;
-    setSubmitting(true);
-    
-    try {
-      const teacher = teachers.find(t => t.user_id === salaryForm.teacherId);
-      const totalHours = parseFloat(salaryForm.totalHours) || 0;
-      const salaryPerHour = parseFloat(salaryForm.salaryPerHour) || 0;
-      const totalAmount = totalHours * salaryPerHour;
-      
-      const { error } = await supabase.from("teacher_salary").insert({
-        teacher_id: salaryForm.teacherId,
-        teacher_name: teacher?.full_name || null,
-        num_classes: parseInt(salaryForm.numClasses) || null,
-        total_hours: totalHours,
-        salary_per_hour: salaryPerHour,
-        amount: totalAmount,
-        note: salaryForm.note || null,
-        status: "sent_to_teacher",
-      });
-      
-      if (error) throw error;
-      
-      // Create notification for teacher
-      await supabase.from("notifications").insert({
-        recipient_id: salaryForm.teacherId,
-        sender_id: user.id,
-        type: "salary",
-        title: "Salary Details Sent",
-        body: `Your salary details have been sent. Total amount: $${totalAmount.toFixed(2)}`,
-        entity_table: "teacher_salary",
-      });
-      
-      toast({ title: "Salary sent", description: "Salary details have been sent to the teacher." });
-      setSalaryForm({ teacherId: "", numClasses: "", totalHours: "", salaryPerHour: "", note: "" });
-      fetchData();
-    } catch (error: any) {
-      toast({ title: "Something went wrong", description: error.message, variant: "destructive" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+
+
   
   const handleMarkFeeViewed = async (fee: StudentFee) => {
     try {
@@ -1007,85 +962,12 @@ const AdminDashboard = () => {
 
         {activeTab === "salary" && (
           <div className="grid lg:grid-cols-2 gap-6">
-            <Card className="dashboard-list-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calculator className="h-5 w-5" />
-                  Teacher Salary Calculator
-                </CardTitle>
-                <CardDescription>Calculate and send salary details to teachers</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSendSalary} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Select Teacher *</Label>
-                    <Select value={salaryForm.teacherId} onValueChange={(v) => setSalaryForm({ ...salaryForm, teacherId: v })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a teacher" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {teachers.map((t) => (
-                          <SelectItem key={t.user_id} value={t.user_id}>
-                            {t.full_name || t.user_id}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Number of Classes</Label>
-                      <Input
-                        type="number"
-                        placeholder="e.g., 20"
-                        value={salaryForm.numClasses}
-                        onChange={(e) => setSalaryForm({ ...salaryForm, numClasses: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Total Hours *</Label>
-                      <Input
-                        type="number"
-                        step="0.5"
-                        placeholder="e.g., 40"
-                        value={salaryForm.totalHours}
-                        onChange={(e) => setSalaryForm({ ...salaryForm, totalHours: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Salary Per Hour *</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="e.g., 25.00"
-                      value={salaryForm.salaryPerHour}
-                      onChange={(e) => setSalaryForm({ ...salaryForm, salaryPerHour: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="p-3 rounded-lg bg-muted">
-                    <p className="text-sm text-muted-foreground">Total Amount</p>
-                    <p className="text-2xl font-bold text-admin">
-                      ${((parseFloat(salaryForm.totalHours) || 0) * (parseFloat(salaryForm.salaryPerHour) || 0)).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Note (optional)</Label>
-                    <Textarea
-                      placeholder="Any additional notes..."
-                      value={salaryForm.note}
-                      onChange={(e) => setSalaryForm({ ...salaryForm, note: e.target.value })}
-                      rows={2}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full dashboard-btn dashboard-btn-admin" disabled={!salaryForm.teacherId || submitting}>
-                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send to Teacher"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+            <TeacherSalaryCalculator
+              teachers={teachers}
+              currentUserId={user?.id || ""}
+              onSent={fetchData}
+            />
+
             
             <Card className="dashboard-list-card">
               <CardHeader>
