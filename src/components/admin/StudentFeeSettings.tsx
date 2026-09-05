@@ -124,9 +124,9 @@ export function StudentFeeSettings() {
     loadStudents(teacherId);
   };
 
-  const updateRow = (studentId: string, field: "fee_collected" | "fee_given", value: string) => {
+  const updateRow = (studentId: string, value: string) => {
     setStudents((prev) =>
-      prev.map((r) => (r.student_user_id === studentId ? { ...r, [field]: value, dirty: true } : r)),
+      prev.map((r) => (r.student_user_id === studentId ? { ...r, fee_given: value, dirty: true } : r)),
     );
   };
 
