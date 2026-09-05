@@ -210,35 +210,23 @@ export function StudentFeeSettings() {
             </p>
           ) : (
             <div className="space-y-3">
-              <div className="hidden md:grid md:grid-cols-[1fr_180px_180px_110px] gap-3 px-3 text-xs font-medium text-muted-foreground">
+              <div className="hidden md:grid md:grid-cols-[1fr_180px_110px] gap-3 px-3 text-xs font-medium text-muted-foreground">
                 <span>Student</span>
-                <span>Fee Collected (from parent)</span>
                 <span>Fee Given (to teacher)</span>
                 <span />
               </div>
               {students.map((row) => (
                 <div
                   key={row.student_user_id}
-                  className="grid grid-cols-1 md:grid-cols-[1fr_180px_180px_110px] gap-3 items-center p-3 rounded-lg border border-border"
+                  className="grid grid-cols-1 md:grid-cols-[1fr_180px_110px] gap-3 items-center p-3 rounded-lg border border-border"
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{row.student_name}</p>
-                    {(row.fee_collected || row.fee_given) && (
+                    {row.fee_given && (
                       <p className="text-xs text-muted-foreground">
-                        Collected: {formatInr(row.fee_collected)} • Given: {formatInr(row.fee_given)}
+                        Given: {formatInr(row.fee_given)}
                       </p>
                     )}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="md:hidden text-xs">Fee Collected (from parent)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="e.g., 5000"
-                      value={row.fee_collected}
-                      onChange={(e) => updateRow(row.student_user_id, "fee_collected", e.target.value)}
-                    />
                   </div>
                   <div className="space-y-1">
                     <Label className="md:hidden text-xs">Fee Given (to teacher)</Label>
@@ -248,7 +236,7 @@ export function StudentFeeSettings() {
                       min="0"
                       placeholder="e.g., 3500"
                       value={row.fee_given}
-                      onChange={(e) => updateRow(row.student_user_id, "fee_given", e.target.value)}
+                      onChange={(e) => updateRow(row.student_user_id, e.target.value)}
                     />
                   </div>
                   <Button
