@@ -25,7 +25,8 @@ import {
   Film,
   Sparkles,
   NotebookPen,
-  ListChecks
+  ListChecks,
+  Wallet
 } from "lucide-react";
 
 type RoleColor = "student" | "teacher" | "admin";
