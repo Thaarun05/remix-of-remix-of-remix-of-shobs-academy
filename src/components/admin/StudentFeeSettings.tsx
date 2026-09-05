@@ -212,7 +212,7 @@ export function StudentFeeSettings() {
             <div className="space-y-3">
               <div className="hidden md:grid md:grid-cols-[1fr_180px_110px] gap-3 px-3 text-xs font-medium text-muted-foreground">
                 <span>Student</span>
-                <span>Fee Given (to teacher)</span>
+                <span>Hourly Pay (to teacher)</span>
                 <span />
               </div>
               {students.map((row) => (
@@ -224,12 +224,12 @@ export function StudentFeeSettings() {
                     <p className="text-sm font-medium truncate">{row.student_name}</p>
                     {row.fee_given && (
                       <p className="text-xs text-muted-foreground">
-                        Given: {formatInr(row.fee_given)}
+                        Hourly pay: {formatInr(row.fee_given)}
                       </p>
                     )}
                   </div>
                   <div className="space-y-1">
-                    <Label className="md:hidden text-xs">Fee Given (to teacher)</Label>
+                    <Label className="md:hidden text-xs">Hourly Pay (to teacher)</Label>
                     <Input
                       type="number"
                       step="0.01"
