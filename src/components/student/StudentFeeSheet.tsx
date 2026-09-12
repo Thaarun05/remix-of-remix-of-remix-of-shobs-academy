@@ -43,12 +43,10 @@ const MONTHS = [
 ];
 
 const formatINR = (amount: number): string => {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
+  return `INR ${new Intl.NumberFormat("en-IN", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(amount)}`;
 };
 
 export const StudentFeeSheet = () => {

@@ -24,7 +24,7 @@ interface StudentRow {
 const formatInr = (value: string) => {
   const n = parseFloat(value);
   if (isNaN(n)) return "—";
-  return `Rs. ${n.toFixed(2)}`;
+  return `INR ${n.toFixed(2)}`;
 };
 
 export function StudentFeeSettings() {

@@ -28,7 +28,7 @@ export default function SalaryTab({ ctx }: { ctx: TabContext }) {
                       {new Date(salary.created_at || "").toLocaleDateString()}
                     </p>
                     <p className="text-lg font-semibold">
-                      {salary.total_hours}h × ${salary.salary_per_hour}/h = ${salary.amount?.toFixed(2)}
+                      {salary.total_hours}h × INR {salary.salary_per_hour}/h = INR {salary.amount?.toFixed(2)}
                     </p>
                     {salary.num_classes && <p className="text-sm text-muted-foreground">{salary.num_classes} classes</p>}
                     {salary.note && <p className="text-sm text-muted-foreground">Note: {salary.note}</p>}

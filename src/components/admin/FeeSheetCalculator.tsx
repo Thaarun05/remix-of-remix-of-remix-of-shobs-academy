@@ -247,7 +247,7 @@ export const FeeSheetCalculator = () => {
           sender_id: user!.id,
           type: "fee",
           title: "Fee Sheet Available",
-          body: `Your fee sheet is ready for review. Total: $${totalFee.toFixed(2)}`,
+          body: `Your fee sheet is ready for review. Total: INR ${totalFee.toFixed(2)}`,
           entity_table: "student_fee_invoices",
           entity_id: invoiceId
         });
@@ -333,7 +333,7 @@ export const FeeSheetCalculator = () => {
               </Select>
             </div>
             <div>
-              <Label>Fee per Hour ($)</Label>
+              <Label>Fee per Hour (INR)</Label>
               <Input
                 type="number"
                 min="0"
@@ -444,8 +444,8 @@ export const FeeSheetCalculator = () => {
                     <TableCell colSpan={2}>
                       <div className="flex items-center gap-2 text-lg">
                         <Calculator className="h-4 w-4" />
-                        <span>{totalClasses} classes × ${feeRate}/hr = </span>
-                        <span className="font-bold text-primary">${totalFee.toFixed(2)}</span>
+                        <span>{totalClasses} classes × INR {feeRate}/hr = </span>
+                        <span className="font-bold text-primary">INR {totalFee.toFixed(2)}</span>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -512,7 +512,7 @@ export const FeeSheetCalculator = () => {
                         {getStatusBadge(invoice.status)}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Rate: ${invoice.fee_per_hour}/hr • Created: {format(new Date(invoice.created_at), "MMM d, yyyy")}
+                        Rate: INR {invoice.fee_per_hour}/hr • Created: {format(new Date(invoice.created_at), "MMM d, yyyy")}
                       </p>
                       {invoice.student_notes && (
                         <p className="text-sm mt-2 p-2 bg-warning/10 rounded border-l-2 border-warning">

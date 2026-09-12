@@ -987,7 +987,7 @@ const AdminDashboard = () => {
                           <div>
                             <p className="font-medium">{s.teacher_name || "Teacher"}</p>
                             <p className="text-sm text-muted-foreground">
-                              {s.total_hours}h × ${s.salary_per_hour}/h = ${s.amount?.toFixed(2)}
+                              {s.total_hours}h × INR {s.salary_per_hour}/h = INR {s.amount?.toFixed(2)}
                             </p>
                           </div>
                           <Badge className={
@@ -1051,7 +1051,7 @@ const AdminDashboard = () => {
                           </div>
                           <p className="text-sm text-muted-foreground">Teacher: {fee.teacher_name || "Unknown"}</p>
                           <p className="text-sm">
-                            {fee.total_hours}h × ${fee.fee_per_hour}/h = <span className="font-semibold">${fee.total_amount?.toFixed(2)}</span>
+                            {fee.total_hours}h × INR {fee.fee_per_hour}/h = <span className="font-semibold">INR {fee.total_amount?.toFixed(2)}</span>
                           </p>
                           {fee.subjects && <p className="text-xs text-muted-foreground">Subjects: {fee.subjects}</p>}
                           {fee.class_dates && <p className="text-xs text-muted-foreground">Dates: {fee.class_dates}</p>}

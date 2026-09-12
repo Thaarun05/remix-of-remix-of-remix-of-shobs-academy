@@ -30,7 +30,7 @@ interface Props {
   onSent: () => void;
 }
 
-const inr = (n: number) => `Rs. ${n.toFixed(2)}`;
+const inr = (n: number) => `INR ${n.toFixed(2)}`;
 
 const monthOptions = () => {
   const out: { value: string; label: string }[] = [];
