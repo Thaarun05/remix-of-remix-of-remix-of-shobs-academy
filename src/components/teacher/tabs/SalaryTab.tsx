@@ -1,12 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/EmptyState";
-import { CheckCircle2, DollarSign } from "lucide-react";
+import { DollarSign } from "lucide-react";
 import type { TabContext } from "./types";
 
 export default function SalaryTab({ ctx }: { ctx: TabContext }) {
-  const { salaries, handleSalaryResponse } = ctx;
+  const { salaries } = ctx;
   return (
     <Card className="dashboard-list-card">
       <CardHeader>
