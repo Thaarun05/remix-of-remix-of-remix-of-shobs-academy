@@ -591,9 +591,9 @@ export const AttendanceBasedFeeCalculator = () => {
               {attendance.length > 0 && (
                 <div className="space-y-4 pt-2">
                   <div className="max-w-xs">
-                    <Label>Hourly Rate (₹) <span className="text-destructive">*</span></Label>
+                    <Label>Hourly Rate (INR) <span className="text-destructive">*</span></Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">₹</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">INR</span>
                       <Input
                         type="number"
                         min="1"
