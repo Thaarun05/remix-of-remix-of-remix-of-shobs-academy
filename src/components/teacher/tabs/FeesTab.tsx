@@ -67,7 +67,7 @@ export default function FeesTab({ ctx }: { ctx: TabContext }) {
               <div key={fee.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{fee.student_name}</p>
-                  <p className="text-xs text-muted-foreground">{fee.month} • ${fee.total_amount?.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">{fee.month} • INR {fee.total_amount?.toFixed(2)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className={fee.status === "sent_to_student" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}>{fee.status === "sent_to_student" ? "Sent" : "Pending"}</Badge>
