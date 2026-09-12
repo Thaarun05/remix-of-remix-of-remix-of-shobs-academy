@@ -1,12 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/EmptyState";
-import { CheckCircle2, DollarSign } from "lucide-react";
+import { DollarSign } from "lucide-react";
 import type { TabContext } from "./types";
 
 export default function SalaryTab({ ctx }: { ctx: TabContext }) {
-  const { salaries, handleSalaryResponse } = ctx;
+  const { salaries } = ctx;
   return (
     <Card className="dashboard-list-card">
       <CardHeader>
@@ -42,24 +41,6 @@ export default function SalaryTab({ ctx }: { ctx: TabContext }) {
                     }>
                       {salary.status === "sent_to_teacher" ? "Pending Review" : salary.status}
                     </Badge>
-                    {salary.status === "sent_to_teacher" && (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="dashboard-btn dashboard-btn-teacher"
-                          onClick={() => handleSalaryResponse(salary.id, "confirmed")}
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-1" />Yes, All Correct
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleSalaryResponse(salary.id, "needs_correction")}
-                        >
-                          Need Corrections
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
