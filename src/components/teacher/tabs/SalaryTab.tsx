@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
 import { EmptyState } from "@/components/EmptyState";
 import { DollarSign } from "lucide-react";
 import type { TabContext } from "./types";
