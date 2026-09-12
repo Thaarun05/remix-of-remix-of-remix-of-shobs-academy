@@ -33,15 +33,6 @@ export default function SalaryTab({ ctx }: { ctx: TabContext }) {
                     {salary.num_classes && <p className="text-sm text-muted-foreground">{salary.num_classes} classes</p>}
                     {salary.note && <p className="text-sm text-muted-foreground">Note: {salary.note}</p>}
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Badge className={
-                      salary.status === "confirmed" ? "bg-success/10 text-success" :
-                      salary.status === "needs_correction" ? "bg-destructive/10 text-destructive" :
-                      "bg-warning/10 text-warning"
-                    }>
-                      {salary.status === "sent_to_teacher" ? "Pending Review" : salary.status}
-                    </Badge>
-                  </div>
                 </div>
               </div>
             ))}
