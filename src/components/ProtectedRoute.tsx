@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, parentMode } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -32,7 +32,7 @@ export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
   if (role !== allowedRole) {
     // Role mismatch - redirect to correct dashboard or show access denied
     if (role) {
-      return <Navigate to={`/${role}`} replace />;
+      return <Navigate to={role === "student" && parentMode ? "/parent" : `/${role}`} replace />;
     }
     return <Navigate to="/" replace />;
   }

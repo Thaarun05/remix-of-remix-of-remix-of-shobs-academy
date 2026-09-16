@@ -9,7 +9,11 @@ interface AuthContextType {
   role: UserRole | null;
   loading: boolean;
   refreshRole: () => Promise<void>;
+  parentMode: boolean;
+  setParentMode: (value: boolean) => void;
 }
+
+const PARENT_MODE_KEY = "shobs_parent_mode";
 
 // Persist context across HMR by storing on globalThis
 const AUTH_CONTEXT_KEY = "__SHOBS_AUTH_CONTEXT__";
@@ -28,6 +32,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [parentMode, setParentModeState] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(PARENT_MODE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const setParentMode = (value: boolean) => {
+    setParentModeState(value);
+    try {
+      localStorage.setItem(PARENT_MODE_KEY, String(value));
+    } catch {
+      /* ignore */
+    }
+  };
 
   const fetchRole = async (userId: string) => {
     const userRole = await getUserRole(userId);
@@ -78,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, refreshRole }}>
+    <AuthContext.Provider value={{ user, session, role, loading, refreshRole, parentMode, setParentMode }}>
       {children}
     </AuthContext.Provider>
   );

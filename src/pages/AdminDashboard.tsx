@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { EmptyState } from "@/components/EmptyState";
 import { MessagingPanel } from "@/components/messaging/MessagingPanel";
+import { ParentAdminMessaging } from "@/components/messaging/ParentAdminMessaging";
 import { AdminTeacherMessaging } from "@/components/messaging/AdminTeacherMessaging";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -952,6 +953,8 @@ const AdminDashboard = () => {
             </TabsContent>
           </Tabs>
         )}
+
+        {activeTab === "parent-messages" && <ParentAdminMessaging userRole="admin" />}
 
         {activeTab === "resources" && <TeacherResources />}
         {activeTab === "recordings" && <AdminRecordingSubmissions />}

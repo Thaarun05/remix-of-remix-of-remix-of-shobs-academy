@@ -564,6 +564,65 @@ export type Database = {
         }
         Relationships: []
       }
+      parent_admin_conversations: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          id: string
+          student_user_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          student_user_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          student_user_id?: string
+        }
+        Relationships: []
+      }
+      parent_admin_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          read_at: string | null
+          receiver_user_id: string
+          sender_user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          receiver_user_id: string
+          sender_user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          receiver_user_id?: string
+          sender_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_admin_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "parent_admin_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -1364,6 +1423,21 @@ export type Database = {
         Args: { _recipient: string; _sender: string }
         Returns: boolean
       }
+      get_academy_admin: {
+        Args: never
+        Returns: {
+          full_name: string
+          user_id: string
+        }[]
+      }
+      get_family_children: {
+        Args: never
+        Returns: {
+          grade: string
+          student_name: string
+          user_id: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1381,6 +1455,14 @@ export type Database = {
       }
       is_conversation_participant: {
         Args: { _conversation_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_family_sibling: {
+        Args: { _student: string; _viewer: string }
+        Returns: boolean
+      }
+      is_parent_admin_conv_participant: {
+        Args: { _conv_id: string; _user_id: string }
         Returns: boolean
       }
     }
