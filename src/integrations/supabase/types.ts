@@ -1423,6 +1423,13 @@ export type Database = {
         Args: { _recipient: string; _sender: string }
         Returns: boolean
       }
+      get_academy_admin: {
+        Args: never
+        Returns: {
+          full_name: string
+          user_id: string
+        }[]
+      }
       get_family_children: {
         Args: never
         Returns: {
