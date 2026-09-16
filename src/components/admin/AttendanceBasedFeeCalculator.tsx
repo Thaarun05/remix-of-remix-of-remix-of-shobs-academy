@@ -599,7 +599,7 @@ export const AttendanceBasedFeeCalculator = () => {
                         value={hourlyRate}
                         onChange={(e) => { setHourlyRate(e.target.value); setCalculated(false); }}
                         placeholder="e.g. 500"
-                        className="pl-8"
+                        className="pl-14"
                       />
                     </div>
                   </div>
