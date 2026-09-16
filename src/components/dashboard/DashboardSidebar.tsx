@@ -182,6 +182,17 @@ export const studentSidebarItems: SidebarItem[] = [
   { id: "messages", label: "Messages", icon: MessageSquare },
 ];
 
+export const parentSidebarItems: SidebarItem[] = [
+  { id: "overview", label: "Overview", icon: GraduationCap },
+  { id: "schedule", label: "Schedule", icon: CalendarDays },
+  { id: "attendance", label: "Attendance", icon: Calendar },
+  { id: "assignments", label: "Assignments", icon: FileText },
+  { id: "quizzes", label: "Quizzes", icon: ListChecks },
+  { id: "materials", label: "Learning Material", icon: FolderOpen },
+  { id: "fees", label: "Fees", icon: FileSpreadsheet },
+  { id: "messages", label: "Message Admin", icon: MessageSquare },
+];
+
 export const teacherSidebarItems: SidebarItem[] = [
   { id: "calendar", label: "Calendar", icon: CalendarDays },
   { id: "attendance", label: "Attendance", icon: Calendar },
@@ -215,5 +226,6 @@ export const adminSidebarItems: SidebarItem[] = [
   { id: "resources", label: "Teacher Resources", icon: FolderOpen },
   { id: "recordings", label: "Recordings", icon: Film },
   { id: "messages", label: "Messages", icon: MessageSquare },
+  { id: "parent-messages", label: "Parent Messages", icon: MessageSquare },
   { id: "all-users", label: "All Users", icon: Users },
 ];

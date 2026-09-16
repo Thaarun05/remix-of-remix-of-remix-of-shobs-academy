@@ -23,7 +23,7 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
   title: string;
   roleLabel: string;
-  roleColor: "student" | "teacher" | "admin";
+  roleColor: "student" | "teacher" | "admin" | "parent";
   sidebarItems?: SidebarItem[];
   activeTab?: string;
   onTabChange?: (tab: string) => void;
@@ -47,18 +47,20 @@ export function DashboardLayout({
     student: "dashboard-page-student",
     teacher: "dashboard-page-teacher",
     admin: "dashboard-page-admin",
+    parent: "dashboard-page-student",
   };
 
   const roleBadgeClasses = {
     student: "dashboard-role-badge-student",
     teacher: "dashboard-role-badge-teacher",
     admin: "dashboard-role-badge-admin",
+    parent: "dashboard-role-badge-student",
   };
 
   return (
     <div className={cn("min-h-dvh", pageColorClasses[roleColor])}>
       {/* Global Navbar */}
-      <Navbar showAboutLink={false} variant={roleColor} />
+      <Navbar showAboutLink={false} variant={roleColor === "parent" ? "student" : roleColor} />
 
       {/* Dashboard Layout with Sidebar */}
       <div className="dashboard-layout">
@@ -68,7 +70,7 @@ export function DashboardLayout({
             items={sidebarItems}
             activeItem={activeTab}
             onItemClick={onTabChange}
-            roleColor={roleColor}
+            roleColor={roleColor === "parent" ? "student" : roleColor}
           />
         )}
 
