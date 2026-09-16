@@ -238,10 +238,10 @@ const ParentDashboard = () => {
             <SkeletonStats />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard title="Attendance this month" value={`${stats.pct}%`} icon={Calendar} variant="student" />
-              <StatCard title="Classes attended" value={String(stats.present)} icon={CheckCircle2} variant="student" />
-              <StatCard title="Pending assignments" value={String(stats.pending)} icon={FileText} variant="student" />
-              <StatCard title="Quizzes to attempt" value={String(stats.quizzesDue)} icon={ListChecks} variant="student" />
+              <StatCard label="Attendance this month" value={`${stats.pct}%`} icon={Calendar} variant="student" />
+              <StatCard label="Classes attended" value={String(stats.present)} icon={CheckCircle2} variant="student" />
+              <StatCard label="Pending assignments" value={String(stats.pending)} icon={FileText} variant="student" />
+              <StatCard label="Quizzes to attempt" value={String(stats.quizzesDue)} icon={ListChecks} variant="student" />
             </div>
           )}
 
