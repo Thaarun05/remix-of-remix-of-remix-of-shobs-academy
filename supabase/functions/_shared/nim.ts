@@ -47,6 +47,44 @@ export class NimCallError extends Error {
   }
 }
 
+function getProviderErrorMessage(error: unknown): string | undefined {
+  if (!error || typeof error !== "object") return undefined;
+
+  const providerError = (error as { error?: unknown }).error;
+  if (typeof providerError === "string" && providerError.trim()) {
+    return providerError.trim().slice(0, 500);
+  }
+  if (providerError && typeof providerError === "object") {
+    const message = (providerError as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) {
+      return message.trim().slice(0, 500);
+    }
+  }
+
+  const message = (error as { message?: unknown }).message;
+  if (typeof message === "string" && message.trim()) {
+    const embeddedJson = message.match(/\{[\s\S]*\}/)?.[0];
+    if (embeddedJson) {
+      try {
+        const parsed = JSON.parse(embeddedJson) as {
+          error?: { message?: unknown } | string;
+        };
+        const detail = typeof parsed.error === "string"
+          ? parsed.error
+          : parsed.error?.message;
+        if (typeof detail === "string" && detail.trim()) {
+          return detail.trim().slice(0, 500);
+        }
+      } catch {
+        // The SDK message may not contain a standalone JSON error envelope.
+      }
+    }
+    return message.trim().slice(0, 500);
+  }
+
+  return undefined;
+}
+
 function getClient(): OpenAI {
   const apiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!apiKey) {
@@ -109,6 +147,7 @@ export async function callNimChat(opts: CallNimChatOptions): Promise<unknown> {
       ?? (e as { statusCode?: number })?.statusCode
       ?? 500;
     const msg = e instanceof Error ? e.message : String(e);
+    const providerMessage = getProviderErrorMessage(e);
     console.error("OpenRouter error", status, msg.slice(0, 800));
     if (status === 401 || status === 403) {
       throw new NimCallError(
@@ -125,8 +164,9 @@ export async function callNimChat(opts: CallNimChatOptions): Promise<unknown> {
       );
     }
     if (status === 402) {
+      const detail = providerMessage ? ` Provider detail: ${providerMessage}` : "";
       throw new NimCallError(
-        "OpenRouter credits exhausted. Add credits to your OpenRouter account (openrouter.ai/credits) and try again.",
+        `OpenRouter declined this request (HTTP 402). This can indicate an API key spending limit or an account billing restriction; it does not necessarily mean the account balance is zero.${detail}`,
         402,
         "billing",
       );
