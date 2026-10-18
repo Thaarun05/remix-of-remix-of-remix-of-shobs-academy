@@ -80,11 +80,15 @@ Return ONLY the quiz JSON object.
 (Provider: OpenRouter ${NIM_MODEL}. If JSON fails often, switch explicitly to ${NIM_LARGER_MODEL_SUGGESTION}.)`;
 
     const systemPrompt = buildSystemPrompt(includeExplanations);
+    // MCQs are compact: ~500 tokens/question with explanations (300 without),
+    // plus overhead and reasoning headroom. 30 questions ≈ 18k, 50 ≈ 28k.
+    const budgetFor = (qCount: number) =>
+      Math.min(60000, 3000 + qCount * (includeExplanations ? 500 : 300));
     const runOnce = (qCount: number) =>
       callNimChat({
         temperature: 0.2,
         top_p: 0.7,
-        max_tokens: 60000,
+        max_tokens: budgetFor(qCount),
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: buildUserText(qCount) },
