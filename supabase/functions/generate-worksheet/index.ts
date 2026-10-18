@@ -199,7 +199,8 @@ Return a single replacement question with "number" = ${target_number}.`;
       const parsed = await callNimChat({
         temperature: 0.2,
         top_p: 0.7,
-        max_tokens: 16000,
+        // Single replacement question: small budget is plenty.
+        max_tokens: 6000,
         messages: [
           { role: "system", content: REGEN_SYSTEM_PROMPT },
           { role: "user", content: userMsg },
@@ -246,10 +247,14 @@ ${String(message).trim()}
 Return the full updated worksheet and a short assistant_reply.
 (${WORKSHEET_CAPACITY_NOTE})`;
 
+      // Chat refine echoes the full worksheet back — size to its question count.
+      const refineQCount = Array.isArray((worksheet as { questions?: unknown[] }).questions)
+        ? (worksheet as { questions: unknown[] }).questions.length
+        : 10;
       const parsed = await callNimChat({
         temperature: 0.2,
         top_p: 0.7,
-        max_tokens: 16000,
+        max_tokens: Math.min(60000, 6000 + refineQCount * 1000),
         messages: [
           { role: "system", content: CHAT_REFINE_SYSTEM_PROMPT },
           { role: "user", content: userMsg },
@@ -316,11 +321,17 @@ ${imgCount
 Return ONLY the worksheet JSON object.
 (${WORKSHEET_CAPACITY_NOTE})`;
 
+    // Size the output budget to the request instead of always reserving 60k:
+    // ~1200 tokens/question with answers (700 without), plus overhead and
+    // reasoning headroom. 10 questions ≈ 17k, 30 ≈ 42k, 50 caps at 60k.
+    const budgetFor = (n: number) =>
+      Math.min(60000, 5000 + n * (includeAnswers ? 1200 : 700));
+
     const runGeneration = (n: number) =>
       callNimChat({
         temperature: 0.2,
         top_p: 0.7,
-        max_tokens: 60000,
+        max_tokens: budgetFor(n),
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: buildUserText(n) },
