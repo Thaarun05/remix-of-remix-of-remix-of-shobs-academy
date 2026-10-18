@@ -126,6 +126,8 @@ export const TRUNCATION_MESSAGE =
 export async function callNimChat(opts: CallNimChatOptions): Promise<unknown> {
   const client = getClient();
   const parseJson = opts.parseJson !== false;
+  const maxTokens = opts.max_tokens ?? 16000;
+  console.log(`OpenRouter request: model=${NIM_MODEL} max_tokens=${maxTokens}`);
 
   let completion;
   try {
