@@ -1,61 +1,65 @@
-# Generate Worksheet: why OpenRouter returns HTTP 402
+# Minimal fix: worksheet generation HTTP 402
 
-Diagnosis only. Nothing changes until you approve the next steps.
+## What changes
+Size the maximum answer length (`max_tokens`) to the number of questions instead of a fixed 60,000, and make the 402 error message accurate. The model, prompts, JSON format, reasoning setting and answer-key toggle all stay the same.
 
-## 1. Files and functions involved
+## 1. Recommended token limits
+
+Rough output per worksheet question, as JSON with the prompt, options, marks and difficulty:
+- without an answer key: about 150–300 tokens
+- with an answer key (answer and working): about 300–600 tokens
+
+Reasoning is turned on, and its "thinking" tokens use the same budget, so the limit leaves about 2x headroom.
+
+Formula (worksheet):
 
 ```text
-Generate button
- -> src/components/teacher/TeacherWorksheetBuilder.tsx
-    - extractSourceFiles() (src/lib/extractSource.ts): PDF text, up to 30 pages; pages with little text become PNG images
-    - supabase.functions.invoke("generate-worksheet", ...)   (line ~238)
-    - on error: edgeFunctionErrorMessage() (src/lib/worksheet/edgeErrors.ts)
- -> supabase/functions/generate-worksheet/index.ts
-    - reads subject, grade, topic, count, difficulty, types, objective, text, images, include_answers
-    - source text cut to 12,000 characters (line 310); images are ignored (text-only)
-    - callNimChat({ max_tokens: 60000, ... })   (line 323)
-    - edit/refine paths use max_tokens 16000 (lines 202, 252)
- -> supabase/functions/_shared/nim.ts  callNimChat()
-    - OpenRouter https://openrouter.ai/api/v1, key from the OPENROUTER_API_KEY backend secret
-    - model openai/gpt-5.6-terra-pro, reasoning enabled, JSON output mode
-    - status 402 is turned into the "declined (HTTP 402)" message plus the provider's own text
+max_tokens = min(32000, 4000 + count x (includeAnswers ? 900 : 550))
 ```
 
-Quiz generation uses the same helper, also with 60,000 (generate-quiz line 87).
+| Questions | No answer key | With answer key |
+|-----------|---------------|-----------------|
+| 10        | 9,500         | 13,000          |
+| 20        | 15,000        | 22,000          |
+| 30        | 20,500        | 31,000          |
+| 50        | 31,500        | 32,000 (cap)    |
 
-## 2. Most likely root cause
-OpenRouter checks the cost of a request **before** it runs. It multiplies the requested `max_tokens` (60,000) by the model's output price and adds the input cost. If that worst case is more than the key is allowed to spend, it returns 402 with the message "requires more credits, or fewer max_tokens. You requested up to 60000 tokens, but can only afford N." Your second error says exactly this.
+Why this is enough: 30 questions with answers need about 18,000 visible tokens at most, and the budget leaves room for reasoning on top. Why it is cheaper to clear: OpenRouter's up-front cost check uses this number. A 10-question worksheet now reserves about 13,000 tokens instead of 60,000, which is roughly 4.5x less.
 
-That means the limit comes from **the 60,000 reservation, not the length of the worksheet**. It happens even when no file is uploaded, and that matches what you saw.
+## 2. Code changes
 
-The money check can be stricter than your account balance for two reasons:
-- **A spending limit on the key.** OpenRouter keys can have their own credit limit, separate from the account balance. If that limit is low or mostly used up, the key can't cover a 60,000-token reservation, even with $10.65 in the account.
-- **The model's price.** For an expensive "pro" reasoning model, 60,000 output tokens can cost more than the remaining limit. The price I noted earlier (about $0.72) is not confirmed against OpenRouter's current pricing page.
+**`supabase/functions/generate-worksheet/index.ts`** (main generation call, line ~323)
+- Replace `max_tokens: 60000` with the formula above, using the existing `requestedCount` and `includeAnswers` values.
+- If a retry with fewer questions already exists, it recalculates the limit for the smaller count.
+- Edit and refine calls (16,000) are left as they are.
 
-## 3. One issue or several
-One main issue: the 60,000-token reservation is larger than the key can afford. Two smaller issues:
-- The first error message ("credits exhausted") came from the old code. The current code no longer claims that. The new message does say "may be insufficient balance", which can still mislead.
-- Your balance dropped from $11.35 to $10.65, so some calls are succeeding (or smaller ones like edit and diagram calls that use 16,000 or 1,024 tokens). Big generations fail at the pre-check.
+**`supabase/functions/generate-quiz/index.ts`** (line 87): same problem, so it gets the same treatment.
 
-## 4. What the 402 and the "60000" mean here
-- 402 = OpenRouter refused the cost pre-check. It does not mean the account is at zero.
-- 60000 = the **maximum answer length** (`max_tokens`) set in generate-worksheet and generate-quiz. It is not the model's context window and not your input size. The model is never asked to produce that much, but OpenRouter reserves credit for it.
+```text
+max_tokens = min(32000, 3000 + count x (includeExplanations ? 550 : 350))
+```
 
-## 5. Confirmed vs needs your OpenRouter account
-Confirmed from the code: the files and flow above, the 60,000 reservation, the 12,000-character limit on source text, that images are ignored, the key name, the model name, and how errors are mapped.
+This gives 10 questions = 8,500 and 50 questions = 30,500. Its existing retry with half the questions recalculates the limit for the new count.
 
-Needs checking on openrouter.ai:
-- Keys page: the **credit limit** on this key, and how much of it is used.
-- Model page for `openai/gpt-5.6-terra-pro`: output price per token and maximum output length.
-- Activity page: which calls succeeded (to explain the $0.70 spent).
+**`supabase/functions/_shared/nim.ts`**: nothing changes here except the error message below. `max_tokens` is passed straight through, as it is today.
 
-The app could ask OpenRouter for the key's limit and remaining credit (`GET /api/v1/key`) to confirm this without the dashboard. It does not do that today.
+Notes and diagram calls (16,000 and 1,024) are not touched.
 
-PDFs are not the cause. Source text is capped at 12,000 characters (about 3,000 tokens) and images are dropped. The error also happens without any file.
+## 3. Clearer 402 message (`_shared/nim.ts`)
+- Keep the rule that 402 never claims "credits exhausted".
+- New wording: "OpenRouter couldn't approve the cost of this request (HTTP 402). Usually this means the API key's spending limit, or the remaining balance, is below the maximum this request might cost. It does not necessarily mean the balance is zero."
+- Add OpenRouter's own message (already captured by `getProviderErrorMessage`). That message includes the "can only afford N" figure when OpenRouter sends it.
+- Log the status, model, `max_tokens` and provider message (never the key) in the backend log, so the next failure can be confirmed from evidence.
+- `src/lib/worksheet/edgeErrors.ts`: no change needed. It already shows the backend's error message.
 
-## 6. Recommended next steps (in order, after your approval)
-1. **You check** the key's credit limit and the model's price on OpenRouter. Raising or removing the key limit may fix this with no code change.
-2. **Size the reservation to the request** in generate-worksheet and generate-quiz. Scale `max_tokens` with the question count (for example about 1,200 per question plus overhead, with a cap) instead of a fixed 60,000. Keep the existing retry that halves the count if the answer gets cut off.
-3. **Add a one-time check** that reads the key's remaining limit (`/api/v1/key`) and shows it in the error, so a 402 tells you which limit was hit.
-4. **Make the error message clearer:** "the key's spending limit can't cover this request size", using the actual figures from OpenRouter.
-5. Deploy the affected functions and run one real worksheet generation and one quiz generation as a teacher to confirm.
+## 4. Checking the key's credit (GET /api/v1/key)
+**Optional. Not part of the fix.** It only helps diagnose the problem. The logging above plus OpenRouter's own message already give the affordability figure when a 402 happens. A key check could be added later, for example as an admin "check AI key" button, if you want it.
+
+## 5. Risks
+- **Answers getting cut off:** if the model reasons for a long time, a tighter budget could stop it before the JSON is finished. Mitigation: the existing cut-off detection plus the retry with fewer questions. The 2x headroom makes this unlikely below 30 questions.
+- **Still 402 if the key limit is very low:** if the key can afford fewer tokens than the new number, the error remains. The new message will then show the exact figure, and the fix is on OpenRouter (raise the key's limit or add credit).
+- **JSON output, reasoning, answer key:** these don't change. Only the output budget does.
+- **Large worksheets (40–50 questions with answers)** hit the 32,000 cap and may be cut off, then retried with fewer questions. That is the same behaviour as today's retry path.
+
+## Verification
+Deploy generate-worksheet and generate-quiz, then sign in as a teacher and run one real 10-question worksheet (answer key on), one 30-question worksheet and one quiz. Read the actual responses and backend logs. If OpenRouter still returns 402, report its exact message instead of working around it.
