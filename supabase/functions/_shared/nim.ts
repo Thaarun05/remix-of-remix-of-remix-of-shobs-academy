@@ -148,9 +148,13 @@ export async function callNimChat(opts: CallNimChatOptions): Promise<unknown> {
     const status = (e as { status?: number })?.status
       ?? (e as { statusCode?: number })?.statusCode
       ?? 500;
-    const msg = e instanceof Error ? e.message : String(e);
     const providerMessage = getProviderErrorMessage(e);
-    console.error("OpenRouter error", status, msg.slice(0, 800));
+    console.error("OpenRouter error", {
+      status,
+      model: NIM_MODEL,
+      max_tokens: maxTokens,
+      providerMessage: providerMessage ?? "No provider detail returned",
+    });
     if (status === 401 || status === 403) {
       throw new NimCallError(
         "OpenRouter rejected the API key (401). Check OPENROUTER_API_KEY in the backend secrets.",
@@ -168,7 +172,7 @@ export async function callNimChat(opts: CallNimChatOptions): Promise<unknown> {
     if (status === 402) {
       const detail = providerMessage ? ` Provider detail: ${providerMessage}` : "";
       throw new NimCallError(
-        `OpenRouter declined this request (HTTP 402). This can indicate an API key spending limit or an account billing restriction; it does not necessarily mean the account balance is zero.${detail}`,
+        `OpenRouter couldn't approve the cost of this request (HTTP 402). Usually this means the API key's spending limit, or the remaining balance, is below the maximum this request might cost. It does not necessarily mean the balance is zero.${detail}`,
         402,
         "billing",
       );

@@ -321,11 +321,10 @@ ${imgCount
 Return ONLY the worksheet JSON object.
 (${WORKSHEET_CAPACITY_NOTE})`;
 
-    // Size the output budget to the request instead of always reserving 60k:
-    // ~1200 tokens/question with answers (700 without), plus overhead and
-    // reasoning headroom. 10 questions ≈ 17k, 30 ≈ 42k, 50 caps at 60k.
+    // Budget includes JSON output and reasoning headroom, capped at 32k.
+    // 10 questions with answers: 13k; 30 with answers: 31k.
     const budgetFor = (n: number) =>
-      Math.min(60000, 5000 + n * (includeAnswers ? 1200 : 700));
+      Math.min(32000, 4000 + n * (includeAnswers ? 900 : 550));
 
     const runGeneration = (n: number) =>
       callNimChat({
