@@ -126,7 +126,7 @@ export const TRUNCATION_MESSAGE =
 export async function callNimChat(opts: CallNimChatOptions): Promise<unknown> {
   const client = getClient();
   const parseJson = opts.parseJson !== false;
-  const maxTokens = opts.max_tokens ?? 16000;
+  const maxTokens = opts.max_tokens ?? 10000;
   console.log(`OpenRouter request: model=${NIM_MODEL} max_tokens=${maxTokens}`);
 
   let completion;
@@ -136,7 +136,7 @@ export async function callNimChat(opts: CallNimChatOptions): Promise<unknown> {
       messages: opts.messages,
       temperature: opts.temperature ?? 0.2,
       top_p: opts.top_p ?? 0.7,
-      max_tokens: opts.max_tokens ?? 16000,
+      max_tokens: opts.max_tokens ?? 10000,
       stream: false,
       // OpenRouter-specific: enable the model's thinking tokens.
       reasoning: { enabled: true },
