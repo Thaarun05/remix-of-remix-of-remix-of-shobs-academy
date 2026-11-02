@@ -29,7 +29,7 @@ export async function edgeFunctionErrorMessage(
 
   if (error instanceof Error && error.message) {
     if (error.message.includes("non-2xx")) {
-      return "Worksheet service failed. Check OPENROUTER_API_KEY in the backend secrets and that generate-worksheet is redeployed.";
+      return "The AI service returned an error. Check the OpenRouter key and limits, and that the edge functions are redeployed.";
     }
     return error.message;
   }

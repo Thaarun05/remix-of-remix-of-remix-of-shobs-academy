@@ -16,6 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { edgeFunctionErrorMessage } from "@/lib/worksheet/edgeErrors";
 
 interface AssignedStudent { user_id: string; student_name: string; }
 interface Question {
@@ -35,13 +36,12 @@ interface Quiz {
   questions: Question[];
 }
 
-async function extractFromPdf(file: File): Promise<{ text: string; images: string[] }> {
+async function extractFromPdf(file: File): Promise<{ text: string }> {
   const pdfjs: any = await import("pdfjs-dist/build/pdf.mjs");
   pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.mjs`;
   const buf = await file.arrayBuffer();
   const doc = await pdfjs.getDocument({ data: buf }).promise;
   let combined = "";
-  const images: string[] = [];
   const maxPages = Math.min(doc.numPages, 30);
   for (let i = 1; i <= maxPages; i++) {
     const page = await doc.getPage(i);
@@ -49,26 +49,9 @@ async function extractFromPdf(file: File): Promise<{ text: string; images: strin
     const pageText = tc.items.map((it: any) => it.str).join(" ").trim();
     if (pageText.length > 40) {
       combined += `\n\n--- Page ${i} ---\n${pageText}`;
-    } else {
-      const viewport = page.getViewport({ scale: 1.5 });
-      const canvas = document.createElement("canvas");
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext("2d")!;
-      await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-      images.push(canvas.toDataURL("image/png"));
     }
   }
-  return { text: combined.trim(), images };
-}
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(fr.result as string);
-    fr.onerror = reject;
-    fr.readAsDataURL(file);
-  });
+  return { text: combined.trim() };
 }
 
 const blankQ = (n: number): Question => ({
@@ -207,26 +190,30 @@ export function TeacherQuizMaker() {
     setLoading(true);
     try {
       let extractedText = "";
-      const images: string[] = [];
+      const skipped: string[] = [];
       for (const f of files) {
         if (/\.pdf$/i.test(f.name)) {
           const r = await extractFromPdf(f);
-          extractedText += `\n\n[From ${f.name}]\n${r.text}`;
-          images.push(...r.images);
+          if (r.text) extractedText += `\n\n[From ${f.name}]\n${r.text}`;
+          else skipped.push(f.name);
         } else {
-          images.push(await fileToDataUrl(f));
+          skipped.push(f.name);
         }
       }
+      if (skipped.length) {
+        toast({ title: "Couldn't read some files", description: `${skipped.join(", ")} look scanned or image-only. Please paste the text instead.`, variant: "destructive" });
+      }
       const combinedText = [pastedText.trim(), extractedText.trim()].filter(Boolean).join("\n\n");
+      if (!combinedText && files.length > 0) return;
       const { data, error } = await supabase.functions.invoke("generate-quiz", {
         body: {
           subject, grade, topics,
           count: Math.max(1, Math.min(parseInt(count) || 10, 50)),
-          difficulty, text: combinedText, images, instructions,
+          difficulty, text: combinedText, instructions,
           include_explanations: includeExplanations,
         },
       });
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error, data));
       if ((data as any)?.error) throw new Error((data as any).error);
       const q = (data as any).quiz as Quiz;
       if (!q?.questions?.length) throw new Error("Generation failed — try again with clearer source material.");
